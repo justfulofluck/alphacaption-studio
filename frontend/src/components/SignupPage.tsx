@@ -1,0 +1,42 @@
+import { GalleryVerticalEnd } from "lucide-react"
+import { SignupForm } from "@/components/signup-form"
+
+export default function SignupPage() {
+  return (
+    <div className="grid min-h-svh lg:grid-cols-2 bg-background font-sans">
+      <div className="flex flex-col gap-4 p-6 md:p-10">
+        <div className="flex justify-center gap-2 md:justify-start">
+          <a href="/" className="flex items-center gap-2 font-black tracking-tight">
+            <div className="flex size-8 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
+              <GalleryVerticalEnd size={18} />
+            </div>
+            vcaptiona
+          </a>
+        </div>
+        <div className="flex flex-1 items-center justify-center">
+          <div className="w-full max-w-xs">
+            <SignupForm />
+          </div>
+        </div>
+      </div>
+      <div className="relative hidden bg-muted lg:block">
+        <img
+          src="https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=2070&auto=format&fit=crop"
+          alt="Abstract Studio"
+          className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] grayscale opacity-50"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent"></div>
+        <div className="absolute bottom-12 left-12 right-12">
+          <blockquote className="space-y-4">
+            <p className="text-2xl font-medium tracking-tight text-white leading-relaxed">
+              "The most intuitive captioning tool I've ever used. It transformed my workflow instantly."
+            </p>
+            <footer className="text-sm font-bold uppercase tracking-widest text-zinc-400">
+              Design Lead @ AlphaCaption
+            </footer>
+          </blockquote>
+        </div>
+      </div>
+    </div>
+  )
+}
