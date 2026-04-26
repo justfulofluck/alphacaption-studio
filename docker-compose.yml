@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "4444:3000"
+    environment:
+      - VITE_API_BASE_URL=http://backend:4445
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+  backend:
+    build: ./server
+    ports:
+      - "4445:4445"
+    environment:
+      - SECRET_KEY=alphacaption-secret-key-2024
+      - JWT_SECRET_KEY=alphacaption-jwt-secret-2024
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3307
+      - MYSQL_USER=alphacaption
+      - MYSQL_PASSWORD=alphacaption123
+      - MYSQL_DATABASE=alphacaption
+      - GCP_PROJECT_ID=vcaptiona-srt-494215
+      - GCP_REGION=us-central1
+      - GCP_CREDENTIALS_PATH=./credentials/vcaption-srt-key.json
+      - GEMINI_MODEL=gemini-flash-latest
+      - FRONTEND_URL=http://frontend:4444
+      - BASE_URL=http://localhost:4445
+      - MAIL_ENABLED=true
+      - MAIL_USERNAME=makemyqrcodeapp@gmail.com
+      - MAIL_PASSWORD=yfxmqmjlfuclyntw
+      - MAIL_FROM=AlphaCaption Studio <makemyqrcodeapp@gmail.com>
+    depends_on:
+      - mysql
+    volumes:
+      - ./server:/app
+      - ./server/credentials:/app/credentials
+
+  mysql:
+    image: mysql:8.0
+    ports:
+      - "3307:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=root123
+      - MYSQL_DATABASE=alphacaption
+      - MYSQL_USER=alphacaption
+      - MYSQL_PASSWORD=alphacaption123
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  mysql_data:
