@@ -53,6 +53,20 @@ export default function UserDashboard() {
         return;
       }
 
+      // Check token expiration locally
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (Date.now() >= payload.exp * 1000) {
+          localStorage.removeItem('auth_token');
+          navigate('/login');
+          return;
+        }
+      } catch (e) {
+        localStorage.removeItem('auth_token');
+        navigate('/login');
+        return;
+      }
+
       try {
         const [userRes, projectsRes] = await Promise.all([
           axios.get(`${API_BASE_URL}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } }),

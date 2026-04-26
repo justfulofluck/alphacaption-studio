@@ -1,7 +1,18 @@
+import { useEffect } from "react"
+import { useNavigate } from "react-router-dom"
 import { GalleryVerticalEnd } from "lucide-react"
 import { LoginForm } from "@/components/login-form"
 
 export default function LoginPage() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = localStorage.getItem('auth_token');
+    if (token && token !== 'undefined' && token !== 'null') {
+      navigate('/dashboard');
+    }
+  }, [navigate]);
+
   return (
     <div className="grid min-h-svh lg:grid-cols-2 bg-background font-sans">
       <div className="flex flex-col gap-4 p-6 md:p-10">

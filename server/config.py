@@ -23,6 +23,12 @@ class Config:
     JWT_HEADER_TYPE = 'Bearer'
     JWT_IDENTITY_CLAIM = 'sub'
     
+    # GCP / Vertex AI Configuration
+    GCP_PROJECT_ID = os.environ.get('GCP_PROJECT_ID', '')
+    GCP_REGION = os.environ.get('GCP_REGION', 'us-central1')
+    GCP_CREDENTIALS_PATH = os.environ.get('GCP_CREDENTIALS_PATH', '')
+    
+    # Legacy - kept for backward compatibility (optional)
     GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
     
     BASE_URL = os.environ.get('BASE_URL', 'http://localhost:5000')

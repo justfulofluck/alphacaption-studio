@@ -54,28 +54,28 @@ export default function AdminDashboard() {
       }
 
       try {
-        const meRes = await axios.get(`${API_BASE_URL}/api/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setAdminUser(meRes.data);
+        const [meRes, usersRes, statsRes] = await Promise.all([
+          axios.get(`${API_BASE_URL}/api/auth/me`, {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          axios.get(`${API_BASE_URL}/api/auth/admin/users`, {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          axios.get(`${API_BASE_URL}/api/auth/admin/stats`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+        ]);
 
-        // Mocking admin data for demonstration as in previous version
-        const mockUsers: AdminUser[] = [
-          { id: '1', name: 'John Doe', email: 'john@example.com', plan: 'pro', status: 'active', joinedAt: '2026-04-10' },
-          { id: '2', name: 'Jane Smith', email: 'jane@example.com', plan: 'basic', status: 'active', joinedAt: '2026-04-12' },
-          { id: '3', name: 'Bob Wilson', email: 'bob@example.com', plan: 'enterprise', status: 'active', joinedAt: '2026-04-15' },
-          { id: '4', name: 'Alice Brown', email: 'alice@example.com', plan: 'free', status: 'deactivated', joinedAt: '2026-04-16' },
-        ];
-        setUsers(mockUsers);
-        setStats({
-          totalUsers: 1250,
-          activeSubscribers: 450,
-          totalTokensUsed: 1520000,
-          monthlyRevenue: '$4,250'
-        });
+        setAdminUser(meRes.data);
+        setUsers(usersRes.data);
+        setStats(statsRes.data);
       } catch (err) {
-        localStorage.removeItem('admin_token');
-        navigate('/admin/login');
+        console.error("Dashboard data fetch failed:", err);
+        // Only redirect if it's an auth error
+        if (axios.isAxiosError(err) && (err.response?.status === 401 || err.response?.status === 403)) {
+          localStorage.removeItem('admin_token');
+          navigate('/admin/login');
+        }
       } finally {
         setLoading(false);
       }

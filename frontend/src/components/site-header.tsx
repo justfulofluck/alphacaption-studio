@@ -5,13 +5,31 @@ import {
 } from "@/components/ui/sidebar"
 import { useLocation } from "react-router-dom"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { MoonIcon, SunIcon } from "lucide-react"
+import { MoonIcon, SunIcon, LogOutIcon, UserIcon, SettingsIcon, BellIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { useNavigate } from "react-router-dom"
 
-export function SiteHeader({ user }: { user?: { name: string; avatar?: string } }) {
+export function SiteHeader({ user }: { user?: { name: string; avatar?: string; email?: string } }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const pathnames = location.pathname.split("/").filter((x) => x);
   const [isDark, setIsDark] = useState(false);
+
+  const handleLogout = () => {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('admin_token');
+    navigate('/login');
+    window.location.reload();
+  };
 
   useEffect(() => {
     const theme = localStorage.getItem("theme");
@@ -50,7 +68,6 @@ export function SiteHeader({ user }: { user?: { name: string; avatar?: string } 
         <SidebarTrigger className="-ml-1" />
         <Separator orientation="vertical" className="mr-2 h-4 hidden md:block" />
         <div className="flex items-center gap-2 select-none">
-          <span className="text-sm font-bold text-zinc-400 lowercase tracking-tight">vcaptiona</span>
           <h1 className="text-lg font-black uppercase tracking-tight text-zinc-900 dark:text-white">
             {getPageTitle()}
           </h1>
@@ -58,11 +75,19 @@ export function SiteHeader({ user }: { user?: { name: string; avatar?: string } 
       </div>
 
       <div className="flex items-center ml-auto gap-2">
-        <Button 
-          variant="ghost" 
-          size="icon" 
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate('/settings')}
+          className="h-9 w-9 rounded-full text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+        >
+          <BellIcon size={18} />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={toggleDarkMode}
-          className="h-10 w-10 text-zinc-500 hover:text-zinc-950 dark:hover:text-white transition-all rounded-xl"
+          className="h-9 w-9 rounded-full text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
         >
           {isDark ? (
             <SunIcon className="size-5 transition-all duration-500 rotate-0 scale-100" />
@@ -71,17 +96,6 @@ export function SiteHeader({ user }: { user?: { name: string; avatar?: string } 
           )}
           <span className="sr-only">Toggle dark mode</span>
         </Button>
-
-        {user && (
-          <div className="flex items-center gap-3 pl-2 border-l border-zinc-100 dark:border-zinc-800">
-             <Avatar className="h-9 w-9 border border-zinc-200 dark:border-zinc-700 ring-2 ring-transparent hover:ring-primary/20 transition-all cursor-pointer">
-                <AvatarImage src={user.avatar} />
-                <AvatarFallback className="bg-zinc-900 text-white text-[10px] font-bold dark:bg-white dark:text-zinc-900">
-                  {user.name.substring(0, 2).toUpperCase()}
-                </AvatarFallback>
-             </Avatar>
-          </div>
-        )}
       </div>
     </header>
   )

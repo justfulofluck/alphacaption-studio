@@ -21,6 +21,14 @@ export default function AdminLoginPage() {
   });
   const navigate = useNavigate();
 
+  React.useEffect(() => {
+    const adminToken = localStorage.getItem('admin_token');
+    if (adminToken && adminToken !== 'undefined' && adminToken !== 'null') {
+      navigate('/admin');
+    }
+  }, [navigate]);
+
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     setError(null);
@@ -38,7 +46,11 @@ export default function AdminLoginPage() {
       if (res.data.token) {
         localStorage.setItem('admin_token', res.data.token);
         localStorage.setItem('auth_token', res.data.token);
-        navigate('/admin');
+        
+        // Brief delay to ensure localStorage is committed before navigation
+        setTimeout(() => {
+          navigate('/admin');
+        }, 500);
       }
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || 'Authentication failed';

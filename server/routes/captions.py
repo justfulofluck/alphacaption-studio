@@ -2,12 +2,19 @@ from flask import Blueprint, request, jsonify, current_app, Response
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from extensions import db
 from models.user import Project, Caption
-from services.ai_service import GeminiService
+from services.vertex_service import VertexService
 from utils.srt_generator import generate_srt
 import json
+import os
 
 captions_bp = Blueprint('captions', __name__)
-gemini = GeminiService()
+
+# Lazy-loading VertexService to avoid import-time credential errors
+def get_vertex_service():
+    """Get or create VertexService instance"""
+    if not hasattr(captions_bp, '_vertex_service'):
+        captions_bp._vertex_service = VertexService()
+    return captions_bp._vertex_service
 
 
 @captions_bp.route('/<int:project_id>/transcribe', methods=['POST'])
@@ -28,18 +35,44 @@ def transcribe(project_id):
         return jsonify({'error': 'Audio file not found on server'}), 404
     
     try:
-        result = gemini.transcribe(filepath)
+        vertex = get_vertex_service()
+        print(f"[Captions] Starting transcription for {filepath}")
+        result = vertex.transcribe(filepath)
+        print(f"[Captions] Vertex AI result: {result}")
         
+        if result.get('error'):
+            print(f"[Captions] Transcription error: {result['error']}")
+            return jsonify({'error': f"Transcription failed: {result['error']}"}), 500
+            
+        transcript = result.get('transcript', '')
+        language = result.get('language', 'English')
+        
+        # Save to database
+        caption = Caption.query.filter_by(project_id=project_id).first()
+        if caption:
+            caption.transcript = transcript
+        else:
+            caption = Caption(
+                project_id=project_id,
+                transcript=transcript,
+                segments_json='[]',
+                style_json='{}'
+            )
+            db.session.add(caption)
+            
         project.status = 'transcribed'
-        project.language = result.get('language', 'unknown')
+        project.language = language
         db.session.commit()
         
         return jsonify({
             'message': 'Transcription completed',
-            'language': result.get('language'),
-            'transcript': result.get('transcript')
+            'language': language,
+            'transcript': transcript
         })
     except Exception as e:
+        print(f"[Captions] Unexpected error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': f'Transcription failed: {str(e)}'}), 500
 
 
@@ -67,7 +100,8 @@ def align(project_id):
         return jsonify({'error': 'Audio file not found'}), 404
     
     try:
-        result = gemini.align_transcript(filepath, transcript)
+        vertex = get_vertex_service()
+        result = vertex.align_transcript(filepath, transcript)
         
         caption = Caption.query.filter_by(project_id=project_id).first()
         if caption:
@@ -175,7 +209,8 @@ def sync_captions(project_id):
     segments = json.loads(caption.segments_json)
     
     try:
-        result = gemini.sync_segments(filepath, segments)
+        vertex = get_vertex_service()
+        result = vertex.sync_segments(filepath, segments)
         
         caption.segments_json = json.dumps(result.get('segments', []))
         db.session.commit()
@@ -218,7 +253,5 @@ def export_srt(project_id):
             'Content-Disposition': f'attachment; filename={filename}',
             'Content-Type': 'text/plain; charset=utf-8'
         }
-    )
+     )
 
-
-import os

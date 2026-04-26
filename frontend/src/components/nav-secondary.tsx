@@ -32,25 +32,25 @@ export function NavSecondary({
             return (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton 
-                  asChild 
+                  render={
+                    <Link to={item.url} className="flex items-center w-full gap-3">
+                      <span className={`transition-colors duration-300 ${
+                        isActive 
+                        ? 'text-white dark:text-zinc-900' 
+                        : 'text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white'
+                      }`}>
+                        {item.icon}
+                      </span>
+                      <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>
+                    </Link>
+                  }
                   tooltip={item.title}
-                  className={`flex items-center gap-3 transition-all duration-300 py-5 px-4 rounded-xl font-bold tracking-tight ${
+                  className={`group flex items-center gap-3 transition-all duration-300 py-5 px-4 rounded-xl font-bold tracking-tight ${
                     isActive 
-                    ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900" 
+                    ? "bg-zinc-900 text-white shadow-md shadow-zinc-200 dark:bg-white dark:text-zinc-900 dark:shadow-none" 
                     : "text-zinc-500 hover:bg-zinc-100/80 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white"
                   }`}
-                >
-                  <Link to={item.url} className="flex items-center w-full gap-3">
-                    <span className={`transition-colors duration-300 ${
-                      isActive 
-                      ? 'text-white dark:text-zinc-900' 
-                      : 'text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white'
-                    }`}>
-                      {item.icon}
-                    </span>
-                    <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>
-                  </Link>
-                </SidebarMenuButton>
+                />
               </SidebarMenuItem>
             );
           })}

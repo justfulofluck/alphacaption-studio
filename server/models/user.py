@@ -1,5 +1,6 @@
 from extensions import db
 from datetime import datetime
+import bcrypt
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -88,11 +89,17 @@ class OTP(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), nullable=False)
-    otp = db.Column(db.String(6), nullable=False)
+    otp_hash = db.Column(db.String(255), nullable=False)
     purpose = db.Column(db.String(20), nullable=False) # 'register', 'login', 'reset'
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     expires_at = db.Column(db.DateTime, nullable=False)
     is_verified = db.Column(db.Boolean, default=False)
-
+    
+    def set_otp(self, otp_code):
+        self.otp_hash = bcrypt.hashpw(otp_code.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    
+    def verify_otp(self, otp_code):
+        return bcrypt.checkpw(otp_code.encode('utf-8'), self.otp_hash.encode('utf-8'))
+    
     def is_valid(self):
         return not self.is_verified and datetime.utcnow() < self.expires_at

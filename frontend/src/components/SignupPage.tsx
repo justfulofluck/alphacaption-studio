@@ -1,7 +1,28 @@
+import { useEffect } from "react"
+import { useNavigate } from "react-router-dom"
 import { GalleryVerticalEnd } from "lucide-react"
 import { SignupForm } from "@/components/signup-form"
+import axios from "axios"
 
 export default function SignupPage() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = localStorage.getItem('auth_token');
+    if (token && token !== 'undefined' && token !== 'null') {
+      const API_BASE_URL = `http://${window.location.hostname}:5000`;
+      axios.get(`${API_BASE_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+      }).then(res => {
+        if (res.data?.id) {
+          navigate('/dashboard');
+        }
+      }).catch(() => {
+        localStorage.removeItem('auth_token');
+      });
+    }
+  }, [navigate]);
+
   return (
     <div className="grid min-h-svh lg:grid-cols-2 bg-background font-sans">
       <div className="flex flex-col gap-4 p-6 md:p-10">

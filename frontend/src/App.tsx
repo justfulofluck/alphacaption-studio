@@ -6,13 +6,13 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import WaveSurfer from 'wavesurfer.js';
 import { motion } from 'motion/react';
-import { 
-  Upload, 
-  Download, 
-  Play, 
-  Pause, 
-  Trash2, 
-  Plus, 
+import {
+  Upload,
+  Download,
+  Play,
+  Pause,
+  Trash2,
+  Plus,
   Minus,
   ChevronLeft,
   ChevronRight,
@@ -88,11 +88,11 @@ export default function App() {
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/admin/login" element={<AdminLoginPage />} />
-        <Route 
-          path="/admin" 
+        <Route
+          path="/admin"
           element={
             localStorage.getItem('admin_token') ? <AdminDashboard /> : <AdminLoginPage />
-          } 
+          }
         />
       </Routes>
     </BrowserRouter>
@@ -112,19 +112,19 @@ function Layout() {
     const token = localStorage.getItem('auth_token');
     const isValidToken = token && token !== 'undefined' && token !== 'null';
     setIsLoggedIn(!!isValidToken);
-    
+
     if (isValidToken && !user) {
       axios.get(`${API_BASE_URL}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` }
       })
-      .then(res => {
-        setUser(res.data);
-        setIsLoading(false);
-      })
-      .catch(() => {
-        // Token might be invalid but don't clear immediately - try to continue
-        setIsLoading(false);
-      });
+        .then(res => {
+          setUser(res.data);
+          setIsLoading(false);
+        })
+        .catch(() => {
+          // Token might be invalid but don't clear immediately - try to continue
+          setIsLoading(false);
+        });
     } else {
       setIsLoading(false);
     }
@@ -132,7 +132,7 @@ function Layout() {
     if (!isValidToken && !['/login', '/signup', '/admin', '/admin/login'].includes(location.pathname)) {
       navigate('/login');
     }
-    
+
     // If logged in and trying to access login/signup, redirect to home
     if (isValidToken && ['/login', '/signup'].includes(location.pathname)) {
       navigate('/');
@@ -159,11 +159,11 @@ function Layout() {
         "--header-height": "64px",
       } as React.CSSProperties}
     >
-      <StudioSidebar user={{ 
-        name: user?.name || "User", 
-        email: user?.email || "", 
+      <StudioSidebar user={{
+        name: user?.name || "User",
+        email: user?.email || "",
         role: "user",
-        plan: user?.plan || "Free" 
+        plan: user?.plan || "Free"
       }} />
       <SidebarInset>
         <SiteHeader user={{ name: user?.name || "User", avatar: user?.avatar }} />
@@ -199,6 +199,10 @@ function MainApp() {
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [userData, setUserData] = useState({ name: '', email: '', phone: '', countryCode: '+91' });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  // Project state
+  const [projectId, setProjectId] = useState<number | null>(null);
+  const [projectStatus, setProjectStatus] = useState<string>('uploaded');
 
   // Studio States
   const [fontFamily, setFontFamily] = useState('Inter');
@@ -275,26 +279,26 @@ function MainApp() {
 
   const undo = () => {
     if (undoStack.length <= 1) return;
-    
+
     const currentState = undoStack[undoStack.length - 1];
     const prevState = undoStack[undoStack.length - 2];
-    
+
     isInternalChange.current = true;
     setRedoStack(prev => [...prev, currentState]);
     setUndoStack(prev => prev.slice(0, -1));
-    
+
     applyState(prevState);
   };
 
   const redo = () => {
     if (redoStack.length === 0) return;
-    
+
     const nextState = redoStack[redoStack.length - 1];
-    
+
     isInternalChange.current = true;
     setUndoStack(prev => [...prev, nextState]);
     setRedoStack(prev => prev.slice(0, -1));
-    
+
     applyState(nextState);
   };
 
@@ -364,149 +368,80 @@ function MainApp() {
   const wavesurfer = useRef<WaveSurfer | null>(null);
 
   const transcribeAudio = async () => {
-    if (!audioFile) return;
+    if (!audioFile || !projectId) return;
     setIsTranscribing(true);
-    setActiveTab('transcript');
+    setActiveTab('captions');
     transcriptionAbortRef.current = new AbortController();
 
     try {
-      const { GoogleGenAI } = await import("@google/genai");
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
-      
-      const arrayBuffer = await audioFile.arrayBuffer();
-      const base64Data = btoa(
-        new Uint8Array(arrayBuffer)
-          .reduce((data, byte) => data + String.fromCharCode(byte), '')
+      const token = localStorage.getItem('auth_token');
+      const response = await axios.post(
+        `${API_BASE_URL}/api/captions/${projectId}/transcribe`,
+        null,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          signal: transcriptionAbortRef.current.signal,
+        }
       );
 
-      const prompt = `
-        Analyze this audio file.
-        1. Detect the language of the speech. If it's a mix of Hindi and English, call it "Hinglish".
-        2. Provide a full, accurate transcript of the speech.
-        3. CRITICAL: Use "Hinglish" formatting. If the speaker says a Hindi word, write it in Hindi (Devanagari script). If they say an English word, write it in English (Latin script).
-        4. Capture the speaking style, including pauses and emphasis, in the text formatting if possible.
-        
-        Return the result as a JSON object with two fields:
-        "language": The detected language name (e.g., "Hinglish", "Hindi", "English").
-        "transcript": The full text transcript in mixed script (Hindi + English).
-      `;
-
-      const result_promise = (ai as any).models.generateContent({
-        model: aiModel,
-        contents: [
-          {
-            parts: [
-              { text: prompt },
-              {
-                inlineData: {
-                  mimeType: audioFile.type || 'audio/mpeg',
-                  data: base64Data
-                }
-              }
-            ]
-          }
-        ],
-        config: {
-          responseMimeType: "application/json",
-        }
-      });
-
-      const response = await result_promise;
       if (transcriptionAbortRef.current?.signal.aborted) return;
 
-      const result = JSON.parse(response.text || '{}');
-      if (result.transcript) {
-        setTranscript(result.transcript);
-        setDetectedLanguage(result.language);
+      if (response.data.transcript) {
+        setTranscript(response.data.transcript);
+        setDetectedLanguage(response.data.language);
+        setProjectStatus('transcribed');
       }
-    } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') return;
+    } catch (error: any) {
+      if (error.name === 'AbortError' || error.message === 'aborted') return;
       console.error('Error transcribing audio:', error);
+      alert(`Transcription failed: ${error.response?.data?.error || error.message}`);
     } finally {
       setIsTranscribing(false);
     }
   };
 
   const alignTranscript = async () => {
-    if (!transcript || !audioFile) return;
+    if (!transcript || !projectId) return;
     setIsAligning(true);
     alignmentAbortRef.current = new AbortController();
 
     try {
-      const { GoogleGenAI } = await import("@google/genai");
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
-      
-      const arrayBuffer = await audioFile.arrayBuffer();
-      const base64Data = btoa(
-        new Uint8Array(arrayBuffer)
-          .reduce((data, byte) => data + String.fromCharCode(byte), '')
+      const token = localStorage.getItem('auth_token');
+      const response = await axios.post(
+        `${API_BASE_URL}/api/captions/${projectId}/align`,
+        { transcript },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          signal: alignmentAbortRef.current.signal,
+        }
       );
 
-      const prompt = `
-        I have an audio file and its transcript. 
-        TRANSCRIPT: "${transcript}"
-        
-        CRITICAL TASK: PERFORM PRECISION FORCED ALIGNMENT
-        1. Analyze the audio second-by-second with extreme care.
-        2. Match every single word in the transcript to its exact timestamp in the audio.
-        3. Group these words into natural, readable caption segments (typically 3-6 words per segment).
-        4. For each segment, provide the EXACT start time (when the first word begins) and the EXACT end time (when the last word ends).
-        5. The timings must be accurate to the millisecond (e.g., 1.245).
-        6. Ensure there are NO overlapping segments.
-        7. Maintain the original Hinglish script (Hindi in Devanagari, English in Latin).
-        8. If there are pauses between sentences or phrases, ensure the segments reflect that—do NOT extend a segment's end time into a period of silence.
-        9. Every word from the transcript MUST be included in the segments in the correct order.
-        
-        Return the result as a JSON object with a "segments" field, which is an array of objects:
-        {
-          "segments": [
-            {
-              "start": number (seconds, e.g. 1.45),
-              "end": number (seconds, e.g. 3.21),
-              "text": "The phrase text"
-            }
-          ]
-        }
-      `;
-
-      const result_promise = (ai as any).models.generateContent({
-        model: aiModel,
-        contents: [
-          {
-            parts: [
-              { text: prompt },
-              {
-                inlineData: {
-                  mimeType: audioFile.type || 'audio/mpeg',
-                  data: base64Data
-                }
-              }
-            ]
-          }
-        ],
-        config: {
-          responseMimeType: "application/json",
-        }
-      });
-
-      const response = await result_promise;
       if (alignmentAbortRef.current?.signal.aborted) return;
 
-      const result = JSON.parse(response.text || '{}');
-      
-      if (result.segments && Array.isArray(result.segments)) {
-        const newSegments = result.segments.map((seg: any, i: number) => ({
+      if (response.data.segments && Array.isArray(response.data.segments)) {
+        const newSegments = response.data.segments.map((seg: any, i: number) => ({
           id: `seg-${Date.now()}-${i}`,
           start: parseFloat(seg.start),
           end: parseFloat(seg.end),
           text: seg.text
         }));
         setSegments(newSegments);
-        setUndoStack([{ segments: newSegments, fontFamily, fontSize, fontColor, strokeColor, strokeWidth, textShadow, textAlign, textPosition, transitionType }]);
+        setUndoStack([{
+          segments: newSegments,
+          fontFamily, fontSize, fontColor, strokeColor,
+          strokeWidth, textShadow, textAlign, textPosition, transitionType
+        }]);
+        setProjectStatus('aligned');
       }
-    } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') return;
+    } catch (error: any) {
+      if (error.name === 'AbortError' || error.message === 'aborted') return;
       console.error('Error aligning transcript:', error);
+      alert(`Alignment failed: ${error.response?.data?.error || error.message}`);
     } finally {
       setIsAligning(false);
     }
@@ -539,14 +474,18 @@ function MainApp() {
     };
   }, [audioUrl]);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setAudioFile(file);
       const url = URL.createObjectURL(file);
       setAudioUrl(url);
-      setSegments([]); // Reset segments on new file
-      
+      setSegments([]);
+      setTranscript('');
+      setDetectedLanguage(null);
+      setProjectId(null);
+      setProjectStatus('uploaded');
+
       // Initialize history with empty segments
       const initialState: HistoryState = {
         segments: [],
@@ -562,8 +501,82 @@ function MainApp() {
       };
       setUndoStack([initialState]);
       setRedoStack([]);
+
+      // Upload audio to server to create project
+      try {
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+          alert('Please login to upload files');
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append('audio', file);
+        formData.append('name', file.name.split('.')[0]);
+
+        const response = await axios.post(
+          `${API_BASE_URL}/api/projects`,
+          formData,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (response.data.id) {
+          setProjectId(response.data.id);
+          setProjectStatus(response.data.status);
+          console.log('Project created:', response.data.id);
+        }
+      } catch (error: any) {
+        console.error('Failed to create project:', error);
+        alert(`Failed to upload audio: ${error.response?.data?.error || error.message}`);
+      }
     }
   };
+
+  // Fetch project data when projectId changes
+  useEffect(() => {
+    const fetchProjectData = async () => {
+      if (!projectId) return;
+
+      try {
+        const token = localStorage.getItem('auth_token');
+        const response = await axios.get(`${API_BASE_URL}/api/projects/${projectId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (response.data) {
+          setProjectStatus(response.data.status);
+          if (response.data.language) setDetectedLanguage(response.data.language);
+
+          if (response.data.caption) {
+            if (response.data.caption.transcript) {
+              setTranscript(response.data.caption.transcript);
+            }
+            if (response.data.caption.segments && response.data.caption.segments.length > 0) {
+              setSegments(response.data.caption.segments);
+              setUndoStack(prev => {
+                if (prev.length <= 1) {
+                  return [{
+                    segments: response.data.caption.segments,
+                    fontFamily, fontSize, fontColor, strokeColor,
+                    strokeWidth, textShadow, textAlign, textPosition, transitionType
+                  }];
+                }
+                return prev;
+              });
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching project data:', error);
+      }
+    };
+
+    fetchProjectData();
+  }, [projectId]);
 
   const formatTime = (seconds: number) => {
     const h = Math.floor(seconds / 3600);
@@ -581,33 +594,33 @@ function MainApp() {
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       const arrayBuffer = await audioFile.arrayBuffer();
       const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-      
+
       const channelData = audioBuffer.getChannelData(0);
       const sampleRate = audioBuffer.sampleRate;
-      
+
       // --- AUTO-SYNC PARAMETERS ---
       // 1. Calculate RMS profile to find noise floor and peaks
       const profileStep = 0.05; // 50ms for profiling
       const profileSamples = Math.floor(sampleRate * profileStep);
       const rmsValues: number[] = [];
-      
+
       for (let i = 0; i < channelData.length; i += profileSamples) {
         const chunk = channelData.slice(i, i + profileSamples);
         let sum = 0;
         for (let j = 0; j < chunk.length; j++) sum += chunk[j] * chunk[j];
         rmsValues.push(Math.sqrt(sum / chunk.length));
       }
-      
+
       const sortedRms = [...rmsValues].sort((a, b) => a - b);
       const noiseFloor = sortedRms[Math.floor(sortedRms.length * 0.1)]; // 10th percentile
       const peakVolume = sortedRms[Math.floor(sortedRms.length * 0.95)]; // 95th percentile
-      
+
       // Auto-calculate 4 parameters
       const autoThreshold = Math.max(0.01, noiseFloor + (peakVolume - noiseFloor) * 0.15);
       const autoMinSilence = 0.05; // Default for word-level
       const autoMinSpeech = 0.08;  // Slightly lower for fast words
       const autoPadding = 0.04;    // Tight padding
-      
+
       // Update UI state so user sees the sync
       setThreshold(autoThreshold);
       setMinSilenceDuration(autoMinSilence);
@@ -678,7 +691,7 @@ function MainApp() {
   const validateForm = () => {
     const errors: Record<string, string> = {};
     if (!userData.name.trim()) errors.name = 'Name is required';
-    
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!userData.email.trim()) {
       errors.email = 'Email is required';
@@ -762,26 +775,26 @@ function MainApp() {
 
   const mergeSegments = () => {
     if (selectedSegmentIds.size < 2) return;
-    
+
     const selected = segments.filter(s => selectedSegmentIds.has(s.id)).sort((a, b) => a.start - b.start);
     const first = selected[0];
     const last = selected[selected.length - 1];
-    
+
     const mergedText = selected.map(s => s.text).filter(t => t.trim() !== '').join(' ');
-    
+
     const newSegment: CaptionSegment = {
       id: crypto.randomUUID(),
       start: first.start,
       end: last.end,
       text: mergedText
     };
-    
+
     setSegments(prev => {
       const filtered = prev.filter(s => !selectedSegmentIds.has(s.id));
       const next = [...filtered, newSegment].sort((a, b) => a.start - b.start);
       return next;
     });
-    
+
     setSelectedSegmentIds(new Set());
   };
 
@@ -807,73 +820,27 @@ function MainApp() {
   };
 
   const syncAllSegments = async () => {
-    if (segments.length === 0 || !audioFile) return;
+    if (segments.length === 0 || !projectId) return;
     setIsSyncingList(true);
     syncAbortRef.current = new AbortController();
 
     try {
-      const { GoogleGenAI } = await import("@google/genai");
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
-      
-      const arrayBuffer = await audioFile.arrayBuffer();
-      const base64Data = btoa(
-        new Uint8Array(arrayBuffer)
-          .reduce((data, byte) => data + String.fromCharCode(byte), '')
+      const token = localStorage.getItem('auth_token');
+      const response = await axios.post(
+        `${API_BASE_URL}/api/captions/${projectId}/sync`,
+        null,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          signal: syncAbortRef.current.signal,
+        }
       );
 
-      const segmentsJson = segments.map(s => ({ start: s.start, end: s.end, text: s.text }));
-
-      const prompt = `
-        I have an audio file and its current caption segments.
-        CURRENT SEGMENTS: ${JSON.stringify(segmentsJson)}
-        
-        CRITICAL TASK: RE-SYNCHRONIZE TIMINGS
-        1. Analyze the audio carefully.
-        2. Keep the EXACT text for each segment as provided. Do not combine or split them.
-        3. Match the text of each segment to its precise audio timestamp.
-        4. Provide the EXACT start and end times for each segment.
-        5. Timings must be accurate to the millisecond.
-        6. Ensure NO overlaps.
-        
-        Return the result as a JSON object with a "segments" field:
-        {
-          "segments": [
-            {
-              "start": number,
-              "end": number,
-              "text": "original text"
-            }
-          ]
-        }
-      `;
-
-      const result_promise = (ai as any).models.generateContent({
-        model: aiModel,
-        contents: [
-          {
-            parts: [
-              { text: prompt },
-              {
-                inlineData: {
-                  mimeType: audioFile.type || 'audio/mpeg',
-                  data: base64Data
-                }
-              }
-            ]
-          }
-        ],
-        config: {
-          responseMimeType: "application/json",
-        }
-      });
-
-      const response = await result_promise;
       if (syncAbortRef.current?.signal.aborted) return;
 
-      const result = JSON.parse(response.text || '{}');
-      
-      if (result.segments && Array.isArray(result.segments)) {
-        const sortedResults = result.segments.sort((a,b) => a.start - b.start);
+      if (response.data.segments && Array.isArray(response.data.segments)) {
+        const sortedResults = response.data.segments.sort((a: any, b: any) => a.start - b.start);
         const newSegments = sortedResults.map((seg: any, i: number) => ({
           id: `seg-sync-${Date.now()}-${i}`,
           start: parseFloat(seg.start),
@@ -882,9 +849,10 @@ function MainApp() {
         }));
         setSegments(newSegments);
       }
-    } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') return;
+    } catch (error: any) {
+      if (error.name === 'AbortError' || error.message === 'aborted') return;
       console.error('Error syncing segments:', error);
+      alert(`Sync failed: ${error.response?.data?.error || error.message}`);
     } finally {
       setIsSyncingList(false);
     }
@@ -961,8 +929,8 @@ function MainApp() {
                     onClick={isTranscribing ? stopTranscription : transcribeAudio}
                     className={cn(
                       "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-50",
-                      isTranscribing 
-                        ? "bg-red-50 text-red-700 hover:bg-red-100 ring-1 ring-red-200" 
+                      isTranscribing
+                        ? "bg-red-50 text-red-700 hover:bg-red-100 ring-1 ring-red-200"
                         : "bg-zinc-50 text-zinc-900 hover:bg-zinc-100"
                     )}
                   >
@@ -981,12 +949,12 @@ function MainApp() {
               </div>
 
               <div ref={waveformRef} className="mb-4" />
-              
+
               {/* Analysis Controls */}
               <div className="grid grid-cols-1 md:grid-cols-5 gap-6 pt-6 border-t border-zinc-100">
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">AI Model</label>
-                  <select 
+                  <select
                     value={aiModel}
                     onChange={(e) => setAiModel(e.target.value as any)}
                     className="w-full bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-bold transition-all focus:ring-2 focus:ring-zinc-800 outline-none"
@@ -998,12 +966,12 @@ function MainApp() {
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Silence Threshold</label>
-                  <input 
-                    type="range" 
-                    min="0.01" 
-                    max="0.2" 
-                    step="0.01" 
-                    value={threshold} 
+                  <input
+                    type="range"
+                    min="0.01"
+                    max="0.2"
+                    step="0.01"
+                    value={threshold}
                     onChange={(e) => {
                       const val = parseFloat(e.target.value);
                       if (!isNaN(val)) setThreshold(val);
@@ -1018,12 +986,12 @@ function MainApp() {
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Min Speech (s)</label>
-                  <input 
-                    type="number" 
-                    min="0.05" 
-                    max="2" 
-                    step="0.05" 
-                    value={minSpeechDuration} 
+                  <input
+                    type="number"
+                    min="0.05"
+                    max="2"
+                    step="0.05"
+                    value={minSpeechDuration}
                     onChange={(e) => {
                       const val = parseFloat(e.target.value);
                       if (!isNaN(val)) setMinSpeechDuration(val);
@@ -1033,12 +1001,12 @@ function MainApp() {
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Min Silence (s)</label>
-                  <input 
-                    type="number" 
-                    min="0.01" 
-                    max="2" 
-                    step="0.01" 
-                    value={minSilenceDuration} 
+                  <input
+                    type="number"
+                    min="0.01"
+                    max="2"
+                    step="0.01"
+                    value={minSilenceDuration}
                     onChange={(e) => {
                       const val = parseFloat(e.target.value);
                       if (!isNaN(val)) setMinSilenceDuration(val);
@@ -1048,12 +1016,12 @@ function MainApp() {
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Padding (s)</label>
-                  <input 
-                    type="number" 
-                    min="0" 
-                    max="0.5" 
-                    step="0.01" 
-                    value={padding} 
+                  <input
+                    type="number"
+                    min="0"
+                    max="0.5"
+                    step="0.01"
+                    value={padding}
                     onChange={(e) => {
                       const val = parseFloat(e.target.value);
                       if (!isNaN(val)) setPadding(val);
@@ -1087,7 +1055,7 @@ function MainApp() {
             </div>
 
             {activeTab === 'studio' ? (
-              <VideoStudio 
+              <VideoStudio
                 segments={segments}
                 setSegments={setSegments}
                 currentTime={currentTime}
@@ -1146,8 +1114,8 @@ function MainApp() {
                       disabled={(!transcript && !isAligning) || (!audioFile && !isAligning)}
                       className={cn(
                         "w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:pointer-events-none",
-                        isAligning 
-                          ? "bg-red-600 text-white shadow-red-100 hover:bg-red-700" 
+                        isAligning
+                          ? "bg-red-600 text-white shadow-red-100 hover:bg-red-700"
                           : "bg-zinc-900 text-white shadow-zinc-100 hover:bg-zinc-800"
                       )}
                     >
@@ -1184,8 +1152,8 @@ function MainApp() {
                             onClick={isSyncingList ? stopSyncing : syncAllSegments}
                             className={cn(
                               "flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all shadow-sm border uppercase tracking-wider",
-                              isSyncingList 
-                                ? "bg-red-50 text-red-700 border-red-200 hover:bg-red-100" 
+                              isSyncingList
+                                ? "bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
                                 : "bg-white text-zinc-900 border-zinc-200 hover:bg-zinc-50"
                             )}
                           >
@@ -1234,7 +1202,7 @@ function MainApp() {
                   ) : (
                     <div className="grid grid-cols-1 gap-3 overflow-y-auto max-h-[700px] pr-2 scrollbar-thin scrollbar-thumb-zinc-200">
                       {segments.map((seg, index) => (
-                        <div 
+                        <div
                           key={seg.id}
                           className={cn(
                             "group bg-white border border-zinc-200 rounded-2xl p-4 flex flex-col md:flex-row gap-4 transition-all hover:border-zinc-200 hover:shadow-md",
@@ -1243,7 +1211,7 @@ function MainApp() {
                           )}
                         >
                           <div className="flex items-center gap-3 md:w-48 shrink-0">
-                            <input 
+                            <input
                               type="checkbox"
                               checked={selectedSegmentIds.has(seg.id)}
                               onChange={() => toggleSegmentSelection(seg.id)}
@@ -1252,7 +1220,7 @@ function MainApp() {
                             <div className="w-8 h-8 bg-zinc-100 rounded-lg flex items-center justify-center text-xs font-bold text-zinc-500">
                               {index + 1}
                             </div>
-                            <button 
+                            <button
                               onClick={() => {
                                 jumpToTime(seg.start);
                                 wavesurfer.current?.play();
@@ -1262,15 +1230,15 @@ function MainApp() {
                               <Play size={12} fill="currentColor" />
                               {formatTime(seg.start).replace(',', '.').slice(3)}
                             </button>
-                            
+
                             <div className="flex flex-col gap-0.5 ml-1">
-                              <button 
+                              <button
                                 onClick={() => adjustSegmentTime(seg.id, 'start', -0.1)}
                                 className="p-0.5 hover:bg-zinc-100 rounded text-zinc-300 hover:text-zinc-900 transition-colors"
                               >
                                 <ChevronLeft size={10} />
                               </button>
-                              <button 
+                              <button
                                 onClick={() => adjustSegmentTime(seg.id, 'start', 0.1)}
                                 className="p-0.5 hover:bg-zinc-100 rounded text-zinc-300 hover:text-zinc-900 transition-colors"
                               >
@@ -1279,15 +1247,15 @@ function MainApp() {
                             </div>
 
                             <span className="text-zinc-300 mx-1 text-xs">→</span>
-                            
+
                             <div className="flex flex-col gap-0.5 mr-1">
-                              <button 
+                              <button
                                 onClick={() => adjustSegmentTime(seg.id, 'end', -0.1)}
                                 className="p-0.5 hover:bg-zinc-100 rounded text-zinc-300 hover:text-zinc-900 transition-colors"
                               >
                                 <ChevronLeft size={10} />
                               </button>
-                              <button 
+                              <button
                                 onClick={() => adjustSegmentTime(seg.id, 'end', 0.1)}
                                 className="p-0.5 hover:bg-zinc-100 rounded text-zinc-300 hover:text-zinc-900 transition-colors"
                               >
@@ -1342,8 +1310,8 @@ function MainApp() {
           <div>
             <h4 className="font-bold text-zinc-900 mb-2">How it works</h4>
             <p className="leading-relaxed">
-              This tool uses signal processing to analyze audio amplitude. It detects "islands" of sound 
-              separated by silence to automatically create caption timings. You can then manually enter 
+              This tool uses signal processing to analyze audio amplitude. It detects "islands" of sound
+              separated by silence to automatically create caption timings. You can then manually enter
               the text for each segment. No AI or external servers are used for transcription.
             </p>
           </div>
@@ -1365,7 +1333,7 @@ function MainApp() {
       {/* Download Modal */}
       {showDownloadModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden"
@@ -1373,14 +1341,14 @@ function MainApp() {
             <div className="p-8">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-zinc-900">Download SRT</h2>
-                <button 
+                <button
                   onClick={() => setShowDownloadModal(false)}
                   className="p-2 hover:bg-zinc-100 rounded-full transition-colors"
                 >
                   <X size={20} className="text-zinc-500" />
                 </button>
               </div>
-              
+
               <p className="text-zinc-500 mb-8 text-sm">
                 Please provide your details to download your perfectly synced captions.
               </p>
@@ -1390,10 +1358,10 @@ function MainApp() {
                   <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Full Name</label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
-                    <input 
+                    <input
                       type="text"
                       value={userData.name}
-                      onChange={(e) => setUserData({...userData, name: e.target.value})}
+                      onChange={(e) => setUserData({ ...userData, name: e.target.value })}
                       placeholder="John Doe"
                       className={`w-full bg-zinc-50 border ${formErrors.name ? 'border-red-500' : 'border-zinc-200'} rounded-xl pl-10 pr-4 py-3 text-sm focus:ring-2 focus:ring-zinc-800 outline-none transition-all`}
                     />
@@ -1405,10 +1373,10 @@ function MainApp() {
                   <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Email Address</label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
-                    <input 
+                    <input
                       type="email"
                       value={userData.email}
-                      onChange={(e) => setUserData({...userData, email: e.target.value})}
+                      onChange={(e) => setUserData({ ...userData, email: e.target.value })}
                       placeholder="john@example.com"
                       className={`w-full bg-zinc-50 border ${formErrors.email ? 'border-red-500' : 'border-zinc-200'} rounded-xl pl-10 pr-4 py-3 text-sm focus:ring-2 focus:ring-zinc-800 outline-none transition-all`}
                     />
@@ -1419,9 +1387,9 @@ function MainApp() {
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Phone Number</label>
                   <div className="flex gap-2">
-                    <select 
+                    <select
                       value={userData.countryCode}
-                      onChange={(e) => setUserData({...userData, countryCode: e.target.value})}
+                      onChange={(e) => setUserData({ ...userData, countryCode: e.target.value })}
                       className="bg-zinc-50 border border-zinc-200 rounded-xl px-2 py-3 text-sm focus:ring-2 focus:ring-zinc-800 outline-none transition-all w-24"
                     >
                       {countryCodes.map(c => (
@@ -1430,10 +1398,10 @@ function MainApp() {
                     </select>
                     <div className="relative flex-1">
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
-                      <input 
+                      <input
                         type="tel"
                         value={userData.phone}
-                        onChange={(e) => setUserData({...userData, phone: e.target.value})}
+                        onChange={(e) => setUserData({ ...userData, phone: e.target.value })}
                         placeholder="9876543210"
                         className={`w-full bg-zinc-50 border ${formErrors.phone ? 'border-red-500' : 'border-zinc-200'} rounded-xl pl-10 pr-4 py-3 text-sm focus:ring-2 focus:ring-zinc-800 outline-none transition-all`}
                       />
@@ -1442,7 +1410,7 @@ function MainApp() {
                   {formErrors.phone && <p className="text-[10px] text-red-500 font-medium">{formErrors.phone}</p>}
                 </div>
 
-                <button 
+                <button
                   type="submit"
                   className="w-full bg-zinc-900 text-white font-bold py-4 rounded-xl hover:bg-zinc-800 transition-all shadow-lg shadow-zinc-200 mt-4 flex items-center justify-center gap-2"
                 >
@@ -1482,13 +1450,13 @@ function Timeline({ segments, setSegments, duration, currentTime, onSeek }: any)
     const handleMouseMove = (e: MouseEvent) => {
       if (!dragging) return;
       const deltaX = (e.clientX - dragging.initialX) / pixelsPerSecond;
-      
+
       setSegments((prev: any) => prev.map((s: any) => {
         if (s.id !== dragging.id) return s;
-        
+
         let newStart = s.start;
         let newEnd = s.end;
-        
+
         if (dragging.type === 'move') {
           const duration = dragging.initialEnd - dragging.initialStart;
           newStart = Math.max(0, Math.min(dragging.initialStart + deltaX, duration - duration));
@@ -1499,7 +1467,7 @@ function Timeline({ segments, setSegments, duration, currentTime, onSeek }: any)
         } else if (dragging.type === 'end') {
           newEnd = Math.max(s.start + 0.1, Math.min(dragging.initialEnd + deltaX, duration));
         }
-        
+
         return { ...s, start: newStart, end: newEnd };
       }));
     };
@@ -1522,7 +1490,7 @@ function Timeline({ segments, setSegments, duration, currentTime, onSeek }: any)
         <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Timeline Editor</label>
         <span className="text-[10px] font-mono text-zinc-400">Drag to move • Edge to resize</span>
       </div>
-      <div 
+      <div
         ref={containerRef}
         className="h-24 bg-zinc-900 rounded-2xl overflow-x-auto relative border border-zinc-800 custom-scrollbar"
         onClick={(e) => {
@@ -1534,8 +1502,8 @@ function Timeline({ segments, setSegments, duration, currentTime, onSeek }: any)
         <div style={{ width: timelineWidth, height: '100%', position: 'relative' }}>
           {/* Time markers */}
           {Array.from({ length: Math.ceil(duration) }).map((_, i) => (
-            <div 
-              key={i} 
+            <div
+              key={i}
               className="absolute top-0 bottom-0 border-l border-white/5 pointer-events-none"
               style={{ left: i * pixelsPerSecond }}
             >
@@ -1549,8 +1517,8 @@ function Timeline({ segments, setSegments, duration, currentTime, onSeek }: any)
               key={seg.id}
               className={cn(
                 "absolute top-4 bottom-4 rounded-lg flex items-center justify-center px-2 text-[10px] font-bold overflow-hidden cursor-move transition-shadow",
-                currentTime >= seg.start && currentTime <= seg.end 
-                  ? "bg-zinc-800 text-white shadow-[0_0_15px_rgba(79,70,229,0.5)] z-20" 
+                currentTime >= seg.start && currentTime <= seg.end
+                  ? "bg-zinc-800 text-white shadow-[0_0_15px_rgba(79,70,229,0.5)] z-20"
                   : "bg-zinc-700 text-zinc-300 z-10 hover:bg-zinc-600"
               )}
               style={{
@@ -1559,12 +1527,12 @@ function Timeline({ segments, setSegments, duration, currentTime, onSeek }: any)
               }}
               onMouseDown={(e) => handleMouseDown(e, seg.id, 'move')}
             >
-              <div 
+              <div
                 className="absolute left-0 top-0 bottom-0 w-1 cursor-ew-resize hover:bg-white/30"
                 onMouseDown={(e) => handleMouseDown(e, seg.id, 'start')}
               />
-              <span className="truncate pointer-events-none">{seg.text || `Segment ${seg.id.slice(0,4)}`}</span>
-              <div 
+              <span className="truncate pointer-events-none">{seg.text || `Segment ${seg.id.slice(0, 4)}`}</span>
+              <div
                 className="absolute right-0 top-0 bottom-0 w-1 cursor-ew-resize hover:bg-white/30"
                 onMouseDown={(e) => handleMouseDown(e, seg.id, 'end')}
               />
@@ -1572,7 +1540,7 @@ function Timeline({ segments, setSegments, duration, currentTime, onSeek }: any)
           ))}
 
           {/* Playhead */}
-          <div 
+          <div
             className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-30 pointer-events-none"
             style={{ left: currentTime * pixelsPerSecond }}
           >
@@ -1587,10 +1555,10 @@ function Timeline({ segments, setSegments, duration, currentTime, onSeek }: any)
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile, toBlobURL } from '@ffmpeg/util';
 
-function VideoStudio({ 
-  segments, 
+function VideoStudio({
+  segments,
   setSegments,
-  currentTime, 
+  currentTime,
   fontFamily, setFontFamily,
   fontSize, setFontSize,
   fontColor, setFontColor,
@@ -1614,33 +1582,44 @@ function VideoStudio({
   const chunksRef = useRef<Blob[]>([]);
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
+  const [isInitializingFFmpeg, setIsInitializingFFmpeg] = useState(false);
   const ffmpegRef = useRef<FFmpeg | null>(null);
 
   const loadFFmpeg = async () => {
     if (ffmpegRef.current) return ffmpegRef.current;
+
+    setIsInitializingFFmpeg(true);
     const ffmpeg = new FFmpeg();
     const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
-    
-    // Add event listeners before loading to capture early logs
-    ffmpeg.on('log', ({ message }) => console.log('FFmpeg Log:', message));
-    
-    const loadTimeout = setTimeout(() => {
-      console.error('FFmpeg load timeout - falling back to WebM');
-    }, 10000);
 
-    try {
-      await ffmpeg.load({
-        coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-        wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
-      });
-      clearTimeout(loadTimeout);
-      ffmpegRef.current = ffmpeg;
-      return ffmpeg;
-    } catch (error) {
-      clearTimeout(loadTimeout);
-      console.error('Failed to load FFmpeg:', error);
-      throw error;
-    }
+    ffmpeg.on('log', ({ message }) => console.log('FFmpeg Log:', message));
+
+    // Increase timeout to 120 seconds as the WASM file is large (~30MB)
+    const timeoutThreshold = 120000;
+
+    return new Promise<FFmpeg>((resolve, reject) => {
+      const loadTimeout = setTimeout(() => {
+        setIsInitializingFFmpeg(false);
+        reject(new Error('FFmpeg load timeout - possible network issue or large file size.'));
+      }, timeoutThreshold);
+
+      ffmpeg.load({
+        coreURL: toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+        wasmURL: toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+      })
+        .then(() => {
+          clearTimeout(loadTimeout);
+          ffmpegRef.current = ffmpeg;
+          setIsInitializingFFmpeg(false);
+          resolve(ffmpeg);
+        })
+        .catch((err) => {
+          clearTimeout(loadTimeout);
+          setIsInitializingFFmpeg(false);
+          console.error('Failed to load FFmpeg:', err);
+          reject(err);
+        });
+    });
   };
 
   const fonts = [
@@ -1681,7 +1660,7 @@ function VideoStudio({
       if (!active) return;
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
+
       const currentSegment = segments.find((s: any) => currentTime >= s.start && currentTime <= s.end);
       if (currentSegment) {
         // Handle Transitions
@@ -1724,7 +1703,7 @@ function VideoStudio({
             const progress = timeIn / (transitionDuration * 2);
             const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()";
             const visibleCount = Math.floor(currentSegment.text.length * progress);
-            displayText = currentSegment.text.slice(0, visibleCount) + 
+            displayText = currentSegment.text.slice(0, visibleCount) +
               Array(currentSegment.text.length - visibleCount)
                 .fill(0)
                 .map(() => chars[Math.floor(Math.random() * chars.length)])
@@ -1743,14 +1722,14 @@ function VideoStudio({
         }
 
         ctx.save();
-        
+
         const baseX = textAlign === 'center' ? canvas.width / 2 : textAlign === 'left' ? 100 : canvas.width - 100;
         const baseY = (canvas.height * textPosition) / 100;
 
         ctx.translate(baseX + translateX, baseY + translateY);
         ctx.scale(scale, scale);
         ctx.transform(1, 0, skewX, 1, 0, 0);
-        
+
         ctx.globalAlpha = opacity;
         ctx.font = `${fontSize * 2}px ${fontFamily}`; // Scale for 1080p
         ctx.fillStyle = fontColor;
@@ -1773,7 +1752,7 @@ function VideoStudio({
           ctx.strokeText(displayText, 0, 0);
         }
         ctx.fillText(displayText, 0, 0);
-        
+
         ctx.restore();
       }
     };
@@ -1794,12 +1773,12 @@ function VideoStudio({
     // Use VP9 with high bitrate for best transparency preservation
     const mimeType = 'video/webm; codecs=vp9';
     const isMimeSupported = MediaRecorder.isTypeSupported(mimeType);
-    
-    const recorder = new MediaRecorder(stream, { 
+
+    const recorder = new MediaRecorder(stream, {
       mimeType: isMimeSupported ? mimeType : 'video/webm',
       videoBitsPerSecond: 8000000 // 8Mbps for 1080p
     });
-    
+
     chunksRef.current = [];
     recorder.ondataavailable = (e) => {
       if (e.data.size > 0) chunksRef.current.push(e.data);
@@ -1809,7 +1788,7 @@ function VideoStudio({
       setExportProgress(0);
       try {
         const webmBlob = new Blob(chunksRef.current, { type: 'video/webm' });
-        
+
         // Convert to MOV using FFmpeg
         const ffmpeg = await loadFFmpeg();
         ffmpeg.on('log', ({ message }) => {
@@ -1826,7 +1805,7 @@ function VideoStudio({
         });
 
         await ffmpeg.writeFile('input.webm', await fetchFile(webmBlob));
-        
+
         // ProRes 4444 for transparency in MOV
         // Using yuva444p (8-bit) instead of 10le for potentially better compatibility and speed in WASM
         await ffmpeg.exec([
@@ -1842,7 +1821,7 @@ function VideoStudio({
         const data = await ffmpeg.readFile('output.mov');
         const movBlob = new Blob([data], { type: 'video/quicktime' });
         const url = URL.createObjectURL(movBlob);
-        
+
         const a = document.createElement('a');
         a.href = url;
         a.download = 'captions-alpha.mov';
@@ -1903,11 +1882,11 @@ function VideoStudio({
         {/* Preview Area (Player) */}
         <div className="xl:flex-[2] flex flex-col gap-4">
           <div className="flex-1 bg-black rounded-[2rem] overflow-hidden shadow-2xl aspect-video relative group border-2 border-zinc-800 flex items-center justify-center">
-            <canvas 
-              ref={canvasRef} 
+            <canvas
+              ref={canvasRef}
               className="max-w-full max-h-full object-contain"
             />
-            
+
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
               <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-full text-white text-[10px] font-bold uppercase tracking-widest border border-white/10">
                 Alpha Output Monitor
@@ -1931,7 +1910,7 @@ function VideoStudio({
               >
                 {wavesurfer?.isPlaying() ? <Pause size={20} fill="currentColor" /> : <Play size={20} className="ml-0.5" fill="currentColor" />}
               </button>
-              
+
               <div className="flex flex-col">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-sm font-mono font-bold text-white leading-none">
@@ -1940,8 +1919,8 @@ function VideoStudio({
                   <span className="text-[10px] text-zinc-500 font-mono">/ {formatTime(duration).replace(',', '.').slice(3)}</span>
                 </div>
                 <div className="w-48 xl:w-64 h-1 bg-zinc-800 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-white transition-all duration-100" 
+                  <div
+                    className="h-full bg-white transition-all duration-100"
                     style={{ width: `${(currentTime / duration) * 100}%` }}
                   />
                 </div>
@@ -1953,15 +1932,15 @@ function VideoStudio({
               disabled={isExporting}
               className={cn(
                 "flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-sm",
-                isRecording 
-                  ? "bg-red-600 text-white shadow-lg shadow-red-900/20" 
+                isRecording
+                  ? "bg-red-600 text-white shadow-lg shadow-red-900/20"
                   : "bg-zinc-100 text-zinc-900 hover:bg-white"
               )}
             >
               {isExporting ? (
                 <>
                   <RotateCw size={18} className="animate-spin" />
-                  {exportProgress}%
+                  {isInitializingFFmpeg ? 'Initializing...' : `${exportProgress}%`}
                 </>
               ) : (
                 <>
@@ -2005,7 +1984,7 @@ function VideoStudio({
               {/* Font Family */}
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Typeface</label>
-                <select 
+                <select
                   value={fontFamily}
                   onChange={(e) => setFontFamily(e.target.value)}
                   className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-3 py-2 text-xs font-medium outline-none focus:ring-1 focus:ring-zinc-400 transition-all appearance-none cursor-pointer"
@@ -2021,7 +2000,7 @@ function VideoStudio({
                     <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Size</label>
                     <span className="text-[10px] font-mono text-zinc-400">{fontSize}px</span>
                   </div>
-                  <input 
+                  <input
                     type="range" min="12" max="120" value={fontSize}
                     onChange={(e) => setFontSize(parseInt(e.target.value))}
                     className="w-full accent-white"
@@ -2032,7 +2011,7 @@ function VideoStudio({
                     <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Y-Pos</label>
                     <span className="text-[10px] font-mono text-zinc-400">{textPosition}%</span>
                   </div>
-                  <input 
+                  <input
                     type="range" min="10" max="90" value={textPosition}
                     onChange={(e) => setTextPosition(parseInt(e.target.value))}
                     className="w-full accent-white"
@@ -2045,7 +2024,7 @@ function VideoStudio({
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Fill</label>
                   <div className="flex items-center gap-2 bg-zinc-800 border border-zinc-700 rounded-xl p-2 h-10">
-                    <input 
+                    <input
                       type="color" value={fontColor}
                       onChange={(e) => setFontColor(e.target.value)}
                       className="w-6 h-6 rounded-md overflow-hidden border-none bg-transparent cursor-pointer"
@@ -2056,7 +2035,7 @@ function VideoStudio({
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Stroke</label>
                   <div className="flex items-center gap-2 bg-zinc-800 border border-zinc-700 rounded-xl p-2 h-10">
-                    <input 
+                    <input
                       type="color" value={strokeColor}
                       onChange={(e) => setStrokeColor(e.target.value)}
                       className="w-6 h-6 rounded-md overflow-hidden border-none bg-transparent cursor-pointer"
@@ -2071,7 +2050,7 @@ function VideoStudio({
                   <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Stroke Weight</label>
                   <span className="text-[10px] font-mono text-zinc-400">{strokeWidth}px</span>
                 </div>
-                <input 
+                <input
                   type="range" min="0" max="10" value={strokeWidth}
                   onChange={(e) => setStrokeWidth(parseInt(e.target.value))}
                   className="w-full accent-white"
@@ -2107,8 +2086,8 @@ function VideoStudio({
                       onClick={() => setTransitionType(type)}
                       className={cn(
                         "py-2 px-2 text-[9px] font-bold rounded-lg transition-all capitalize text-left border overflow-hidden truncate",
-                        transitionType === type 
-                          ? "bg-zinc-100 text-zinc-950 border-transparent" 
+                        transitionType === type
+                          ? "bg-zinc-100 text-zinc-950 border-transparent"
                           : "bg-transparent text-zinc-500 border-zinc-800 hover:border-zinc-700"
                       )}
                       title={type}
@@ -2147,10 +2126,10 @@ function VideoStudio({
 
       {/* Bottom Section: Timeline */}
       <div className="bg-zinc-900 rounded-[2rem] p-6 border border-zinc-800 shadow-sm">
-        <Timeline 
-          segments={segments} 
-          setSegments={setSegments} 
-          duration={duration} 
+        <Timeline
+          segments={segments}
+          setSegments={setSegments}
+          duration={duration}
           currentTime={currentTime}
           onSeek={(t: number) => wavesurfer?.setTime(t)}
         />

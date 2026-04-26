@@ -23,6 +23,7 @@ export function SignupForm({
   const [info, setInfo] = useState<string | null>(null);
   const [showOtp, setShowOtp] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
+  const [isRequesting, setIsRequesting] = useState(false);
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -53,6 +54,8 @@ export function SignupForm({
   };
 
   const handleSendOtp = async () => {
+    if (isRequesting) return;
+    
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match.");
       return;
@@ -71,6 +74,7 @@ export function SignupForm({
       setError(err.response?.data?.error || "Failed to send verification code.");
     } finally {
       setLoading(false);
+      setIsRequesting(false);
     }
   };
 
@@ -82,7 +86,9 @@ export function SignupForm({
       return;
     }
 
-    setLoading(true);
+    if (isRequesting) return;
+    setIsRequesting(true);
+        setLoading(true);
     setError(null);
     try {
       const res = await axios.post(`${API_BASE_URL}/api/auth/register`, formData);
@@ -94,11 +100,14 @@ export function SignupForm({
       setError(err.response?.data?.error || "Verification failed. Please check your code.");
     } finally {
       setLoading(false);
+      setIsRequesting(false);
     }
   };
 
   const handleResendOtp = () => {
-    handleSendOtp();
+    if (!isRequesting) {
+      handleSendOtp();
+    }
   };
 
   return (
@@ -205,7 +214,7 @@ export function SignupForm({
                 variant="link"
                 size="sm"
                 type="button"
-                disabled={loading || timeLeft > 120}
+                disabled={loading || isRequesting || timeLeft > 120}
                 onClick={handleResendOtp}
                 className="text-xs font-bold text-zinc-900 h-auto p-0"
               >
