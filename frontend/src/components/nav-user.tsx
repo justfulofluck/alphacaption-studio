@@ -18,15 +18,15 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { 
-  EllipsisVerticalIcon, 
-  CircleUserRoundIcon, 
+import {
+  EllipsisVerticalIcon,
+  CircleUserRoundIcon,
   LogOutIcon
 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import axios from "axios"
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:5000`;
+import { API_BASE_URL } from "@/api/config";
 
 export function NavUser({
   user,
@@ -62,7 +62,7 @@ export function NavUser({
     <SidebarMenu>
       <SidebarMenuItem>
         <DropdownMenu>
-          <DropdownMenuTrigger 
+          <DropdownMenuTrigger
             nativeButton={true}
             className="w-full"
             render={
@@ -90,8 +90,8 @@ export function NavUser({
             sideOffset={4}
           >
             <DropdownMenuGroup>
-              <DropdownMenuItem 
-                onSelect={() => navigate('/settings')} 
+              <DropdownMenuItem
+                onSelect={() => navigate('/settings')}
                 onClick={() => navigate('/settings')}
                 className="cursor-pointer"
               >
@@ -100,8 +100,8 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem 
-              onSelect={handleLogout} 
+            <DropdownMenuItem
+              onSelect={handleLogout}
               onClick={handleLogout}
               className="text-destructive focus:bg-destructive/10 focus:text-destructive font-bold cursor-pointer"
             >

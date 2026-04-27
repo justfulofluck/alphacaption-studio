@@ -3,26 +3,26 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { 
-  Users, 
-  CreditCard, 
-  Cpu, 
-  BarChart3, 
-  Loader2, 
-  ShieldCheck, 
+import {
+  Users,
+  CreditCard,
+  Cpu,
+  BarChart3,
+  Loader2,
+  ShieldCheck,
   ShieldAlert,
   ServerIcon
 } from 'lucide-react';
-import { 
-  SidebarInset, 
-  SidebarProvider 
+import {
+  SidebarInset,
+  SidebarProvider
 } from "@/components/ui/sidebar"
 import { StudioSidebar } from "@/components/StudioSidebar"
 import { SiteHeader } from "@/components/site-header"
 import { SectionCards } from "@/components/section-cards"
 import { DashboardTable } from "@/components/DashboardTable"
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:5000`;
+import { API_BASE_URL } from "@/api/config";
 
 interface AdminUser {
   id: string;
@@ -145,10 +145,10 @@ export default function AdminDashboard() {
         "--header-height": "64px",
       } as React.CSSProperties}
     >
-      <StudioSidebar user={{ 
-        name: adminUser?.name || "Admin", 
-        email: adminUser?.email || "", 
-        role: "admin" 
+      <StudioSidebar user={{
+        name: adminUser?.name || "Admin",
+        email: adminUser?.email || "",
+        role: "admin"
       }} />
       <SidebarInset>
         <SiteHeader user={{ name: adminUser?.name || "Admin", avatar: adminUser?.avatar }} />
@@ -166,12 +166,12 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
-          
+
           <SectionCards cards={statCards} />
-          
-          <DashboardTable 
+
+          <DashboardTable
             title="User Management"
-            data={users} 
+            data={users}
             columns={columns}
             onAction={(action, row) => console.log(action, row)}
           />

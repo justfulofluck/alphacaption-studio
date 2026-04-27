@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  frontend:
+    image: bgtuser/alphacaption-frontend:latest
+    ports:
+      - "4444:3000"
+    env_file:
+      - .env
+    environment:
+      - VITE_API_BASE_URL=https://app.vcaptiona.com
+    restart: always
+
+  backend:
+    image: bgtuser/alphacaption-backend:latest
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    environment:
+      - SECRET_KEY=${SECRET_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - GCP_PROJECT_ID=${GCP_PROJECT_ID}
+      - GCP_REGION=${GCP_REGION}
+      - GCP_CREDENTIALS_JSON=${GCP_CREDENTIALS_JSON}
+      - GEMINI_MODEL=${GEMINI_MODEL}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - MAIL_ENABLED=true
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - MAIL_FROM=${MAIL_FROM}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - ./server/credentials:/app/credentials
+      - ./server/uploads:/app/uploads
+    restart: always
+
+  mysql:
+    image: mysql:8.0
+    ports:
+      - "3310:3306"
+    env_file:
+      - .env
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    volumes:
+      - mysql_prod_data:/var/lib/mysql
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      timeout: 20s
+      retries: 10
+    restart: always
+
+volumes:
+  mysql_prod_data:

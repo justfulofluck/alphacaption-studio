@@ -2,6 +2,7 @@ import { useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { GalleryVerticalEnd } from "lucide-react"
 import { SignupForm } from "@/components/signup-form"
+import { API_BASE_URL } from "@/api/config"
 import axios from "axios"
 
 export default function SignupPage() {
@@ -10,7 +11,6 @@ export default function SignupPage() {
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
     if (token && token !== 'undefined' && token !== 'null') {
-      const API_BASE_URL = `http://${window.location.hostname}:5000`;
       axios.get(`${API_BASE_URL}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` }
       }).then(res => {

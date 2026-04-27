@@ -12,7 +12,7 @@ import { useNavigate, Link } from "react-router-dom"
 import axios from "axios"
 import { Loader2, ArrowRight, CheckCircle2, AlertCircle, ShieldAlert, Lock } from "lucide-react"
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:5000`;
+import { API_BASE_URL } from "@/api/config"
 
 export function ResetPasswordForm({
   className,
@@ -66,7 +66,7 @@ export function ResetPasswordForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!showOtp) {
       await handleSendOtp();
       return;
@@ -98,11 +98,11 @@ export function ResetPasswordForm({
         {!showOtp ? (
           <Field>
             <FieldLabel htmlFor="email">Email address</FieldLabel>
-            <Input 
-              id="email" 
-              type="email" 
-              placeholder="name@company.com" 
-              required 
+            <Input
+              id="email"
+              type="email"
+              placeholder="name@company.com"
+              required
               value={formData.email}
               onChange={handleChange}
               className="bg-zinc-50/50"
@@ -118,8 +118,8 @@ export function ResetPasswordForm({
                 </span>
               </div>
               <div className="relative">
-                 <ShieldAlert className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
-                 <Input
+                <ShieldAlert className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+                <Input
                   id="otp"
                   type="text"
                   required
@@ -135,11 +135,11 @@ export function ResetPasswordForm({
               <FieldLabel htmlFor="new_password">New Password</FieldLabel>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
-                <Input 
-                  id="new_password" 
-                  type="password" 
-                  placeholder="••••••••" 
-                  required 
+                <Input
+                  id="new_password"
+                  type="password"
+                  placeholder="••••••••"
+                  required
                   value={formData.new_password}
                   onChange={handleChange}
                   className="pl-10 bg-zinc-50/50"
@@ -147,7 +147,7 @@ export function ResetPasswordForm({
               </div>
             </Field>
             <div className="text-center">
-              <Button 
+              <Button
                 variant="link"
                 size="sm"
                 type="button"

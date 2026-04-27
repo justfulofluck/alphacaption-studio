@@ -1,11 +1,11 @@
 /// <reference types="vite/client" />
 import React, { useState, useEffect } from 'react';
-import { 
-  Mail, 
-  Lock, 
-  User, 
-  Phone, 
-  ArrowRight, 
+import {
+  Mail,
+  Lock,
+  User,
+  Phone,
+  ArrowRight,
   Loader2,
   CheckCircle2,
   AlertCircle,
@@ -15,7 +15,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { cn } from '../lib/utils';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:5000`;
+import { API_BASE_URL } from "@/api/config";
 
 type AuthMode = 'login' | 'signup' | 'reset';
 
@@ -62,9 +62,9 @@ export default function AuthPage({ mode: initialMode = 'login' }: { mode?: AuthM
     setError(null);
     try {
       const endpoint = purpose === 'reset' ? '/api/auth/reset-password-request' : '/api/auth/register';
-      
+
       const res = await axios.post(`${API_BASE_URL}${endpoint}`, formData);
-      
+
       if (res.data.otp_required) {
         setShowOtp(true);
         setTimeLeft(180); // 3 minutes
@@ -79,7 +79,7 @@ export default function AuthPage({ mode: initialMode = 'login' }: { mode?: AuthM
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // For signup: first send OTP if not shown, then verify
     if (mode === 'signup' && !showOtp) {
       await handleSendOtp('register');
@@ -112,7 +112,7 @@ export default function AuthPage({ mode: initialMode = 'login' }: { mode?: AuthM
       }
 
       const res = await axios.post(`${API_BASE_URL}${endpoint}`, payload);
-      
+
       if (res.data.token) {
         localStorage.setItem('auth_token', res.data.token);
         navigate('/');
@@ -160,7 +160,7 @@ export default function AuthPage({ mode: initialMode = 'login' }: { mode?: AuthM
           ) : (
             <>
               Already have an account?{' '}
-              <button type="button" onClick={() => {setMode('login'); setShowOtp(false)}} className="font-bold text-zinc-900 hover:text-zinc-900">
+              <button type="button" onClick={() => { setMode('login'); setShowOtp(false) }} className="font-bold text-zinc-900 hover:text-zinc-900">
                 Sign in
               </button>
             </>
@@ -313,7 +313,7 @@ export default function AuthPage({ mode: initialMode = 'login' }: { mode?: AuthM
                   )}
 
                   <div className="text-center">
-                    <button 
+                    <button
                       type="button"
                       disabled={loading || timeLeft > 120}
                       onClick={handleResendOtp}

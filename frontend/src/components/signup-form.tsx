@@ -12,7 +12,7 @@ import { useNavigate, Link } from "react-router-dom"
 import axios from "axios"
 import { Loader2, ArrowRight, CheckCircle2, AlertCircle, ShieldAlert } from "lucide-react"
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:5000`;
+import { API_BASE_URL } from "@/api/config"
 
 export function SignupForm({
   className,
@@ -55,7 +55,7 @@ export function SignupForm({
 
   const handleSendOtp = async () => {
     if (isRequesting) return;
-    
+
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match.");
       return;
@@ -80,7 +80,7 @@ export function SignupForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!showOtp) {
       await handleSendOtp();
       return;
@@ -88,7 +88,7 @@ export function SignupForm({
 
     if (isRequesting) return;
     setIsRequesting(true);
-        setLoading(true);
+    setLoading(true);
     setError(null);
     try {
       const res = await axios.post(`${API_BASE_URL}/api/auth/register`, formData);
@@ -196,8 +196,8 @@ export function SignupForm({
                 </span>
               </div>
               <div className="relative">
-                 <ShieldAlert className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
-                 <Input
+                <ShieldAlert className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+                <Input
                   id="otp"
                   type="text"
                   required
@@ -210,7 +210,7 @@ export function SignupForm({
               </div>
             </Field>
             <div className="text-center">
-              <Button 
+              <Button
                 variant="link"
                 size="sm"
                 type="button"

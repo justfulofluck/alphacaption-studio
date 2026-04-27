@@ -12,7 +12,7 @@ import { useNavigate, Link } from "react-router-dom"
 import axios from "axios"
 import { Loader2, ArrowRight, AlertCircle } from "lucide-react"
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:5000`;
+import { API_BASE_URL } from "@/api/config"
 
 export function LoginForm({
   className,
@@ -61,11 +61,11 @@ export function LoginForm({
         </div>
         <Field>
           <FieldLabel htmlFor="email">Email</FieldLabel>
-          <Input 
-            id="email" 
-            type="email" 
-            placeholder="m@example.com" 
-            required 
+          <Input
+            id="email"
+            type="email"
+            placeholder="m@example.com"
+            required
             value={formData.email}
             onChange={handleChange}
             className="bg-zinc-50/50"
@@ -81,10 +81,10 @@ export function LoginForm({
               Forgot?
             </Link>
           </div>
-          <Input 
-            id="password" 
-            type="password" 
-            required 
+          <Input
+            id="password"
+            type="password"
+            required
             value={formData.password}
             onChange={handleChange}
             className="bg-zinc-50/50"

@@ -6,7 +6,7 @@ services:
     ports:
       - "4444:3000"
     environment:
-      - VITE_API_BASE_URL=http://backend:4445
+      - VITE_API_BASE_URL=http://localhost:5000
     depends_on:
       - backend
     volumes:
@@ -16,27 +16,31 @@ services:
   backend:
     build: ./server
     ports:
-      - "4445:4445"
+      - "5000:5000"
+    env_file:
+      - .env
     environment:
-      - SECRET_KEY=alphacaption-secret-key-2024
-      - JWT_SECRET_KEY=alphacaption-jwt-secret-2024
+      - SECRET_KEY=${SECRET_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - MYSQL_HOST=mysql
-      - MYSQL_PORT=3310
-      - MYSQL_USER=alphacaption
-      - MYSQL_PASSWORD=alphacaption123
-      - MYSQL_DATABASE=alphacaption
-      - GCP_PROJECT_ID=vcaptiona-srt-494215
-      - GCP_REGION=us-central1
-      - GCP_CREDENTIALS_PATH=./credentials/vcaption-srt-key.json
-      - GEMINI_MODEL=gemini-flash-latest
-      - FRONTEND_URL=http://frontend:4444
-      - BASE_URL=http://localhost:4445
+      - MYSQL_PORT=3306
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - GCP_PROJECT_ID=${GCP_PROJECT_ID}
+      - GCP_REGION=${GCP_REGION}
+      - GCP_CREDENTIALS_JSON=${GCP_CREDENTIALS_JSON}
+      - GEMINI_MODEL=${GEMINI_MODEL}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - FRONTEND_URL=http://frontend:3000
+      - BASE_URL=http://localhost:5000
       - MAIL_ENABLED=true
-      - MAIL_USERNAME=makemyqrcodeapp@gmail.com
-      - MAIL_PASSWORD=yfxmqmjlfuclyntw
-      - MAIL_FROM=AlphaCaption Studio <makemyqrcodeapp@gmail.com>
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - MAIL_FROM=${MAIL_FROM}
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     volumes:
       - ./server:/app
       - ./server/credentials:/app/credentials
@@ -52,6 +56,10 @@ services:
       - MYSQL_PASSWORD=alphacaption123
     volumes:
       - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      timeout: 20s
+      retries: 10
 
 volumes:
   mysql_data:

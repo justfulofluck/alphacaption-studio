@@ -3,6 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select"
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import WaveSurfer from 'wavesurfer.js';
 import { motion } from 'motion/react';
@@ -51,6 +58,12 @@ import LoginPage from './components/LoginPage';
 import ResetPasswordPage from './components/ResetPasswordPage';
 import { cn } from './lib/utils';
 import axios from 'axios';
+
+const MODELS = [
+  { id: 'gemini-flash-latest', name: 'Gemini Flash (Recommended)' },
+  { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash' },
+  { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro' }
+];
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { StudioSidebar } from "@/components/StudioSidebar"
 import { SiteHeader } from "@/components/site-header"
@@ -99,7 +112,7 @@ export default function App() {
   );
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:5000`;
+import { API_BASE_URL } from '@/api/config';
 
 function Layout() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('auth_token'));
@@ -194,15 +207,12 @@ function MainApp() {
   const [activeTab, setActiveTab] = useState<'captions' | 'transcript' | 'studio'>('captions');
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isSyncingList, setIsSyncingList] = useState(false);
-  const [aiModel, setAiModel] = useState<'gemini-3.1-pro-preview' | 'gemini-3-flash-preview' | 'gemini-3.1-flash-lite-preview'>('gemini-3.1-pro-preview');
+  const [projectId, setProjectId] = useState<number | null>(null);
+  const [aiModel, setAiModel] = useState('gemini-flash-latest');
   const [selectedSegmentIds, setSelectedSegmentIds] = useState<Set<string>>(new Set());
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [userData, setUserData] = useState({ name: '', email: '', phone: '', countryCode: '+91' });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-
-  // Project state
-  const [projectId, setProjectId] = useState<number | null>(null);
-  const [projectStatus, setProjectStatus] = useState<string>('uploaded');
 
   // Studio States
   const [fontFamily, setFontFamily] = useState('Inter');
@@ -322,6 +332,7 @@ function MainApp() {
     }
     setAudioFile(null);
     setAudioUrl(null);
+    setProjectId(null);
     setSegments([]);
     setIsPlaying(false);
     setCurrentTime(0);
@@ -367,81 +378,91 @@ function MainApp() {
   const waveformRef = useRef<HTMLDivElement>(null);
   const wavesurfer = useRef<WaveSurfer | null>(null);
 
-  const transcribeAudio = async () => {
-    if (!audioFile || !projectId) return;
-    setIsTranscribing(true);
-    setActiveTab('captions');
-    transcriptionAbortRef.current = new AbortController();
+  const uploadToBackend = async () => {
+    if (!audioFile) return null;
+    const token = localStorage.getItem('auth_token');
+    const formData = new FormData();
+    formData.append('audio', audioFile);
+    formData.append('name', audioFile.name);
 
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await axios.post(
-        `${API_BASE_URL}/api/captions/${projectId}/transcribe`,
-        null,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-          signal: transcriptionAbortRef.current.signal,
+      const res = await axios.post(`${API_BASE_URL}/api/projects`, formData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
         }
-      );
+      });
+      setProjectId(res.data.id);
+      return res.data.id;
+    } catch (err) {
+      console.error('Error uploading to backend:', err);
+      alert('Failed to upload audio to server.');
+      return null;
+    }
+  };
 
-      if (transcriptionAbortRef.current?.signal.aborted) return;
+  const transcribeAudio = async () => {
+    if (!audioFile) return;
+    setIsTranscribing(true);
+    setActiveTab('transcript');
 
-      if (response.data.transcript) {
-        setTranscript(response.data.transcript);
-        setDetectedLanguage(response.data.language);
-        setProjectStatus('transcribed');
+    try {
+      let currentId = projectId;
+      if (!currentId) {
+        currentId = await uploadToBackend();
       }
-    } catch (error: any) {
-      if (error.name === 'AbortError' || error.message === 'aborted') return;
+      if (!currentId) throw new Error('Could not get project ID');
+
+      const token = localStorage.getItem('auth_token');
+      const res = await axios.post(`${API_BASE_URL}/api/captions/${currentId}/transcribe`, {
+        model: aiModel
+      }, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (res.data.transcript) {
+        setTranscript(res.data.transcript);
+        setDetectedLanguage(res.data.language);
+      }
+    } catch (error) {
       console.error('Error transcribing audio:', error);
-      alert(`Transcription failed: ${error.response?.data?.error || error.message}`);
+      alert('Transcription failed. Please try again.');
     } finally {
       setIsTranscribing(false);
     }
   };
 
   const alignTranscript = async () => {
-    if (!transcript || !projectId) return;
+    if (!transcript || !audioFile) return;
     setIsAligning(true);
-    alignmentAbortRef.current = new AbortController();
 
     try {
+      let currentId = projectId;
+      if (!currentId) {
+        currentId = await uploadToBackend();
+      }
+      if (!currentId) throw new Error('Could not get project ID');
+
       const token = localStorage.getItem('auth_token');
-      const response = await axios.post(
-        `${API_BASE_URL}/api/captions/${projectId}/align`,
-        { transcript },
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          signal: alignmentAbortRef.current.signal,
-        }
-      );
+      const res = await axios.post(`${API_BASE_URL}/api/captions/${currentId}/align`, {
+        transcript: transcript
+      }, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
 
-      if (alignmentAbortRef.current?.signal.aborted) return;
-
-      if (response.data.segments && Array.isArray(response.data.segments)) {
-        const newSegments = response.data.segments.map((seg: any, i: number) => ({
+      if (res.data.segments && Array.isArray(res.data.segments)) {
+        const newSegments = res.data.segments.map((seg: any, i: number) => ({
           id: `seg-${Date.now()}-${i}`,
           start: parseFloat(seg.start),
           end: parseFloat(seg.end),
           text: seg.text
         }));
         setSegments(newSegments);
-        setUndoStack([{
-          segments: newSegments,
-          fontFamily, fontSize, fontColor, strokeColor,
-          strokeWidth, textShadow, textAlign, textPosition, transitionType
-        }]);
-        setProjectStatus('aligned');
+        setUndoStack([{ segments: newSegments, fontFamily, fontSize, fontColor, strokeColor, strokeWidth, textShadow, textAlign, textPosition, transitionType }]);
       }
-    } catch (error: any) {
-      if (error.name === 'AbortError' || error.message === 'aborted') return;
+    } catch (error) {
       console.error('Error aligning transcript:', error);
-      alert(`Alignment failed: ${error.response?.data?.error || error.message}`);
+      alert('Alignment failed. Please try again.');
     } finally {
       setIsAligning(false);
     }
@@ -474,17 +495,13 @@ function MainApp() {
     };
   }, [audioUrl]);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setAudioFile(file);
       const url = URL.createObjectURL(file);
       setAudioUrl(url);
-      setSegments([]);
-      setTranscript('');
-      setDetectedLanguage(null);
-      setProjectId(null);
-      setProjectStatus('uploaded');
+      setSegments([]); // Reset segments on new file
 
       // Initialize history with empty segments
       const initialState: HistoryState = {
@@ -501,82 +518,8 @@ function MainApp() {
       };
       setUndoStack([initialState]);
       setRedoStack([]);
-
-      // Upload audio to server to create project
-      try {
-        const token = localStorage.getItem('auth_token');
-        if (!token) {
-          alert('Please login to upload files');
-          return;
-        }
-
-        const formData = new FormData();
-        formData.append('audio', file);
-        formData.append('name', file.name.split('.')[0]);
-
-        const response = await axios.post(
-          `${API_BASE_URL}/api/projects`,
-          formData,
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (response.data.id) {
-          setProjectId(response.data.id);
-          setProjectStatus(response.data.status);
-          console.log('Project created:', response.data.id);
-        }
-      } catch (error: any) {
-        console.error('Failed to create project:', error);
-        alert(`Failed to upload audio: ${error.response?.data?.error || error.message}`);
-      }
     }
   };
-
-  // Fetch project data when projectId changes
-  useEffect(() => {
-    const fetchProjectData = async () => {
-      if (!projectId) return;
-
-      try {
-        const token = localStorage.getItem('auth_token');
-        const response = await axios.get(`${API_BASE_URL}/api/projects/${projectId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-
-        if (response.data) {
-          setProjectStatus(response.data.status);
-          if (response.data.language) setDetectedLanguage(response.data.language);
-
-          if (response.data.caption) {
-            if (response.data.caption.transcript) {
-              setTranscript(response.data.caption.transcript);
-            }
-            if (response.data.caption.segments && response.data.caption.segments.length > 0) {
-              setSegments(response.data.caption.segments);
-              setUndoStack(prev => {
-                if (prev.length <= 1) {
-                  return [{
-                    segments: response.data.caption.segments,
-                    fontFamily, fontSize, fontColor, strokeColor,
-                    strokeWidth, textShadow, textAlign, textPosition, transitionType
-                  }];
-                }
-                return prev;
-              });
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching project data:', error);
-      }
-    };
-
-    fetchProjectData();
-  }, [projectId]);
 
   const formatTime = (seconds: number) => {
     const h = Math.floor(seconds / 3600);
@@ -820,27 +763,73 @@ function MainApp() {
   };
 
   const syncAllSegments = async () => {
-    if (segments.length === 0 || !projectId) return;
+    if (segments.length === 0 || !audioFile) return;
     setIsSyncingList(true);
     syncAbortRef.current = new AbortController();
 
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await axios.post(
-        `${API_BASE_URL}/api/captions/${projectId}/sync`,
-        null,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-          signal: syncAbortRef.current.signal,
-        }
+      const { GoogleGenAI } = await import("@google/genai");
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || '' });
+
+      const arrayBuffer = await audioFile.arrayBuffer();
+      const base64Data = btoa(
+        new Uint8Array(arrayBuffer)
+          .reduce((data, byte) => data + String.fromCharCode(byte), '')
       );
 
+      const segmentsJson = segments.map(s => ({ start: s.start, end: s.end, text: s.text }));
+
+      const prompt = `
+        I have an audio file and its current caption segments.
+        CURRENT SEGMENTS: ${JSON.stringify(segmentsJson)}
+        
+        CRITICAL TASK: RE-SYNCHRONIZE TIMINGS
+        1. Analyze the audio carefully.
+        2. Keep the EXACT text for each segment as provided. Do not combine or split them.
+        3. Match the text of each segment to its precise audio timestamp.
+        4. Provide the EXACT start and end times for each segment.
+        5. Timings must be accurate to the millisecond.
+        6. Ensure NO overlaps.
+        
+        Return the result as a JSON object with a "segments" field:
+        {
+          "segments": [
+            {
+              "start": number,
+              "end": number,
+              "text": "original text"
+            }
+          ]
+        }
+      `;
+
+      const result_promise = (ai as any).models.generateContent({
+        model: aiModel,
+        contents: [
+          {
+            parts: [
+              { text: prompt },
+              {
+                inlineData: {
+                  mimeType: audioFile.type || 'audio/mpeg',
+                  data: base64Data
+                }
+              }
+            ]
+          }
+        ],
+        config: {
+          responseMimeType: "application/json",
+        }
+      });
+
+      const response = await result_promise;
       if (syncAbortRef.current?.signal.aborted) return;
 
-      if (response.data.segments && Array.isArray(response.data.segments)) {
-        const sortedResults = response.data.segments.sort((a: any, b: any) => a.start - b.start);
+      const result = JSON.parse(response.text || '{}');
+
+      if (result.segments && Array.isArray(result.segments)) {
+        const sortedResults = result.segments.sort((a, b) => a.start - b.start);
         const newSegments = sortedResults.map((seg: any, i: number) => ({
           id: `seg-sync-${Date.now()}-${i}`,
           start: parseFloat(seg.start),
@@ -849,10 +838,9 @@ function MainApp() {
         }));
         setSegments(newSegments);
       }
-    } catch (error: any) {
-      if (error.name === 'AbortError' || error.message === 'aborted') return;
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') return;
       console.error('Error syncing segments:', error);
-      alert(`Sync failed: ${error.response?.data?.error || error.message}`);
     } finally {
       setIsSyncingList(false);
     }
@@ -954,15 +942,21 @@ function MainApp() {
               <div className="grid grid-cols-1 md:grid-cols-5 gap-6 pt-6 border-t border-zinc-100">
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">AI Model</label>
-                  <select
+                  <Select
                     value={aiModel}
-                    onChange={(e) => setAiModel(e.target.value as any)}
-                    className="w-full bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-bold transition-all focus:ring-2 focus:ring-zinc-800 outline-none"
+                    onValueChange={(v: any) => setAiModel(v)}
                   >
-                    <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro (Best)</option>
-                    <option value="gemini-3-flash-preview">Gemini 3 Flash (Fast)</option>
-                    <option value="gemini-3.1-flash-lite-preview">Gemini 3.1 Flash Lite (Lightweight)</option>
-                  </select>
+                    <SelectTrigger className="w-full bg-white/50 border-white/20 backdrop-blur-sm font-bold text-xs h-9">
+                      <SelectValue placeholder="Select AI Model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MODELS.map((model) => (
+                        <SelectItem key={model.id} value={model.id}>
+                          {model.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Silence Threshold</label>
@@ -1582,44 +1576,33 @@ function VideoStudio({
   const chunksRef = useRef<Blob[]>([]);
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
-  const [isInitializingFFmpeg, setIsInitializingFFmpeg] = useState(false);
   const ffmpegRef = useRef<FFmpeg | null>(null);
 
   const loadFFmpeg = async () => {
     if (ffmpegRef.current) return ffmpegRef.current;
-
-    setIsInitializingFFmpeg(true);
     const ffmpeg = new FFmpeg();
     const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
 
+    // Add event listeners before loading to capture early logs
     ffmpeg.on('log', ({ message }) => console.log('FFmpeg Log:', message));
 
-    // Increase timeout to 120 seconds as the WASM file is large (~30MB)
-    const timeoutThreshold = 120000;
+    const loadTimeout = setTimeout(() => {
+      console.error('FFmpeg load timeout - falling back to WebM');
+    }, 10000);
 
-    return new Promise<FFmpeg>((resolve, reject) => {
-      const loadTimeout = setTimeout(() => {
-        setIsInitializingFFmpeg(false);
-        reject(new Error('FFmpeg load timeout - possible network issue or large file size.'));
-      }, timeoutThreshold);
-
-      ffmpeg.load({
-        coreURL: toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-        wasmURL: toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
-      })
-        .then(() => {
-          clearTimeout(loadTimeout);
-          ffmpegRef.current = ffmpeg;
-          setIsInitializingFFmpeg(false);
-          resolve(ffmpeg);
-        })
-        .catch((err) => {
-          clearTimeout(loadTimeout);
-          setIsInitializingFFmpeg(false);
-          console.error('Failed to load FFmpeg:', err);
-          reject(err);
-        });
-    });
+    try {
+      await ffmpeg.load({
+        coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+        wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+      });
+      clearTimeout(loadTimeout);
+      ffmpegRef.current = ffmpeg;
+      return ffmpeg;
+    } catch (error) {
+      clearTimeout(loadTimeout);
+      console.error('Failed to load FFmpeg:', error);
+      throw error;
+    }
   };
 
   const fonts = [
@@ -1940,7 +1923,7 @@ function VideoStudio({
               {isExporting ? (
                 <>
                   <RotateCw size={18} className="animate-spin" />
-                  {isInitializingFFmpeg ? 'Initializing...' : `${exportProgress}%`}
+                  {exportProgress}%
                 </>
               ) : (
                 <>

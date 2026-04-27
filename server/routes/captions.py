@@ -35,8 +35,16 @@ def transcribe(project_id):
         return jsonify({'error': 'Audio file not found on server'}), 404
     
     try:
+        data = request.get_json() or {}
+        custom_model = data.get('model')
+        
         vertex = get_vertex_service()
-        print(f"[Captions] Starting transcription for {filepath}")
+        if custom_model:
+            # Override model if requested from UI
+            vertex.google_ai_model_name = custom_model
+            vertex.model_name = custom_model
+            
+        print(f"[Captions] Starting transcription with model {vertex.google_ai_model_name} for {filepath}")
         result = vertex.transcribe(filepath)
         print(f"[Captions] Vertex AI result: {result}")
         

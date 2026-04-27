@@ -1,12 +1,12 @@
 /// <reference types="vite/client" />
 import React, { useState, useEffect } from 'react';
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  Settings, 
-  Camera, 
-  CheckCircle2, 
+import {
+  User,
+  Mail,
+  Phone,
+  Settings,
+  Camera,
+  CheckCircle2,
   ShieldCheck,
   Globe,
   Loader2,
@@ -17,7 +17,7 @@ import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:5000`;
+import { API_BASE_URL } from "@/api/config";
 
 export default function ProfileSettings() {
   const navigate = useNavigate();
@@ -45,7 +45,7 @@ export default function ProfileSettings() {
         const res = await axios.get(`${API_BASE_URL}/api/auth/me`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        
+
         setFormData(prev => ({
           ...prev,
           name: res.data.name || '',
@@ -83,11 +83,11 @@ export default function ProfileSettings() {
     }
 
     try {
-      await axios.put(`${API_BASE_URL}/api/auth/me`, 
+      await axios.put(`${API_BASE_URL}/api/auth/me`,
         { name: formData.name },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      
+
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err: any) {
@@ -131,7 +131,7 @@ export default function ProfileSettings() {
             </div>
             <h3 className="font-black text-lg text-zinc-900 leading-none mb-1">{formData.name || 'Your Name'}</h3>
             <p className="text-xs font-bold text-zinc-900 uppercase tracking-widest">{formData.email}</p>
-            
+
             <div className="mt-6 w-full pt-6 border-t border-zinc-50 space-y-4">
               <div className="flex items-center gap-3 text-xs">
                 <ShieldCheck className="text-emerald-500" size={16} />
@@ -148,7 +148,7 @@ export default function ProfileSettings() {
 
         {/* Right: The Form */}
         <div className="lg:col-span-2">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             className="bg-white p-8 sm:p-10 rounded-[2.5rem] border border-zinc-100 shadow-xl shadow-zinc-100/50"
@@ -243,7 +243,7 @@ export default function ProfileSettings() {
                   <Lock size={14} />
                   Change Password
                 </button>
-                
+
                 <button
                   type="submit"
                   disabled={loading}

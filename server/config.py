@@ -1,3 +1,4 @@
+
 import os
 from datetime import timedelta
 from dotenv import load_dotenv
@@ -11,9 +12,9 @@ class Config:
     MYSQL_HOST = os.environ.get('MYSQL_HOST', 'localhost')
     MYSQL_PORT = os.environ.get('MYSQL_PORT', '3306')
     MYSQL_USER = os.environ.get('MYSQL_USER', 'root')
-    MYSQL_PASSWORD = os.environ.get('MYSQL_PASSWORD', '')
+    MYSQL_PASSWORD = os.environ.get('MYSQL_PASSWORD', '123456')
     MYSQL_DATABASE = os.environ.get('MYSQL_DATABASE', 'alphacaption')
-    
+
     SQLALCHEMY_DATABASE_URI = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DATABASE}"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
@@ -23,12 +24,6 @@ class Config:
     JWT_HEADER_TYPE = 'Bearer'
     JWT_IDENTITY_CLAIM = 'sub'
     
-    # GCP / Vertex AI Configuration
-    GCP_PROJECT_ID = os.environ.get('GCP_PROJECT_ID', '')
-    GCP_REGION = os.environ.get('GCP_REGION', 'us-central1')
-    GCP_CREDENTIALS_PATH = os.environ.get('GCP_CREDENTIALS_PATH', '')
-    
-    # Legacy - kept for backward compatibility (optional)
     GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
     
     BASE_URL = os.environ.get('BASE_URL', 'http://localhost:5000')

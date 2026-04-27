@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
-import { 
-  ShieldCheck, 
-  Lock, 
-  Mail, 
-  ArrowRight, 
+import {
+  ShieldCheck,
+  Lock,
+  Mail,
+  ArrowRight,
   Loader2,
   AlertCircle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:5000`;
+import { API_BASE_URL } from "@/api/config"
 
 export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
@@ -42,11 +42,11 @@ export default function AdminLoginPage() {
     try {
       // Use dedicated admin login endpoint for server-side validation
       const res = await axios.post(`${API_BASE_URL}/api/auth/admin/login`, formData);
-      
+
       if (res.data.token) {
         localStorage.setItem('admin_token', res.data.token);
         localStorage.setItem('auth_token', res.data.token);
-        
+
         // Brief delay to ensure localStorage is committed before navigation
         setTimeout(() => {
           navigate('/admin');
@@ -80,7 +80,7 @@ export default function AdminLoginPage() {
         <div className="bg-zinc-900/50 backdrop-blur-xl py-10 px-8 border border-zinc-800 shadow-2xl rounded-[3rem] sm:px-12 relative overflow-hidden group">
           {/* Animated glow effect */}
           <div className="absolute -top-24 -right-24 w-48 h-48 bg-zinc-900/10 blur-[80px] rounded-full group-hover:bg-zinc-900/20 transition-all duration-700"></div>
-          
+
           <form className="space-y-6 relative z-10" onSubmit={handleSubmit}>
             <div>
               <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em] mb-2 ml-1">
@@ -138,7 +138,7 @@ export default function AdminLoginPage() {
             </button>
           </form>
         </div>
-        
+
         <p className="mt-8 text-center text-[10px] text-zinc-700 font-bold uppercase tracking-widest leading-loose">
           Secure encrypted session • Access is logged • Unauthorized entry is prohibited
         </p>

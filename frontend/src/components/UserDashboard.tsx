@@ -3,17 +3,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { 
-  Plus, 
-  Loader2, 
-  LayoutDashboard, 
-  Zap, 
-  CreditCard, 
-  History 
+import {
+  Plus,
+  Loader2,
+  LayoutDashboard,
+  Zap,
+  CreditCard,
+  History
 } from 'lucide-react';
-import { 
-  SidebarInset, 
-  SidebarProvider 
+import {
+  SidebarInset,
+  SidebarProvider
 } from "@/components/ui/sidebar"
 import { StudioSidebar } from "@/components/StudioSidebar"
 import { SiteHeader } from "@/components/site-header"
@@ -21,7 +21,7 @@ import { SectionCards } from "@/components/section-cards"
 import { DashboardTable } from "@/components/DashboardTable"
 import { Button } from "@/components/ui/button"
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:5000`;
+import { API_BASE_URL } from "@/api/config";
 
 interface UserData {
   id: number;
@@ -154,15 +154,15 @@ export default function UserDashboard() {
           </Button>
         </div>
       </div>
-      
+
       <SectionCards cards={statCards} />
-      
-      <DashboardTable 
+
+      <DashboardTable
         title="Recent Projects"
         data={projects.map(p => ({
           ...p,
           created_at: new Date(p.created_at).toLocaleDateString()
-        }))} 
+        }))}
         columns={columns}
         onAction={(action, row) => console.log(action, row)}
       />
