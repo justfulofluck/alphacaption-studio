@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { MoreHorizontal, Download, Trash2, PlayIcon } from "lucide-react"
+import { MoreHorizontal, Download, Trash2, PlayIcon, PlusCircle, Pencil } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,10 +30,11 @@ interface DashboardTableProps {
   data: any[];
   columns: Column[];
   title?: string;
+  section?: string;
   onAction?: (action: string, row: any) => void;
 }
 
-export function DashboardTable({ data, columns, title, onAction }: DashboardTableProps) {
+export function DashboardTable({ data, columns, title, section, onAction }: DashboardTableProps) {
   return (
     <div className="px-4 lg:px-6">
       <div className="flex items-center justify-between mb-4">
@@ -70,28 +71,32 @@ export function DashboardTable({ data, columns, title, onAction }: DashboardTabl
                 ))}
                 <TableCell className="text-right">
                   <DropdownMenu>
-                    <DropdownMenuTrigger 
-                      render={
-                        <Button variant="ghost" size="icon" className="size-8">
-                          <MoreHorizontal className="size-4" />
-                        </Button>
-                      }
-                    />
-                    <DropdownMenuContent align="end" className="w-40">
+                    <DropdownMenuTrigger>
+                      <Button variant="ghost" size="icon" className="size-8">
+                        <MoreHorizontal className="size-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                      {row.audio_filename ? (
+
+                      {section === 'users' && (
                         <>
-                          <DropdownMenuItem onClick={() => onAction?.('play', row)}>
-                            <PlayIcon size={14} className="mr-2" /> Play Preview
+                          <DropdownMenuItem onClick={() => onAction?.('add_credits', row)}>
+                            <PlusCircle size={14} className="mr-2" /> Add Credits
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => onAction?.('download', row)}>
-                            <Download size={14} className="mr-2" /> Download SRT
+                          <DropdownMenuItem onClick={() => onAction?.('edit_user', row)}>
+                            <Pencil size={14} className="mr-2" /> Edit User
                           </DropdownMenuItem>
                         </>
-                      ) : (
-                        <DropdownMenuItem onClick={() => onAction?.('manage', row)}>Manage User</DropdownMenuItem>
                       )}
+
+                      {section === 'plans' && (
+                        <DropdownMenuItem onClick={() => onAction?.('edit_plan', row)}>
+                          <Pencil size={14} className="mr-2" /> Edit Plan
+                        </DropdownMenuItem>
+                      )}
+
                       <DropdownMenuSeparator />
                       <DropdownMenuItem className="text-destructive focus:bg-destructive focus:text-destructive-foreground" onClick={() => onAction?.('delete', row)}>
                         <Trash2 size={14} className="mr-2" /> Delete

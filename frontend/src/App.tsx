@@ -56,6 +56,7 @@ import AdminLoginPage from './components/AdminLoginPage';
 import SignupPage from './components/SignupPage';
 import LoginPage from './components/LoginPage';
 import ResetPasswordPage from './components/ResetPasswordPage';
+import PricingPage from './components/PricingPage';
 import { cn } from './lib/utils';
 import axios from 'axios';
 
@@ -96,6 +97,7 @@ export default function App() {
           <Route path="/" element={<MainApp />} />
           <Route path="/dashboard" element={<UserDashboard />} />
           <Route path="/settings" element={<ProfileSettings />} />
+          <Route path="/pricing" element={<PricingPage />} />
         </Route>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />

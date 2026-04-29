@@ -10,9 +10,9 @@ import {
   SidebarMenuButton,
 } from "@/components/ui/sidebar"
 import { NavUser } from "@/components/nav-user"
-import { 
-  BarChart3Icon, 
-  ShieldCheckIcon, 
+import {
+  BarChart3Icon,
+  ShieldCheckIcon,
   SparklesIcon,
   UsersIcon,
   Settings2Icon,
@@ -45,9 +45,19 @@ export function StudioSidebar({ user, ...props }: StudioSidebarProps) {
         icon: <UsersIcon />,
       },
       {
-        title: "System Stats",
-        url: "#",
+        title: "Credit Ledger",
+        url: "/admin?section=ledger",
+        icon: <ShieldCheckIcon />,
+      },
+      {
+        title: "Payment Logs",
+        url: "/admin?section=payments",
         icon: <BarChart3Icon />,
+      },
+      {
+        title: "Plan Setup",
+        url: "/admin?section=plans",
+        icon: <Settings2Icon />,
       }
     ] : [
       {
@@ -57,7 +67,7 @@ export function StudioSidebar({ user, ...props }: StudioSidebarProps) {
       },
       {
         title: "Subscription",
-        url: "/settings",
+        url: "/settings?tab=subscription",
         icon: <ShieldCheckIcon />,
       }
     ])
@@ -69,8 +79,8 @@ export function StudioSidebar({ user, ...props }: StudioSidebarProps) {
       <SidebarHeader className="pt-4 group-data-[collapsible=icon]:p-2">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton 
-              size="lg" 
+            <SidebarMenuButton
+              size="lg"
               render={
                 <Link to="/" className="flex items-center gap-3">
                   <div className="flex aspect-square size-10 items-center justify-center rounded-xl bg-zinc-900 text-white min-w-10 dark:bg-white dark:text-zinc-900">

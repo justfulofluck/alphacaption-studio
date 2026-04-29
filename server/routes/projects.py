@@ -80,11 +80,15 @@ def create_project():
     filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
     file.save(filepath)
     
+    from utils.media_info import get_audio_duration
+    duration = get_audio_duration(filepath)
+    
     project = Project(
         user_id=user_id,
         name=name,
         audio_filename=filename,
         audio_url=get_audio_url(filename),
+        duration=duration,
         status='uploaded'
     )
     

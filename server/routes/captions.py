@@ -20,7 +20,13 @@ def get_vertex_service():
 @captions_bp.route('/<int:project_id>/transcribe', methods=['POST'])
 @jwt_required()
 def transcribe(project_id):
+    from services.credit_service import CreditService
     user_id = get_jwt_identity()
+    
+    # Check balance before starting
+    balance = CreditService.get_balance(user_id)
+    if balance <= 0:
+        return jsonify({'error': 'Insufficient credits. Please recharge your account.'}), 402
     project = Project.query.filter_by(id=project_id, user_id=user_id).first()
     
     if not project:
@@ -70,6 +76,29 @@ def transcribe(project_id):
             
         project.status = 'transcribed'
         project.language = language
+        
+        # Deduct credits (1 credit per minute, minimum 1)
+        import math
+        from models.usage import Usage
+        duration_mins = max(1, math.ceil(project.duration / 60))
+        
+        usage = Usage(
+            user_id=user_id,
+            file_name=project.audio_filename,
+            duration_minutes=project.duration / 60,
+            credits_used=duration_mins,
+            cost_incurred=round((project.duration / 60) * 0.006, 4) # Approx $0.006 per minute cost Vertex
+        )
+        db.session.add(usage)
+        db.session.flush() # Get usage ID
+        
+        CreditService.deduct_credits(
+            user_id=user_id,
+            amount=duration_mins,
+            source='usage',
+            reference_id=str(usage.id)
+        )
+        
         db.session.commit()
         
         return jsonify({
@@ -87,7 +116,13 @@ def transcribe(project_id):
 @captions_bp.route('/<int:project_id>/align', methods=['POST'])
 @jwt_required()
 def align(project_id):
+    from services.credit_service import CreditService
     user_id = get_jwt_identity()
+    
+    # Check balance (alignment also requires credits)
+    balance = CreditService.get_balance(user_id)
+    if balance <= 0:
+        return jsonify({'error': 'Insufficient credits. Please recharge your account.'}), 402
     project = Project.query.filter_by(id=project_id, user_id=user_id).first()
     
     if not project:
@@ -124,6 +159,30 @@ def align(project_id):
             db.session.add(caption)
         
         project.status = 'aligned'
+        
+        # Deduct credits for alignment
+        import math
+        from models.usage import Usage
+        duration_mins = max(1, math.ceil(project.duration / 60))
+        
+        usage = Usage(
+            user_id=user_id,
+            file_name=f"{project.audio_filename} (align)",
+            duration_minutes=project.duration / 60,
+            credits_used=duration_mins,
+            cost_incurred=round((project.duration / 60) * 0.006, 4)
+        )
+        db.session.add(usage)
+        db.session.flush() # Get usage ID
+        
+        from services.credit_service import CreditService
+        CreditService.deduct_credits(
+            user_id=user_id,
+            amount=duration_mins,
+            source='usage_align',
+            reference_id=str(usage.id)
+        )
+        
         db.session.commit()
         
         return jsonify({

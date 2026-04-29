@@ -21,7 +21,8 @@ import {
 import {
   EllipsisVerticalIcon,
   CircleUserRoundIcon,
-  LogOutIcon
+  LogOutIcon,
+  Zap
 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import axios from "axios"
@@ -90,6 +91,14 @@ export function NavUser({
             sideOffset={4}
           >
             <DropdownMenuGroup>
+              <DropdownMenuItem
+                onSelect={() => navigate('/pricing')}
+                onClick={() => navigate('/pricing')}
+                className="cursor-pointer font-bold text-primary"
+              >
+                <Zap className="mr-2 h-4 w-4 fill-primary" />
+                Buy Credits
+              </DropdownMenuItem>
               <DropdownMenuItem
                 onSelect={() => navigate('/settings')}
                 onClick={() => navigate('/settings')}

@@ -11,13 +11,6 @@ class EmailService:
         self.password = os.environ.get('MAIL_PASSWORD', '')
         self.from_name = os.environ.get('MAIL_FROM', 'AlphaCaption Studio')
         
-        if self.enabled and self.username and self.password:
-            try:
-                self.yag = yagmail.SMTP(self.username, self.password)
-            except Exception as e:
-                print(f'[Email] SMTP Initialization Failed: {e}')
-                self.enabled = False
-    
     def send_welcome(self, to_email, name):
         subject = 'Welcome to AlphaCaption Studio!'
         body = f'''Hi {name},
@@ -36,22 +29,6 @@ Need help? Just reply to this email.
 
 Best,
 The AlphaCaption Team'''
-        return self.send(to_email, subject, body)
-    
-    def send_password_reset(self, to_email, reset_link):
-        subject = 'Reset Your AlphaCaption Password'
-        body = f'''Hi,
-
-Click the link below to reset your password:
-
-{reset_link}
-
-This link expires in 1 hour.
-
-If you didn't request this, ignore this email.
-
-Best,
-AlphaCaption Team'''
         return self.send(to_email, subject, body)
     
     def send_project_completed(self, to_email, project_name):
@@ -84,13 +61,16 @@ AlphaCaption Team'''
     
     def send(self, to_email, subject, body):
         import sys
-        if not self.enabled:
+        if not self.enabled or not self.username or not self.password:
             print(f'[Email] Would send to {to_email}: {subject}')
             sys.stdout.flush()
             return True
         
+        yag = None
         try:
-            self.yag.send(to=to_email, subject=subject, contents=body)
+            # Create a fresh thread-safe short-lived connection
+            yag = yagmail.SMTP(self.username, self.password)
+            yag.send(to=to_email, subject=subject, contents=body)
             print(f'[Email] Sent to {to_email}: {subject}')
             sys.stdout.flush()
             return True
@@ -98,5 +78,8 @@ AlphaCaption Team'''
             print(f'[Email] Failed: {e}')
             sys.stdout.flush()
             return False
+        finally:
+            if yag:
+                yag.close()
 
 email_service = EmailService()

@@ -12,12 +12,17 @@ class User(db.Model):
     phone = db.Column(db.String(20), nullable=True)
     plan = db.Column(db.String(20), default='free')
     role = db.Column(db.String(20), default='user')  # 'user', 'admin', 'super_admin'
-    credits = db.Column(db.Integer, default=10)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_login_at = db.Column(db.DateTime, nullable=True)
+    failed_login_attempts = db.Column(db.Integer, default=0)
+    locked_until = db.Column(db.DateTime, nullable=True)
+    password_changed_at = db.Column(db.DateTime, nullable=True)
+    current_jti = db.Column(db.String(36), nullable=True)
     
     projects = db.relationship('Project', backref='user', lazy=True, cascade='all, delete-orphan')
     
     def to_dict(self):
+        from services.credit_service import CreditService
         return {
             'id': self.id,
             'email': self.email,
@@ -25,8 +30,9 @@ class User(db.Model):
             'phone': self.phone,
             'plan': self.plan,
             'role': self.role,
-            'credits': self.credits,
-            'created_at': self.created_at.isoformat() if self.created_at else None
+            'credits': CreditService.get_balance(self.id) if self.id else 0,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'last_login_at': self.last_login_at.isoformat() if self.last_login_at else None
         }
 
 
