@@ -304,6 +304,50 @@ def reset_password():
     db.session.commit()
     return jsonify({'message': 'Password reset successful'})
 
+@auth_bp.route('/admin/reset-password-request', methods=['POST'])
+@limiter.limit("3 per minute")
+def admin_reset_password_request():
+    data = request.get_json()
+    email = data.get('email', '').strip().lower()
+    if not email:
+        return jsonify({'error': 'Email is required'}), 400
+    
+    user = User.query.filter_by(email=email).first()
+    # Only send OTP if the user exists AND is an admin
+    if user and user.role in ('admin', 'super_admin'):
+        generated = generate_otp(email, 'admin_reset')
+        if not generated:
+            return jsonify({'error': 'Failed to send OTP email'}), 500
+            
+    # Always return same message for security
+    return jsonify({'message': 'If an admin account exists, an OTP has been sent.'})
+
+@auth_bp.route('/admin/reset-password', methods=['POST'])
+@limiter.limit("3 per minute")
+def admin_reset_password():
+    data = request.get_json()
+    email = data.get('email', '').strip().lower()
+    otp = data.get('otp', '')
+    new_password = data.get('password') or data.get('new_password')
+    
+    if not all([email, otp, new_password]):
+        return jsonify({'error': 'All fields are required'}), 400
+        
+    if not verify_otp(email, otp, 'admin_reset'):
+        return jsonify({'error': 'Invalid or expired OTP'}), 400
+        
+    user = User.query.filter_by(email=email).first()
+    if not user or user.role not in ('admin', 'super_admin'):
+        return jsonify({'error': 'Unauthorized account access'}), 403
+        
+    hashed = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
+    user.password = hashed.decode('utf-8')
+    user.password_changed_at = datetime.utcnow()
+    user.current_jti = None  # Force logout from all devices
+    db.session.commit()
+    
+    return jsonify({'message': 'Admin password reset successful'})
+
 @auth_bp.route('/logout', methods=['POST'])
 @jwt_required()
 def logout():

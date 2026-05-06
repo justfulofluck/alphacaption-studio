@@ -116,6 +116,15 @@ export default function AdminLoginPage() {
                   className="appearance-none block w-full pl-12 pr-4 py-4 bg-zinc-800/50 border border-zinc-700/50 rounded-2xl text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/20 transition-all sm:text-sm"
                 />
               </div>
+              <div className="flex justify-end mt-2 px-1">
+                <button 
+                  type="button"
+                  onClick={() => navigate('/admin/reset-password')}
+                  className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest hover:text-white transition-colors"
+                >
+                  Forgot Security Key?
+                </button>
+              </div>
             </div>
 
             {error && (

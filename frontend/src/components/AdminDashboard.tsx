@@ -310,7 +310,6 @@ export default function AdminDashboard() {
               </div>
             ) : (
               <DashboardTable
-                title={getTitle()}
                 data={data}
                 columns={getColumns()}
                 section={section}

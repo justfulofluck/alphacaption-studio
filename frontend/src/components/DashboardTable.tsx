@@ -36,11 +36,7 @@ interface DashboardTableProps {
 
 export function DashboardTable({ data, columns, title, section, onAction }: DashboardTableProps) {
   return (
-    <div className="px-4 lg:px-6">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold tracking-tight">{title || "Recent Records"}</h2>
-        <Badge variant="secondary" className="rounded-full">{data.length} Total</Badge>
-      </div>
+    <div className="px-4 lg:px-6 mt-4">
       <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
         <Table>
           <TableHeader>

@@ -53,6 +53,7 @@ import AuthPage from './components/AuthPage';
 import UserDashboard from './components/UserDashboard';
 import ProfileSettings from './components/ProfileSettings';
 import AdminLoginPage from './components/AdminLoginPage';
+import AdminResetPasswordPage from './components/AdminResetPasswordPage';
 import SignupPage from './components/SignupPage';
 import LoginPage from './components/LoginPage';
 import ResetPasswordPage from './components/ResetPasswordPage';
@@ -103,12 +104,8 @@ export default function App() {
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/admin/login" element={<AdminLoginPage />} />
-        <Route
-          path="/admin"
-          element={
-            localStorage.getItem('admin_token') ? <AdminDashboard /> : <AdminLoginPage />
-          }
-        />
+        <Route path="/admin/reset-password" element={<AdminResetPasswordPage />} />
+        <Route path="/admin" element={<AdminDashboard />} />
       </Routes>
     </BrowserRouter>
   );

@@ -20,5 +20,8 @@ EXPOSE 5000
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Run the application
-CMD ["python", "app.py"]
+# Make script executable (just in case)
+RUN chmod +x docker-entrypoint.sh
+
+# Use entrypoint script
+ENTRYPOINT ["./docker-entrypoint.sh"]
