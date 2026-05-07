@@ -14,3 +14,4 @@ yagmail==0.15.293
 PyJWT==2.8.0
 google-auth>=2.20.0
 Flask-Limiter
+razorpay==2.0.1

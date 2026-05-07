@@ -11,6 +11,43 @@ from extensions import limiter
 
 auth_bp = Blueprint('auth', __name__)
 
+
+def assign_trial_plan(user):
+    from models.credit_ledger import CreditLedger
+    from models.plan import Plan
+    from models.subscription import Subscription
+
+    trial_plan = Plan.query.filter_by(name='Trial').first()
+    if not trial_plan:
+        trial_plan = Plan(
+            name='Trial',
+            price=0,
+            credits_included=2,
+            validity_days=3,
+            plan_type='trial'
+        )
+        db.session.add(trial_plan)
+        db.session.flush()
+
+    now = datetime.utcnow()
+    subscription = Subscription(
+        user_id=user.id,
+        plan_id=trial_plan.id,
+        start_date=now,
+        end_date=now + timedelta(days=trial_plan.validity_days),
+        status='active'
+    )
+    db.session.add(subscription)
+
+    db.session.add(CreditLedger(
+        user_id=user.id,
+        type='credit',
+        amount=trial_plan.credits_included,
+        source='trial',
+        reference_id=str(trial_plan.id)
+    ))
+    user.plan = trial_plan.name
+
 def generate_otp(email, purpose):
     otp_code = ''.join([str(random.randint(0, 9)) for _ in range(6)])
     expires_at = datetime.utcnow() + timedelta(minutes=3)
@@ -72,6 +109,8 @@ def register():
         phone=phone or None
     )
     db.session.add(user)
+    db.session.flush()
+    assign_trial_plan(user)
     db.session.commit()
     email_service.send_welcome(user.email, user.name)
     token = create_access_token(identity=user.id)

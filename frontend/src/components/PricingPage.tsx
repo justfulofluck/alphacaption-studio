@@ -13,6 +13,77 @@ interface Plan {
     validity_days: number;
 }
 
+interface RazorpayOrderResponse {
+    key: string;
+    order_id: string;
+    amount: number;
+    currency: string;
+    plan: Plan;
+}
+
+interface RazorpayPaymentResponse {
+    razorpay_order_id: string;
+    razorpay_payment_id: string;
+    razorpay_signature: string;
+}
+
+interface RazorpayOptions {
+    key: string;
+    amount: number;
+    currency: string;
+    name: string;
+    description: string;
+    order_id: string;
+    handler: (response: RazorpayPaymentResponse) => void;
+    theme?: {
+        color?: string;
+    };
+    modal?: {
+        ondismiss?: () => void;
+    };
+    config?: {
+        display?: {
+            blocks?: Record<string, {
+                name: string;
+                instruments: Array<{ method: 'upi' | 'card' }>;
+            }>;
+            hide?: Array<{ method: string }>;
+            sequence?: string[];
+            preferences?: {
+                show_default_blocks?: boolean;
+            };
+        };
+    };
+}
+
+declare global {
+    interface Window {
+        Razorpay?: new (options: RazorpayOptions) => { open: () => void };
+    }
+}
+
+const loadRazorpayCheckout = () => {
+    return new Promise<boolean>((resolve) => {
+        if (window.Razorpay) {
+            resolve(true);
+            return;
+        }
+
+        const existingScript = document.querySelector<HTMLScriptElement>('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
+        if (existingScript) {
+            existingScript.addEventListener('load', () => resolve(true), { once: true });
+            existingScript.addEventListener('error', () => resolve(false), { once: true });
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.onload = () => resolve(true);
+        script.onerror = () => resolve(false);
+        document.body.appendChild(script);
+    });
+};
+
 export default function PricingPage() {
     const [plans, setPlans] = useState<Plan[]>([]);
     const [loading, setLoading] = useState(true);
@@ -42,18 +113,81 @@ export default function PricingPage() {
 
         setPurchaseLoading(planId);
         try {
-            // Using the MOCK payment endpoint as requested
-            const res = await axios.post(`${API_BASE_URL}/api/payment/mock-pay`, {
+            const isLoaded = await loadRazorpayCheckout();
+            if (!isLoaded || !window.Razorpay) {
+                alert("Unable to load Razorpay Checkout. Please check your connection and try again.");
+                setPurchaseLoading(null);
+                return;
+            }
+
+            const orderRes = await axios.post<RazorpayOrderResponse>(`${API_BASE_URL}/api/payment/create-order`, {
                 plan_id: planId
             }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
-            alert(`Success! ${res.data.credits_added} credits added. New balance: ${res.data.new_balance} mins.`);
-            navigate('/dashboard');
+            const order = orderRes.data;
+            const checkout = new window.Razorpay({
+                key: order.key || import.meta.env.VITE_RAZORPAY_KEY_ID,
+                amount: order.amount,
+                currency: order.currency,
+                name: "VCaptiona",
+                description: `${order.plan.name} Plan`,
+                order_id: order.order_id,
+                handler: async (response) => {
+                    try {
+                        const verifyRes = await axios.post(`${API_BASE_URL}/api/payment/verify`, response, {
+                            headers: { Authorization: `Bearer ${token}` }
+                        });
+
+                        alert(`Success! ${verifyRes.data.credits_added} credits added. New balance: ${verifyRes.data.new_balance} mins.`);
+                        navigate('/dashboard');
+                    } catch (err: any) {
+                        alert(err.response?.data?.error || "Payment verification failed");
+                    } finally {
+                        setPurchaseLoading(null);
+                    }
+                },
+                theme: {
+                    color: "#111827"
+                },
+                modal: {
+                    ondismiss: () => setPurchaseLoading(null)
+                },
+                config: {
+                    display: {
+                        blocks: {
+                            upi: {
+                                name: "UPI",
+                                instruments: [
+                                    { method: "upi" }
+                                ]
+                            },
+                            cards: {
+                                name: "Cards",
+                                instruments: [
+                                    { method: "card" }
+                                ]
+                            }
+                        },
+                        hide: [
+                            { method: "emi" },
+                            { method: "netbanking" },
+                            { method: "wallet" },
+                            { method: "paylater" },
+                            { method: "cardless_emi" }
+                        ],
+                        sequence: ["block.upi", "block.cards"],
+                        preferences: {
+                            show_default_blocks: false
+                        }
+                    }
+                }
+            });
+
+            checkout.open();
         } catch (err: any) {
             alert(err.response?.data?.error || "Purchase failed");
-        } finally {
             setPurchaseLoading(null);
         }
     };
@@ -79,7 +213,7 @@ export default function PricingPage() {
                         <div className="mb-8">
                             <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
                             <div className="flex items-baseline gap-1">
-                                <span className="text-4xl font-bold">₹{plan.price}</span>
+                                <span className="text-4xl font-bold">Rs. {plan.price}</span>
                                 <span className="text-muted-foreground">/{plan.validity_days} days</span>
                             </div>
                         </div>

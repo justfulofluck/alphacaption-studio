@@ -37,6 +37,17 @@ with app.app_context():
     for col_name, col_type in columns_to_add:
         add_column_if_not_exists('users', col_name, col_type)
 
+    print("Checking for missing columns in 'payments' table...")
+    payment_columns_to_add = [
+        ('plan_id', 'INTEGER'),
+        ('razorpay_order_id', 'VARCHAR(100) UNIQUE'),
+        ('razorpay_payment_id', 'VARCHAR(100) UNIQUE'),
+        ('razorpay_signature', 'VARCHAR(255)')
+    ]
+
+    for col_name, col_type in payment_columns_to_add:
+        add_column_if_not_exists('payments', col_name, col_type)
+
     # Update admin user if exists
     try:
         admin_email = 'bhavanbadhe@gmail.com'

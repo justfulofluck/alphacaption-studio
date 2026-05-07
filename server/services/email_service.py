@@ -19,11 +19,17 @@ Welcome to AlphaCaption Studio!
 
 Your account has been created successfully.
 
+Your free trial is now active:
+- 2 minutes of service usage
+- 3 days of access
+
 Get Started:
 1. Upload your audio file
 2. Click "Transcribe Audio" to convert speech to text
 3. Edit and style your captions
 4. Export as SRT file
+
+After the trial ends, you can upgrade from the pricing page to continue using the service.
 
 Need help? Just reply to this email.
 
@@ -41,6 +47,25 @@ Log in to view and export your captions.
 
 Best,
 AlphaCaption Team'''
+        return self.send(to_email, subject, body)
+
+    def send_payment_thank_you(self, to_email, name, plan_name, amount, credits, validity_days):
+        subject = f'Thank you for purchasing {plan_name}'
+        body = f'''Hi {name},
+
+Thank you for your payment.
+
+Your {plan_name} plan is now active.
+
+Plan details:
+- Amount paid: Rs. {amount}
+- Credits added: {credits} minutes
+- Validity: {validity_days} days
+
+You can now continue using VCaptiona from your dashboard.
+
+Best,
+The VCaptiona Team'''
         return self.send(to_email, subject, body)
 
     def send_otp(self, to_email, otp, purpose):

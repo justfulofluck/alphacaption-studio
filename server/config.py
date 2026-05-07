@@ -25,6 +25,8 @@ class Config:
     JWT_IDENTITY_CLAIM = 'sub'
     
     GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
+    RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID', '')
+    RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET', '')
     
     BASE_URL = os.environ.get('BASE_URL', 'http://localhost:5000')
     UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
