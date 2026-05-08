@@ -17,11 +17,31 @@ def get_vertex_service():
     return captions_bp._vertex_service
 
 
+import jwt
+
+def get_user_from_token():
+    auth_header = request.headers.get('Authorization')
+    if not auth_header:
+        return None
+    try:
+        parts = auth_header.split()
+        if len(parts) != 2 or parts[0].lower() != 'bearer':
+            return None
+        token = parts[1]
+        decoded = jwt.decode(token, current_app.config['JWT_SECRET_KEY'], algorithms=['HS256'])
+        user_id = decoded.get('sub') or decoded.get('identity')
+        if user_id:
+            return int(user_id)
+    except Exception as e:
+        print(f"Token decode error: {e}")
+    return None
+
 @captions_bp.route('/<int:project_id>/transcribe', methods=['POST'])
-@jwt_required()
 def transcribe(project_id):
     from services.credit_service import CreditService
-    user_id = get_jwt_identity()
+    user_id = get_user_from_token()
+    if not user_id:
+        return jsonify({'error': 'Unauthorized'}), 401
     
     # Check balance before starting
     balance = CreditService.get_balance(user_id)
@@ -92,11 +112,21 @@ def transcribe(project_id):
         db.session.add(usage)
         db.session.flush() # Get usage ID
         
+        from services.credit_service import CreditService
         CreditService.deduct_credits(
             user_id=user_id,
             amount=duration_mins,
             source='usage',
             reference_id=str(usage.id)
+        )
+        
+        # Notify user about project completion
+        from utils.notification_utils import create_notification
+        create_notification(
+            user_id=user_id,
+            title='Transcription Complete',
+            message=f'Audio "{project.name}" has been successfully transcribed.',
+            type='success'
         )
         
         db.session.commit()
@@ -114,10 +144,11 @@ def transcribe(project_id):
 
 
 @captions_bp.route('/<int:project_id>/align', methods=['POST'])
-@jwt_required()
 def align(project_id):
     from services.credit_service import CreditService
-    user_id = get_jwt_identity()
+    user_id = get_user_from_token()
+    if not user_id:
+        return jsonify({'error': 'Unauthorized'}), 401
     
     # Check balance (alignment also requires credits)
     balance = CreditService.get_balance(user_id)
@@ -194,9 +225,10 @@ def align(project_id):
 
 
 @captions_bp.route('/<int:project_id>', methods=['GET'])
-@jwt_required()
 def get_captions(project_id):
-    user_id = get_jwt_identity()
+    user_id = get_user_from_token()
+    if not user_id:
+        return jsonify({'error': 'Unauthorized'}), 401
     project = Project.query.filter_by(id=project_id, user_id=user_id).first()
     
     if not project:
@@ -215,9 +247,10 @@ def get_captions(project_id):
 
 
 @captions_bp.route('/<int:project_id>', methods=['PUT'])
-@jwt_required()
 def update_captions(project_id):
-    user_id = get_jwt_identity()
+    user_id = get_user_from_token()
+    if not user_id:
+        return jsonify({'error': 'Unauthorized'}), 401
     project = Project.query.filter_by(id=project_id, user_id=user_id).first()
     
     if not project:
@@ -252,9 +285,10 @@ def update_captions(project_id):
 
 
 @captions_bp.route('/<int:project_id>/sync', methods=['POST'])
-@jwt_required()
 def sync_captions(project_id):
-    user_id = get_jwt_identity()
+    user_id = get_user_from_token()
+    if not user_id:
+        return jsonify({'error': 'Unauthorized'}), 401
     project = Project.query.filter_by(id=project_id, user_id=user_id).first()
     
     if not project:
@@ -291,9 +325,11 @@ def sync_captions(project_id):
 
 
 @captions_bp.route('/<int:project_id>/export', methods=['GET'])
-@jwt_required()
 def export_srt(project_id):
-    user_id = get_jwt_identity()
+    print(f"[Captions] Exporting SRT for project {project_id}")
+    user_id = get_user_from_token()
+    if not user_id:
+        return jsonify({'error': 'Unauthorized'}), 401
     project = Project.query.filter_by(id=project_id, user_id=user_id).first()
     
     if not project:
@@ -311,13 +347,15 @@ def export_srt(project_id):
     
     srt_content = generate_srt(segments)
     
-    filename = f"{project.name.replace(' ', '_')}.srt"
+    # Clean filename and wrap in quotes to handle commas/special characters
+    safe_name = project.name.replace(' ', '_').replace('"', '')
+    filename = f"{safe_name}.srt"
     
     return Response(
         srt_content,
         mimetype='text/plain',
         headers={
-            'Content-Disposition': f'attachment; filename={filename}',
+            'Content-Disposition': f'attachment; filename="{filename}"',
             'Content-Type': 'text/plain; charset=utf-8'
         }
      )

@@ -31,6 +31,12 @@ export default function ProfileSettings() {
   const [fetching, setFetching] = useState(true);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    old_password: '',
+    new_password: '',
+    confirm_password: ''
+  });
 
   const queryParams = new URLSearchParams(location.search);
   const activeTab = queryParams.get('tab') || 'profile';
@@ -69,7 +75,8 @@ export default function ProfileSettings() {
       setFormData(prev => ({
         ...prev,
         name: userRes.data.name || '',
-        email: userRes.data.email || ''
+        email: userRes.data.email || '',
+        mobile: userRes.data.phone || ''
       }));
     } catch (err: any) {
       console.error('Failed to fetch data:', err);
@@ -92,6 +99,11 @@ export default function ProfileSettings() {
     setError(null);
   };
 
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPasswordData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    setError(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -99,14 +111,50 @@ export default function ProfileSettings() {
 
     const token = localStorage.getItem('auth_token');
     try {
-      await axios.put(`${API_BASE_URL}/api/auth/me`,
-        { name: formData.name },
+      await axios.put(`${API_BASE_URL}/api/auth/profile`,
+        { 
+          name: formData.name,
+          phone: formData.mobile
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to update profile');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onChangePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordData.new_password !== passwordData.confirm_password) {
+      setError('New passwords do not match');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    const token = localStorage.getItem('auth_token');
+    try {
+      await axios.post(`${API_BASE_URL}/api/auth/change-password`,
+        {
+          old_password: passwordData.old_password,
+          new_password: passwordData.new_password
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      setSuccess(true);
+      // Log out after password change for security
+      setTimeout(() => {
+        localStorage.removeItem('auth_token');
+        navigate('/login');
+      }, 2000);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to change password');
     } finally {
       setLoading(false);
     }
@@ -254,7 +302,11 @@ export default function ProfileSettings() {
                   </div>
 
                   <div className="pt-8 border-t border-zinc-50 flex flex-col sm:flex-row items-center justify-between gap-6">
-                    <button type="button" className="group flex items-center gap-2 text-[10px] font-black text-zinc-400 hover:text-zinc-900 transition-all uppercase tracking-[0.2em]">
+                    <button 
+                      type="button" 
+                      onClick={() => setShowPasswordModal(true)}
+                      className="group flex items-center gap-2 text-[10px] font-black text-zinc-400 hover:text-zinc-900 transition-all uppercase tracking-[0.2em]"
+                    >
                       <Lock size={14} className="group-hover:rotate-12 transition-transform" />
                       Change Password
                     </button>
@@ -264,6 +316,71 @@ export default function ProfileSettings() {
                     </Button>
                   </div>
                 </form>
+
+                {/* Change Password Modal */}
+                <AnimatePresence>
+                  {showPasswordModal && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4"
+                    >
+                      <motion.div
+                        initial={{ scale: 0.9, y: 20 }}
+                        animate={{ scale: 1, y: 0 }}
+                        exit={{ scale: 0.9, y: 20 }}
+                        className="bg-white w-full max-w-md p-8 sm:p-10 rounded-[3rem] shadow-2xl relative overflow-hidden"
+                      >
+                        <button 
+                          onClick={() => setShowPasswordModal(false)}
+                          className="absolute top-6 right-6 p-2 rounded-full hover:bg-zinc-100 transition-colors"
+                        >
+                          <Settings size={20} className="text-zinc-400" />
+                        </button>
+
+                        <div className="mb-8">
+                          <div className="w-14 h-14 bg-zinc-900 rounded-2xl flex items-center justify-center text-white mb-4 shadow-xl">
+                            <Lock size={24} />
+                          </div>
+                          <h3 className="text-2xl font-black text-zinc-900 tracking-tight">Security Update</h3>
+                          <p className="text-zinc-400 text-sm font-medium mt-1">Change your account security key</p>
+                        </div>
+
+                        <form onSubmit={onChangePasswordSubmit} className="space-y-6">
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Current Password</label>
+                            <input
+                              type="password" name="old_password" required value={passwordData.old_password} onChange={handlePasswordChange}
+                              className="w-full px-5 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-zinc-900 outline-none transition-all"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">New Password</label>
+                            <input
+                              type="password" name="new_password" required value={passwordData.new_password} onChange={handlePasswordChange}
+                              className="w-full px-5 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-zinc-900 outline-none transition-all"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Confirm New Password</label>
+                            <input
+                              type="password" name="confirm_password" required value={passwordData.confirm_password} onChange={handlePasswordChange}
+                              className="w-full px-5 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-zinc-900 outline-none transition-all"
+                            />
+                          </div>
+
+                          {error && <p className="text-xs font-bold text-red-500 bg-red-50 p-4 rounded-xl border border-red-100">{error}</p>}
+                          {success && <p className="text-xs font-bold text-emerald-600 bg-emerald-50 p-4 rounded-xl border border-emerald-100">Password updated! Redirecting...</p>}
+
+                          <Button type="submit" disabled={loading} className="w-full h-14 rounded-2xl bg-zinc-900 hover:bg-zinc-800 text-white font-black shadow-xl">
+                            {loading ? <Loader2 className="animate-spin" size={20} /> : "Update Security Key"}
+                          </Button>
+                        </form>
+                      </motion.div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             ) : (
               <motion.div
@@ -298,13 +415,13 @@ export default function ProfileSettings() {
                       <div className="h-4 w-full bg-zinc-100 rounded-full overflow-hidden">
                         <motion.div
                           initial={{ width: 0 }}
-                          animate={{ width: `${((credits || 0) / 100) * 100}%` }}
+                          animate={{ width: `${Math.min(100, ((credits || 0) / 500) * 100)}%` }}
                           className="h-full bg-zinc-900 rounded-full"
                         />
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">0m Spent</span>
-                        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">100m Total</span>
+                        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{Math.max(0, 500 - credits)}m Spent</span>
+                        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">500m Total</span>
                       </div>
                     </div>
 
@@ -312,12 +429,12 @@ export default function ProfileSettings() {
                       <div className="p-6 bg-zinc-50 rounded-[2.5rem] border border-zinc-100/50">
                         <CreditCard className="text-zinc-400 mb-4" size={24} />
                         <span className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Pricing</span>
-                        <span className="text-xl font-black text-zinc-900">₹0/mo</span>
+                        <span className="text-xl font-black text-zinc-900">{userData?.plan === 'free' ? '₹0/mo' : '₹999/mo'}</span>
                       </div>
                       <div className="p-6 bg-zinc-50 rounded-[2.5rem] border border-zinc-100/50">
                         <Clock className="text-zinc-400 mb-4" size={24} />
                         <span className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Validity</span>
-                        <span className="text-xl font-black text-zinc-900">Lifetime</span>
+                        <span className="text-xl font-black text-zinc-900">30 Days</span>
                       </div>
                     </div>
                   </div>
@@ -355,12 +472,14 @@ export default function ProfileSettings() {
                               </div>
                             </td>
                             <td className="py-6">
-                              <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${item.amount > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
-                                {item.amount > 0 ? 'Credit Added' : 'Credit Used'}
+                              <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${item.type === 'credit' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                                {item.type === 'credit' ? 'Credit Added' : 'Credit Used'}
                               </span>
                             </td>
                             <td className="py-6">
-                              <span className="text-sm font-black text-zinc-900">{Math.abs(item.amount)}m</span>
+                              <span className={`text-sm font-black ${item.type === 'credit' ? 'text-emerald-600' : 'text-red-600'}`}>
+                                {item.type === 'credit' ? '+' : '-'}{item.amount}m
+                              </span>
                             </td>
                             <td className="py-6 text-right">
                               <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">

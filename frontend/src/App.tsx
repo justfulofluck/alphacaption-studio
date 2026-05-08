@@ -41,6 +41,8 @@ import {
   Scissors,
   RotateCw,
   ShieldAlert,
+  ShieldCheck,
+  Loader2,
   BarChart3,
   LogOut
 } from 'lucide-react';
@@ -189,9 +191,77 @@ function Layout() {
 
 function MainApp() {
   const { isLoggedIn, setIsLoggedIn } = useOutletContext<any>();
+  const location = useLocation();
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [segments, setSegments] = useState<CaptionSegment[]>([]);
+  const [projectId, setProjectId] = useState<number | null>(null);
+  const [detectedLanguage, setDetectedLanguage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const state = location.state as { projectId?: number };
+    if (state?.projectId && state.projectId !== projectId) {
+      const fetchProject = async () => {
+        const token = localStorage.getItem('auth_token');
+        try {
+          const res = await axios.get(`${API_BASE_URL}/api/projects/${state.projectId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const p = res.data;
+          setProjectId(p.id);
+          setAudioUrl(p.audio_url);
+          setAudioFile({ name: p.name } as any); // Mock file for UI
+          
+          if (p.caption) {
+            if (p.caption.transcript) {
+              setTranscript(p.caption.transcript);
+            }
+            if (p.caption.segments) {
+              const loadedSegments = p.caption.segments.map((seg: any) => ({
+                ...seg,
+                id: seg.id || `seg-${Date.now()}-${Math.random()}`
+              }));
+              setSegments(loadedSegments);
+              
+              // Initialize history with loaded state
+              const initialState: HistoryState = {
+                segments: loadedSegments,
+                fontFamily: p.caption.style?.fontFamily || 'Inter',
+                fontSize: p.caption.style?.fontSize || 48,
+                fontColor: p.caption.style?.fontColor || '#ffffff',
+                strokeColor: p.caption.style?.strokeColor || '#000000',
+                strokeWidth: p.caption.style?.strokeWidth || 2,
+                textShadow: p.caption.style?.textShadow !== undefined ? p.caption.style.textShadow : true,
+                textAlign: p.caption.style?.textAlign || 'center',
+                textPosition: p.caption.style?.textPosition || 80,
+                transitionType: p.caption.style?.transitionType || 'fade'
+              };
+              
+              // Apply styles if they exist
+              if (p.caption.style) {
+                const s = p.caption.style;
+                if (s.fontFamily) setFontFamily(s.fontFamily);
+                if (s.fontSize) setFontSize(s.fontSize);
+                if (s.fontColor) setFontColor(s.fontColor);
+                if (s.strokeColor) setStrokeColor(s.strokeColor);
+                if (s.strokeWidth) setStrokeWidth(s.strokeWidth);
+                if (s.textShadow !== undefined) setTextShadow(s.textShadow);
+                if (s.textAlign) setTextAlign(s.textAlign);
+                if (s.textPosition) setTextPosition(s.textPosition);
+                if (s.transitionType) setTransitionType(s.transitionType);
+              }
+              
+              setUndoStack([initialState]);
+            }
+          }
+          if (p.language) setDetectedLanguage(p.language);
+        } catch (err) {
+          console.error("Failed to load project:", err);
+        }
+      };
+      fetchProject();
+    }
+  }, [location.state]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -202,11 +272,9 @@ function MainApp() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [isAligning, setIsAligning] = useState(false);
-  const [detectedLanguage, setDetectedLanguage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'captions' | 'transcript' | 'studio'>('captions');
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isSyncingList, setIsSyncingList] = useState(false);
-  const [projectId, setProjectId] = useState<number | null>(null);
   const [aiModel, setAiModel] = useState('gemini-flash-latest');
   const [selectedSegmentIds, setSelectedSegmentIds] = useState<Set<string>>(new Set());
   const [showDownloadModal, setShowDownloadModal] = useState(false);
@@ -397,6 +465,37 @@ function MainApp() {
       console.error('Error uploading to backend:', err);
       alert('Failed to upload audio to server.');
       return null;
+    }
+  };
+
+  const [isSaving, setIsSaving] = useState(false);
+
+  const saveProject = async () => {
+    if (!projectId) return;
+    setIsSaving(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      await axios.put(`${API_BASE_URL}/api/captions/${projectId}`, {
+        transcript: transcript,
+        segments: segments,
+        style: {
+          fontFamily,
+          fontSize,
+          fontColor,
+          strokeColor,
+          strokeWidth,
+          textShadow,
+          textAlign,
+          textPosition,
+          transitionType
+        }
+      }, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+    } catch (error) {
+      console.error('Error saving project:', error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -904,14 +1003,7 @@ function MainApp() {
                     <Trash2 size={18} />
                     Reset
                   </button>
-                  <button
-                    onClick={analyzeAudio}
-                    disabled={isAnalyzing}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-zinc-50 text-zinc-800 hover:bg-zinc-100 transition-colors disabled:opacity-50"
-                  >
-                    <Settings2 size={18} />
-                    {isAnalyzing ? 'Analyzing...' : 'Auto-Detect Timings'}
-                  </button>
+
                   <button
                     onClick={isTranscribing ? stopTranscription : transcribeAudio}
                     className={cn(
@@ -923,6 +1015,14 @@ function MainApp() {
                   >
                     {isTranscribing ? <X size={18} /> : <Settings2 size={18} />}
                     {isTranscribing ? 'Stop' : 'Transcribe Audio (AI)'}
+                  </button>
+                  <button
+                    onClick={saveProject}
+                    disabled={!projectId || isSaving}
+                    className="flex items-center gap-2 bg-white border border-zinc-200 text-zinc-900 px-4 py-2 rounded-xl text-sm font-bold hover:bg-zinc-50 transition-all shadow-sm disabled:opacity-50 active:scale-95 ml-2"
+                  >
+                    {isSaving ? <Loader2 size={18} className="animate-spin" /> : <ShieldCheck size={18} />}
+                    {isSaving ? 'Saving...' : 'Save Changes'}
                   </button>
                   <button
                     onClick={() => setShowDownloadModal(true)}
@@ -937,92 +1037,7 @@ function MainApp() {
 
               <div ref={waveformRef} className="mb-4" />
 
-              {/* Analysis Controls */}
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-6 pt-6 border-t border-zinc-100">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">AI Model</label>
-                  <Select
-                    value={aiModel}
-                    onValueChange={(v: any) => setAiModel(v)}
-                  >
-                    <SelectTrigger className="w-full bg-white/50 border-white/20 backdrop-blur-sm font-bold text-xs h-9">
-                      <SelectValue placeholder="Select AI Model" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MODELS.map((model) => (
-                        <SelectItem key={model.id} value={model.id}>
-                          {model.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Silence Threshold</label>
-                  <input
-                    type="range"
-                    min="0.01"
-                    max="0.2"
-                    step="0.01"
-                    value={threshold}
-                    onChange={(e) => {
-                      const val = parseFloat(e.target.value);
-                      if (!isNaN(val)) setThreshold(val);
-                    }}
-                    className="w-full accent-zinc-900"
-                  />
-                  <div className="flex justify-between text-[10px] font-mono text-zinc-400">
-                    <span>SENSITIVE</span>
-                    <span>{threshold.toFixed(2)}</span>
-                    <span>LOOSE</span>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Min Speech (s)</label>
-                  <input
-                    type="number"
-                    min="0.05"
-                    max="2"
-                    step="0.05"
-                    value={minSpeechDuration}
-                    onChange={(e) => {
-                      const val = parseFloat(e.target.value);
-                      if (!isNaN(val)) setMinSpeechDuration(val);
-                    }}
-                    className="w-full bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-1 text-sm font-mono"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Min Silence (s)</label>
-                  <input
-                    type="number"
-                    min="0.01"
-                    max="2"
-                    step="0.01"
-                    value={minSilenceDuration}
-                    onChange={(e) => {
-                      const val = parseFloat(e.target.value);
-                      if (!isNaN(val)) setMinSilenceDuration(val);
-                    }}
-                    className="w-full bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-1 text-sm font-mono"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Padding (s)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="0.5"
-                    step="0.01"
-                    value={padding}
-                    onChange={(e) => {
-                      const val = parseFloat(e.target.value);
-                      if (!isNaN(val)) setPadding(val);
-                    }}
-                    className="w-full bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-1 text-sm font-mono"
-                  />
-                </div>
-              </div>
+
             </div>
 
             {/* Tabs Section */}
@@ -1036,51 +1051,10 @@ function MainApp() {
               >
                 Caption Editor
               </button>
-              <button
-                onClick={() => setActiveTab('studio')}
-                className={cn(
-                  "px-6 py-3 text-sm font-bold transition-all border-b-2",
-                  activeTab === 'studio' ? "border-zinc-900 text-zinc-900" : "border-transparent text-zinc-400 hover:text-zinc-600"
-                )}
-              >
-                Video Studio
-              </button>
+
             </div>
 
-            {activeTab === 'studio' ? (
-              <VideoStudio
-                segments={segments}
-                setSegments={setSegments}
-                currentTime={currentTime}
-                fontFamily={fontFamily}
-                setFontFamily={setFontFamily}
-                fontSize={fontSize}
-                setFontSize={setFontSize}
-                fontColor={fontColor}
-                setFontColor={setFontColor}
-                strokeColor={strokeColor}
-                setStrokeColor={setStrokeColor}
-                strokeWidth={strokeWidth}
-                setStrokeWidth={setStrokeWidth}
-                textShadow={textShadow}
-                setTextShadow={setTextShadow}
-                textAlign={textAlign}
-                setTextAlign={setTextAlign}
-                textPosition={textPosition}
-                setTextPosition={setTextPosition}
-                transitionType={transitionType}
-                setTransitionType={setTransitionType}
-                isRecording={isRecording}
-                setIsRecording={setIsRecording}
-                duration={duration}
-                wavesurfer={wavesurfer.current}
-                undo={undo}
-                redo={redo}
-                undoStack={undoStack}
-                redoStack={redoStack}
-                formatTime={formatTime}
-              />
-            ) : (
+
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                 {/* Left Side: Full Transcript */}
                 <div className="lg:col-span-4 sticky top-8">
@@ -1292,7 +1266,7 @@ function MainApp() {
                   )}
                 </div>
               </div>
-            )}
+
           </div>
         )}
       </div>
@@ -1319,7 +1293,7 @@ function MainApp() {
           </div>
         </div>
         <div className="mt-8 pt-8 border-t border-zinc-100 flex justify-between items-center bg-zinc-50/50 p-6 rounded-2xl">
-          <p className="text-xs text-zinc-400">© 2026 Perfect Captions AI. All rights reserved.</p>
+          <p className="text-xs text-zinc-400">© 2026 Vcaptiona AI. All rights reserved.</p>
         </div>
       </footer>
 

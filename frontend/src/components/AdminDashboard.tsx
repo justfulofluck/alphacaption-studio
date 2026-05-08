@@ -108,13 +108,35 @@ export default function AdminDashboard() {
     e.preventDefault();
     const token = localStorage.getItem('admin_token');
     try {
-      await axios.post(`${API_BASE_URL}/api/admin/plans`, formData, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      if (selectedRow) {
+        // Update existing plan
+        await axios.put(`${API_BASE_URL}/api/admin/plans/${selectedRow.id}`, formData, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } else {
+        // Create new plan
+        await axios.post(`${API_BASE_URL}/api/admin/plans`, formData, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
       setShowPlanModal(false);
+      setSelectedRow(null);
       fetchData();
     } catch (err) {
-      alert("Failed to create plan");
+      alert("Operation failed");
+    }
+  };
+
+  const handleDeletePlan = async (plan_id: number) => {
+    if (!confirm("Permanently delete this membership plan?")) return;
+    const token = localStorage.getItem('admin_token');
+    try {
+      await axios.delete(`${API_BASE_URL}/api/admin/plans/${plan_id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchData();
+    } catch (err) {
+      alert("Failed to delete plan");
     }
   };
 
@@ -172,9 +194,20 @@ export default function AdminDashboard() {
     } else if (action === 'edit_user') {
       setFormData({ ...formData, role: row.role, plan: row.plan });
       setShowEditUserModal(true);
+    } else if (action === 'edit_plan') {
+      setFormData({
+        ...formData,
+        name: row.name,
+        price: row.price,
+        credits_included: row.credits_included,
+        validity_days: row.validity_days
+      });
+      setShowPlanModal(true);
     } else if (action === 'delete') {
       if (section === 'users') {
         handleDeleteUser(row.id);
+      } else if (section === 'plans') {
+        handleDeletePlan(row.id);
       }
     }
   };
@@ -222,17 +255,16 @@ export default function AdminDashboard() {
     switch (section) {
       case 'ledger':
         return [
-          { header: "User ID", accessorKey: "user_id" },
-          { header: "Amount", accessorKey: "amount" },
+          { header: "User Email", accessorKey: "user_email" },
           { header: "Type", accessorKey: "type" },
-          { header: "Description", accessorKey: "description" },
+          { header: "Description", accessorKey: "source" },
           { header: "Date", accessorKey: "created_at" }
         ];
       case 'payments':
         return [
-          { header: "User ID", accessorKey: "user_id" },
+          { header: "User Email", accessorKey: "user_email" },
           { header: "Amount", accessorKey: "amount" },
-          { header: "Currency", accessorKey: "currency" },
+          { header: "Transaction ID", accessorKey: "transaction_id" },
           { header: "Status", accessorKey: "status" },
           { header: "Date", accessorKey: "created_at" }
         ];
@@ -290,67 +322,85 @@ export default function AdminDashboard() {
               </div>
             </div>
           ) : (
-            <div className="flex items-center justify-between">
-              <h1 className="text-3xl font-bold tracking-tight">{getTitle()}</h1>
-              {section === 'plans' && (
-                <Button className="font-bold flex items-center gap-2" onClick={() => setShowPlanModal(true)}>
-                  <PlusCircle size={18} />
-                  Create New Plan
-                </Button>
-              )}
-            </div>
-          )}
-
-          {section === 'users' && <SectionCards cards={statCards} />}
-
-          <div className="space-y-4">
-            {loading ? (
-              <div className="h-64 flex items-center justify-center border rounded-xl bg-muted/10">
-                <Loader2 className="animate-spin text-muted-foreground" />
-              </div>
-            ) : (
-              <DashboardTable
-                data={data}
-                columns={getColumns()}
-                section={section}
-                onAction={onTableAction}
-              />
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold tracking-tight">{getTitle()}</h1>
+            {section === 'plans' && (
+              <Button 
+                className="font-bold flex items-center gap-2" 
+                onClick={() => {
+                  setSelectedRow(null);
+                  setFormData({
+                    name: '',
+                    price: 0,
+                    credits_included: 0,
+                    validity_days: 30,
+                    amount: 10,
+                    reason: 'Admin Gift',
+                    role: 'user',
+                    plan: 'free'
+                  });
+                  setShowPlanModal(true);
+                }}
+              >
+                <PlusCircle size={18} />
+                Create New Plan
+              </Button>
             )}
           </div>
-        </div>
-
-        {/* Create Plan Modal */}
-        {showPlanModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-card border rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 duration-200">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold tracking-tight">Create New Plan</h2>
-                <Button variant="ghost" size="icon" onClick={() => setShowPlanModal(false)}><X size={20} /></Button>
-              </div>
-              <form onSubmit={handleCreatePlan} className="space-y-4">
-                <div className="space-y-2">
-                  <span className="text-sm font-bold uppercase tracking-widest opacity-50 text-[10px]">Plan Name</span>
-                  <Input required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="e.g. Starter Pack" />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <span className="text-sm font-bold uppercase tracking-widest opacity-50 text-[10px]">Price (INR)</span>
-                    <Input type="number" required value={formData.price} onChange={e => setFormData({ ...formData, price: Number(e.target.value) })} />
-                  </div>
-                  <div className="space-y-2">
-                    <span className="text-sm font-bold uppercase tracking-widest opacity-50 text-[10px]">Credits (Mins)</span>
-                    <Input type="number" required value={formData.credits_included} onChange={e => setFormData({ ...formData, credits_included: Number(e.target.value) })} />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <span className="text-sm font-bold uppercase tracking-widest opacity-50 text-[10px]">Validity (Days)</span>
-                  <Input type="number" required value={formData.validity_days} onChange={e => setFormData({ ...formData, validity_days: Number(e.target.value) })} />
-                </div>
-                <Button type="submit" className="w-full font-bold h-12 mt-4 transition-all">Create Membership Plan</Button>
-              </form>
-            </div>
-          </div>
         )}
+
+        {section === 'users' && <SectionCards cards={statCards} />}
+
+        <div className="space-y-4">
+          {loading ? (
+            <div className="h-64 flex items-center justify-center border rounded-xl bg-muted/10">
+              <Loader2 className="animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <DashboardTable
+              data={data}
+              columns={getColumns()}
+              section={section}
+              onAction={onTableAction}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* Create/Edit Plan Modal */}
+      {showPlanModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-card border rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold tracking-tight">{selectedRow ? "Edit Plan" : "Create New Plan"}</h2>
+              <Button variant="ghost" size="icon" onClick={() => setShowPlanModal(false)}><X size={20} /></Button>
+            </div>
+            <form onSubmit={handleCreatePlan} className="space-y-4">
+              <div className="space-y-2">
+                <span className="text-sm font-bold uppercase tracking-widest opacity-50 text-[10px]">Plan Name</span>
+                <Input required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="e.g. Starter Pack" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <span className="text-sm font-bold uppercase tracking-widest opacity-50 text-[10px]">Price (INR)</span>
+                  <Input type="number" required value={formData.price} onChange={e => setFormData({ ...formData, price: Number(e.target.value) })} />
+                </div>
+                <div className="space-y-2">
+                  <span className="text-sm font-bold uppercase tracking-widest opacity-50 text-[10px]">Credits (Mins)</span>
+                  <Input type="number" required value={formData.credits_included} onChange={e => setFormData({ ...formData, credits_included: Number(e.target.value) })} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <span className="text-sm font-bold uppercase tracking-widest opacity-50 text-[10px]">Validity (Days)</span>
+                <Input type="number" required value={formData.validity_days} onChange={e => setFormData({ ...formData, validity_days: Number(e.target.value) })} />
+              </div>
+              <Button type="submit" className="w-full font-bold h-12 mt-4 transition-all">
+                {selectedRow ? "Update Membership Plan" : "Create Membership Plan"}
+              </Button>
+            </form>
+          </div>
+        </div>
+      )}
 
         {/* Edit User Modal */}
         {showEditUserModal && (

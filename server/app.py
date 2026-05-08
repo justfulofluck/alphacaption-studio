@@ -61,6 +61,7 @@ def create_app():
     from routes.credit import credit_bp
     from routes.admin import admin_bp
     from routes.dashboard import dashboard_bp
+    from routes.notification import notification_bp
     
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(projects_bp, url_prefix='/api/projects')
@@ -69,6 +70,7 @@ def create_app():
     app.register_blueprint(credit_bp, url_prefix='/api/credit')
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
     app.register_blueprint(dashboard_bp, url_prefix='/api/dashboard')
+    app.register_blueprint(notification_bp, url_prefix='/api/notifications')
     
     @app.route('/api/health')
     def health():

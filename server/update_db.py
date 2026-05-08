@@ -22,6 +22,9 @@ def add_column_if_not_exists(table_name, column_name, column_type):
         db.session.rollback()
 
 with app.app_context():
+    print("Initializing database tables...")
+    db.create_all()
+    
     print("Checking for missing columns in 'users' table...")
     
     columns_to_add = [

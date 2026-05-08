@@ -94,7 +94,7 @@ export default function UserDashboard() {
       value: `${user?.credits || 0}m`,
       icon: Zap,
       footerLabel: "Usage Rate",
-      footerDescription: `${((user?.credits || 0) / 10).toFixed(0)}% available`,
+      footerDescription: `${Math.min(100, Math.round(((user?.credits || 0) / 500) * 100))}% available`,
       isUp: true,
       actionLabel: "Healthy"
     },
@@ -118,7 +118,7 @@ export default function UserDashboard() {
     },
     {
       description: "Completed",
-      value: projects.filter(p => p.status === 'completed').length,
+      value: projects.filter(p => p.status === 'completed' || p.status === 'aligned').length,
       icon: CheckCircle2,
       footerLabel: "SRT Files",
       footerDescription: "Ready for export",
@@ -132,6 +132,41 @@ export default function UserDashboard() {
     { header: "Date Added", accessorKey: "created_at" },
     { header: "Current Status", accessorKey: "status" }
   ];
+
+  const handleTableAction = async (action: string, row: any) => {
+    if (action === 'open') {
+      navigate('/', { state: { projectId: row.id } });
+    } else if (action === 'download') {
+      const token = localStorage.getItem('auth_token');
+      try {
+        const res = await axios.get(`${API_BASE_URL}/api/captions/${row.id}/export`, {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: 'blob'
+        });
+        const url = window.URL.createObjectURL(new Blob([res.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `${row.name.replace(/\.[^/.]+$/, "") || 'captions'}.srt`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+      } catch (err) {
+        alert("Failed to export captions");
+      }
+    } else if (action === 'delete') {
+      if (!confirm("Delete this project?")) return;
+      const token = localStorage.getItem('auth_token');
+      try {
+        await axios.delete(`${API_BASE_URL}/api/projects/${row.id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setProjects(prev => prev.filter(p => p.id !== row.id));
+      } catch (err) {
+        alert("Failed to delete project");
+      }
+    }
+  };
 
   return (
     <div className="flex flex-1 flex-col gap-10 p-4 md:p-8 pt-6 max-w-7xl mx-auto">
@@ -164,7 +199,7 @@ export default function UserDashboard() {
               created_at: new Date(p.created_at).toLocaleDateString()
             }))}
             columns={projectColumns}
-            onAction={(action, row) => navigate('/')}
+            onAction={handleTableAction}
           />
         </div>
 
@@ -185,7 +220,7 @@ export default function UserDashboard() {
               <div className="h-3 w-full bg-zinc-100 rounded-full overflow-hidden">
                 <motion.div
                   initial={{ width: 0 }}
-                  animate={{ width: `${((user?.credits || 0) / 100) * 100}%` }}
+                  animate={{ width: `${Math.min(100, ((user?.credits || 0) / 500) * 100)}%` }}
                   className="h-full bg-zinc-900 rounded-full"
                 />
               </div>
@@ -206,15 +241,17 @@ export default function UserDashboard() {
               {billingHistory.length > 0 ? billingHistory.map((item, i) => (
                 <div key={i} className="flex items-center justify-between group cursor-pointer" onClick={() => navigate('/settings?tab=subscription')}>
                   <div className="flex items-center gap-4">
-                    <div className={`size-10 rounded-xl flex items-center justify-center ${item.amount > 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-500'}`}>
+                    <div className={`size-10 rounded-xl flex items-center justify-center ${item.type === 'credit' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-500'}`}>
                       <History size={18} />
                     </div>
                     <div>
-                      <p className="text-sm font-black text-white">Credits {item.amount > 0 ? 'Added' : 'Used'}</p>
+                      <p className="text-sm font-black text-white">Credits {item.type === 'credit' ? 'Added' : 'Used'}</p>
                       <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{new Date(item.created_at).toLocaleDateString()}</p>
                     </div>
                   </div>
-                  <span className="text-sm font-black">{item.amount > 0 ? '+' : ''}{item.amount}m</span>
+                  <span className={`text-sm font-black ${item.type === 'credit' ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {item.type === 'credit' ? '+' : '-'}{item.amount}m
+                  </span>
                 </div>
               )) : (
                 <p className="text-zinc-500 text-sm font-medium">No recent activity.</p>

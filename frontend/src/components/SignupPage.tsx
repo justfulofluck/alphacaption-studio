@@ -28,10 +28,7 @@ export default function SignupPage() {
       <div className="flex flex-col gap-4 p-6 md:p-10">
         <div className="flex justify-center gap-2 md:justify-start">
           <a href="/" className="flex items-center gap-2 font-black tracking-tight">
-            <div className="flex size-8 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
-              <GalleryVerticalEnd size={18} />
-            </div>
-            vcaptiona
+            <img src="/logo.png" alt="Vcaptiona Logo" className="h-8 w-auto object-contain" />
           </a>
         </div>
         <div className="flex flex-1 items-center justify-center">

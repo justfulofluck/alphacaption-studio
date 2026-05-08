@@ -83,19 +83,10 @@ export function StudioSidebar({ user, ...props }: StudioSidebarProps) {
               size="lg"
               render={
                 <Link to="/" className="flex items-center gap-3">
-                  <div className="flex aspect-square size-10 items-center justify-center rounded-xl bg-zinc-900 text-white min-w-10 dark:bg-white dark:text-zinc-900">
-                    <span className="text-xl font-black italic tracking-tighter">V</span>
+                  <div className="flex items-center justify-center min-w-10 overflow-hidden">
+                    <img src="/logo.png" alt="Vcaptiona Logo" className="h-10 w-auto object-contain group-data-[collapsible=icon]:h-8" />
                   </div>
                   <div className="flex flex-col gap-0 group-data-[collapsible=icon]:hidden overflow-hidden">
-                    <span className="text-xl font-black tracking-tighter uppercase text-zinc-900 dark:text-white leading-none truncate">
-                      vcaptiona
-                    </span>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] leading-none">
-                        {isAdmin ? 'Admin' : 'Studio'}
-                      </span>
-                      {user.plan === 'pro' && <SparklesIcon className="size-2 text-primary animate-pulse" />}
-                    </div>
                   </div>
                 </Link>
               }

@@ -129,6 +129,7 @@ export function SignupForm({
                 type="text"
                 placeholder="John Doe"
                 required
+                minLength={2}
                 value={formData.name}
                 onChange={handleChange}
                 className="bg-zinc-50/50"
@@ -154,7 +155,9 @@ export function SignupForm({
               <Input
                 id="mobile"
                 type="tel"
-                placeholder="+91 98765 43210"
+                placeholder="9876543210"
+                pattern="[0-9]{10}"
+                title="Please enter a 10-digit mobile number"
                 value={formData.mobile}
                 onChange={handleChange}
                 className="bg-zinc-50/50"
@@ -166,12 +169,13 @@ export function SignupForm({
                 id="password"
                 type="password"
                 required
+                minLength={8}
                 value={formData.password}
                 onChange={handleChange}
                 className="bg-zinc-50/50"
               />
               <FieldDescription>
-                At least 8 characters.
+                At least 8 characters with a number or symbol.
               </FieldDescription>
             </Field>
             <Field>

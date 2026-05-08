@@ -55,9 +55,8 @@ def generate_otp(email, purpose):
     new_otp.set_otp(otp_code)
     db.session.add(new_otp)
     db.session.commit()
-    import sys; sys.stdout.flush()
-    success = email_service.send_otp(email, otp_code, purpose)
-    return otp_code if success else None
+    email_service.send_otp(email, otp_code, purpose)
+    return otp_code
 
 def verify_otp(email, otp_code, purpose):
     if not otp_code:
@@ -86,16 +85,29 @@ def register():
     phone = data.get('mobile', '').strip()
     otp = data.get('otp', '')
     
+    import re
+    
     if not email or not password:
         return jsonify({'error': 'Email and password are required'}), 400
-    if len(password) < 6:
-        return jsonify({'error': 'Password must be at least 6 characters'}), 400
+        
+    # Name validation
+    if len(name) < 2:
+        return jsonify({'error': 'Please enter a valid full name (at least 2 characters)'}), 400
+        
+    # Password validation: 8+ chars, at least one number or symbol
+    if len(password) < 8 or not re.search(r"[0-9!@#$%^&*(),.?\":{}|<>]", password):
+        return jsonify({'error': 'Password must be at least 8 characters and include a number or symbol'}), 400
+        
+    # Mobile validation: Exactly 10 digits
+    clean_phone = re.sub(r"\D", "", phone)
+    if phone and len(clean_phone) != 10:
+        return jsonify({'error': 'Please enter a valid 10-digit mobile number'}), 400
+        
     if User.query.filter_by(email=email).first():
         return jsonify({'error': 'Email already registered'}), 400
+        
     if not otp:
-        generated = generate_otp(email, 'registration')
-        if not generated:
-            return jsonify({'error': 'Failed to send OTP email. Please try again later.'}), 500
+        generate_otp(email, 'registration')
         return jsonify({'message': 'OTP sent to your email', 'otp_required': True}), 200
     
     if not verify_otp(email, otp, 'registration'):
@@ -317,9 +329,10 @@ def reset_password_request():
         return jsonify({'error': 'Email is required'}), 400
     user = User.query.filter_by(email=email).first()
     if user:
-        generated = generate_otp(email, 'reset')
-        if not generated:
-            return jsonify({'error': 'Failed to send OTP email. Please try again later.'}), 500
+        print(f"[Auth] Password reset requested for existing user: {email}")
+        generate_otp(email, 'reset')
+    else:
+        print(f"[Auth] Password reset requested for non-existent email: {email}")
     return jsonify({'message': 'If an account exists with this email, an OTP has been sent.'})
 
 @auth_bp.route('/reset-password', methods=['POST'])
@@ -354,12 +367,66 @@ def admin_reset_password_request():
     user = User.query.filter_by(email=email).first()
     # Only send OTP if the user exists AND is an admin
     if user and user.role in ('admin', 'super_admin'):
-        generated = generate_otp(email, 'admin_reset')
-        if not generated:
-            return jsonify({'error': 'Failed to send OTP email'}), 500
+        print(f"[Auth] Admin password reset requested for: {email}")
+        generate_otp(email, 'admin_reset')
+    else:
+        print(f"[Auth] Admin password reset failed/skipped for: {email} (User found: {bool(user)}, Role: {user.role if user else 'N/A'})")
             
     # Always return same message for security
     return jsonify({'message': 'If an admin account exists, an OTP has been sent.'})
+@auth_bp.route('/profile', methods=['PUT'])
+@jwt_required()
+def update_profile():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+        
+    data = request.get_json()
+    name = data.get('name', '').strip()
+    phone = data.get('phone', '').strip()
+    
+    if name:
+        user.name = name
+    if phone:
+        user.phone = phone
+        
+    db.session.commit()
+    return jsonify({
+        'message': 'Profile updated successfully',
+        'user': user.to_dict()
+    })
+
+@auth_bp.route('/change-password', methods=['POST'])
+@jwt_required()
+def change_password():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+        
+    data = request.get_json()
+    old_password = data.get('old_password')
+    new_password = data.get('new_password')
+    
+    if not old_password or not new_password:
+        return jsonify({'error': 'Missing password fields'}), 400
+        
+    # Verify old password
+    if not bcrypt.checkpw(old_password.encode('utf-8'), user.password.encode('utf-8')):
+        return jsonify({'error': 'Incorrect current password'}), 401
+        
+    # Update password
+    hashed_pw = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    user.password = hashed_pw
+    
+    # SECURITY: Invalidate current JTI so all existing tokens become invalid
+    user.current_jti = None 
+    user.password_changed_at = datetime.utcnow()
+    
+    db.session.commit()
+    
+    return jsonify({'message': 'Password changed successfully. Please log in again.'})
 
 @auth_bp.route('/admin/reset-password', methods=['POST'])
 @limiter.limit("3 per minute")
