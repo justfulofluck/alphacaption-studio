@@ -169,26 +169,26 @@ export default function UserDashboard() {
   };
 
   return (
-    <div className="flex flex-1 flex-col gap-10 p-4 md:p-8 pt-6 max-w-[1600px] mx-auto w-full">
+    <div className="flex flex-1 flex-col gap-6 md:gap-10 p-4 md:p-8 pt-4 md:pt-6 max-w-[1600px] mx-auto w-full">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div>
-          <h2 className="text-4xl font-black tracking-tight text-white">Studio Dashboard</h2>
+          <h2 className="text-3xl md:text-4xl font-black tracking-tight text-white">Studio Dashboard</h2>
           <p className="text-zinc-500 font-medium mt-1">Welcome back, {user?.name.split(' ')[0]}!</p>
         </div>
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center gap-3 w-full md:w-auto">
           <Button 
             variant="outline" 
             onClick={() => navigate('/pricing')} 
-            className="font-black uppercase tracking-widest text-[10px] border-white/10 bg-white/5 text-white h-12 px-7 rounded-2xl hover:bg-white/10 transition-all"
+            className="flex-1 md:flex-none font-black uppercase tracking-widest text-[9px] md:text-[10px] border-white/10 bg-white/5 text-white h-11 md:h-12 px-4 md:px-7 rounded-xl md:rounded-2xl hover:bg-white/10 transition-all"
           >
-            <Zap size={16} className="mr-2 text-[#ff7800] fill-[#ff7800]/20" />
-            Upgrade Plan
+            <Zap size={14} className="mr-2 text-[#ff7800] fill-[#ff7800]/20" />
+            Upgrade
           </Button>
           <Button 
             onClick={() => navigate('/')} 
-            className="font-black uppercase tracking-widest text-[10px] bg-[#ff7800] text-white h-12 px-7 rounded-2xl hover:bg-[#e66c00] shadow-[0_0_25px_rgba(255,120,0,0.3)] transition-all active:scale-95"
+            className="flex-1 md:flex-none font-black uppercase tracking-widest text-[9px] md:text-[10px] bg-[#ff7800] text-white h-11 md:h-12 px-4 md:px-7 rounded-xl md:rounded-2xl hover:bg-[#e66c00] shadow-[0_0_25px_rgba(255,120,0,0.3)] transition-all active:scale-95"
           >
-            <Plus size={18} className="mr-2" />
+            <Plus size={16} className="mr-2" />
             New Project
           </Button>
         </div>

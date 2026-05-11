@@ -1004,7 +1004,7 @@ function MainApp() {
     <>
       <div className="max-w-7xl mx-auto px-6 py-8">
         {!audioUrl ? (
-          <div className="flex flex-col items-center justify-center py-32 premium-upload-box rounded-[2.5rem] group cursor-pointer relative overflow-hidden border-orange-500/20">
+          <div className="flex flex-col items-center justify-center py-16 md:py-32 premium-upload-box rounded-2xl md:rounded-[2.5rem] group cursor-pointer relative overflow-hidden border-orange-500/20">
             <input
               type="file"
               accept="audio/mp3,audio/wav,audio/mpeg"
@@ -1023,58 +1023,58 @@ function MainApp() {
         ) : (
           <div className="space-y-8">
             {/* Player Section */}
-            <div className="premium-card rounded-[2.5rem] p-10 relative overflow-hidden">
-              <div className="flex items-center justify-between mb-10">
-                <div className="flex items-center gap-6">
+            <div className="premium-card rounded-2xl md:rounded-[2.5rem] p-6 md:p-10 relative overflow-hidden">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-10">
+                <div className="flex items-center gap-4 md:gap-6">
                   <button
                     onClick={() => wavesurfer.current?.playPause()}
-                    className="w-16 h-16 bg-[#ff7800] text-white rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-[0_0_30px_rgba(255,120,0,0.4)]"
+                    className="w-12 h-12 md:w-16 md:h-16 bg-[#ff7800] text-white rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-[0_0_30px_rgba(255,120,0,0.4)] flex-shrink-0"
                   >
-                    {isPlaying ? <Pause size={32} fill="white" /> : <Play size={32} fill="white" className="ml-1" />}
+                    {isPlaying ? <Pause size={24} fill="white" /> : <Play size={24} fill="white" className="ml-1" />}
                   </button>
-                  <div>
-                    <h3 className="font-black text-xl text-white tracking-tight">{audioFile?.name}</h3>
-                    <p className="text-sm text-zinc-500 font-mono mt-1">
+                  <div className="min-w-0">
+                    <h3 className="font-black text-lg md:text-xl text-white tracking-tight truncate">{audioFile?.name}</h3>
+                    <p className="text-xs md:text-sm text-zinc-500 font-mono mt-1">
                       {formatTime(currentTime).replace(',', '.')} / {formatTime(duration).replace(',', '.')}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
                   <button
                     onClick={resetApp}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest text-zinc-500 hover:text-white hover:bg-white/5 transition-all"
+                    className="flex items-center gap-2 px-3 py-2 md:px-5 md:py-2.5 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest text-zinc-500 hover:text-white hover:bg-white/5 transition-all"
                   >
-                    <Trash2 size={16} />
-                    Reset
+                    <Trash2 size={14} />
+                    <span className="hidden sm:inline">Reset</span>
                   </button>
 
                   <button
                     onClick={isTranscribing ? stopTranscription : transcribeAudio}
                     className={cn(
-                      "flex items-center gap-3 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.1em] transition-all disabled:opacity-50 border border-white/10",
+                      "flex items-center gap-2 md:gap-3 px-4 py-2.5 md:px-6 md:py-3 rounded-xl md:rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-[0.1em] transition-all disabled:opacity-50 border border-white/10 flex-1 md:flex-none justify-center",
                       isTranscribing
                         ? "bg-red-500/10 text-red-500 border-red-500/20"
                         : "bg-white/5 text-white hover:bg-white/10"
                     )}
                   >
-                    {isTranscribing ? <X size={16} /> : <Settings2 size={16} />}
-                    {isTranscribing ? 'Stop' : 'Transcribe Audio'}
+                    {isTranscribing ? <X size={14} /> : <Settings2 size={14} />}
+                    {isTranscribing ? 'Stop' : 'Transcribe'}
                   </button>
                   <button
                     onClick={saveProject}
                     disabled={!projectId || isSaving}
-                    className="flex items-center gap-3 bg-white/5 border border-white/10 text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.1em] hover:bg-white/10 transition-all disabled:opacity-50"
+                    className="flex items-center gap-2 md:gap-3 bg-white/5 border border-white/10 text-white px-4 py-2.5 md:px-6 md:py-3 rounded-xl md:rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-[0.1em] hover:bg-white/10 transition-all disabled:opacity-50 flex-1 md:flex-none justify-center"
                   >
-                    {isSaving ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />}
-                    {isSaving ? 'Saving...' : 'Save Changes'}
+                    {isSaving ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
+                    {isSaving ? 'Saving' : 'Save'}
                   </button>
                   <button
                     onClick={() => setShowDownloadModal(true)}
                     disabled={segments.length === 0}
-                    className="flex items-center gap-3 bg-[#ff7800] text-white px-7 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-[0.1em] hover:bg-[#e66c00] transition-all shadow-[0_0_20px_rgba(255,120,0,0.2)] disabled:opacity-50 active:scale-95 ml-2"
+                    className="flex items-center gap-2 md:gap-3 bg-[#ff7800] text-white px-5 py-3 md:px-7 md:py-3.5 rounded-xl md:rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-[0.1em] hover:bg-[#e66c00] transition-all shadow-[0_0_20px_rgba(255,120,0,0.2)] disabled:opacity-50 active:scale-95 w-full md:w-auto justify-center"
                   >
-                    <Download size={16} />
+                    <Download size={14} />
                     Export SRT
                   </button>
                 </div>
@@ -1101,7 +1101,7 @@ function MainApp() {
 
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                 {/* Left Side: Full Transcript */}
-                <div className="lg:col-span-4 sticky top-8">
+                <div className="lg:col-span-4 lg:sticky lg:top-8 order-2 lg:order-1">
                   <div className="premium-card rounded-[2rem] p-8">
                     <div className="flex items-center justify-between mb-6">
                       <h3 className="font-black text-sm text-white flex items-center gap-3 uppercase tracking-widest">

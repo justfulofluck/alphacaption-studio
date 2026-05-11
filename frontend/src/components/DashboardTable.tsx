@@ -50,8 +50,9 @@ export function DashboardTable({ data, columns, title, section, onAction }: Dash
 
   return (
     <div className="mt-4">
-      <div className="rounded-[2.5rem] border border-white/5 bg-zinc-900/40 backdrop-blur-xl shadow-2xl overflow-hidden">
-        <Table>
+      <div className="rounded-2xl md:rounded-[2.5rem] border border-white/5 bg-zinc-900/40 backdrop-blur-xl shadow-2xl overflow-hidden">
+        <div className="overflow-x-auto custom-scrollbar-thin">
+          <Table>
           <TableHeader>
             <TableRow className="border-white/5 hover:bg-transparent">
               {columns.map((col, i) => (
@@ -140,6 +141,7 @@ export function DashboardTable({ data, columns, title, section, onAction }: Dash
           </TableBody>
         </Table>
       </div>
+    </div>
       {/* Pagination Controls */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-8 px-4">

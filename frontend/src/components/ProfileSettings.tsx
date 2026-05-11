@@ -396,7 +396,7 @@ export default function ProfileSettings() {
                   <div className="flex flex-col sm:flex-row justify-between gap-8 mb-12 items-start">
                     <div>
                       <span className="text-[10px] font-black text-[#ff7800] uppercase tracking-[0.3em]">Current Membership</span>
-                      <h2 className="text-5xl font-black text-white mt-2 tracking-tight">{userData?.plan.toUpperCase()} Plan</h2>
+                      <h2 className="text-3xl md:text-5xl font-black text-white mt-2 tracking-tight">{userData?.plan.toUpperCase()} Plan</h2>
                       <p className="text-zinc-500 text-sm font-medium mt-2">Next renewal on <span className="text-[#ff7800]">May 27, 2026</span></p>
                     </div>
                     <div className="flex items-center gap-4">
@@ -426,7 +426,7 @@ export default function ProfileSettings() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                       <div className="p-8 bg-white/5 rounded-[2.5rem] border border-white/5 group-hover:bg-white/10 transition-colors">
                         <div className="size-10 rounded-xl bg-zinc-900 border border-white/10 flex items-center justify-center mb-5">
                           <CreditCard className="text-[#ff7800]" size={20} />

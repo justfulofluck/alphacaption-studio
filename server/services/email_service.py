@@ -7,13 +7,13 @@ class EmailService:
         self.enabled = os.environ.get("MAIL_ENABLED", "false").lower() == "true"
         self.username = os.environ.get("MAIL_USERNAME", "")
         self.password = os.environ.get("MAIL_PASSWORD", "")
-        self.from_name = os.environ.get("MAIL_FROM", "AlphaCaption Studio")
+        self.from_name = os.environ.get("MAIL_FROM", "VCaptiona Studio")
 
     def send_welcome(self, to_email, name):
-        subject = "Welcome to AlphaCaption Studio!"
+        subject = "Welcome to VCaptiona Studio!"
         body = f"""Hi {name},
 
-Welcome to AlphaCaption Studio!
+Welcome to VCaptiona Studio!
 
 Your account has been created successfully.
 
@@ -32,7 +32,7 @@ After the trial ends, you can upgrade from the pricing page to continue using th
 Need help? Just reply to this email.
 
 Best,
-The AlphaCaption Team"""
+The VCaptiona Team"""
         return self.send(to_email, subject, body)
 
     def send_project_completed(self, to_email, project_name):
@@ -44,7 +44,7 @@ Your project "{project_name}" is complete!
 Log in to view and export your captions.
 
 Best,
-AlphaCaption Team'''
+VCaptiona Team'''
         return self.send(to_email, subject, body)
 
     def send_payment_thank_you(
@@ -70,7 +70,7 @@ The VCaptiona Team"""
 
     def send_otp(self, to_email, otp, purpose):
         # Use a more friendly subject that avoids spam filters
-        subject = "AlphaCaption Verification Code"
+        subject = "VCaptiona Verification Code"
         
         # Customize message based on purpose
         action = "reset your password" if purpose == "reset" else "create your account"
@@ -88,7 +88,7 @@ This code is valid for 3 minutes.
 If you didn't request this, please ignore this email.
 
 Best,
-AlphaCaption Team"""
+VCaptiona Team"""
         return self.send(to_email, subject, body)
 
     def send(self, to_email, subject, body):
