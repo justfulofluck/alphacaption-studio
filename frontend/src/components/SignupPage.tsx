@@ -1,7 +1,8 @@
 import { useEffect } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, Link } from "react-router-dom"
 import { GalleryVerticalEnd } from "lucide-react"
 import { SignupForm } from "@/components/signup-form"
+import Background from "@/assets/Background.png"
 import { API_BASE_URL } from "@/api/config"
 import axios from "axios"
 
@@ -24,32 +25,32 @@ export default function SignupPage() {
   }, [navigate]);
 
   return (
-    <div className="grid min-h-svh lg:grid-cols-2 bg-background font-sans">
-      <div className="flex flex-col gap-4 p-6 md:p-10">
-        <div className="flex justify-center gap-2 md:justify-start">
-          <a href="/" className="flex items-center gap-2 font-black tracking-tight">
-            <img src="/logo.png" alt="Vcaptiona Logo" className="h-8 w-auto object-contain" />
-          </a>
+    <div className="grid h-screen lg:grid-cols-2 bg-[#050505] font-sans overflow-hidden">
+      <div className="flex flex-col gap-4 p-8 md:p-10 lg:p-12 relative z-10 overflow-y-auto lg:overflow-hidden">
+        <div className="flex justify-center lg:justify-start mb-8">
+          <Link to="/" className="flex items-center gap-2">
+            <img src="/logo.png" alt="Vcaptiona Logo" className="h-10 w-auto object-contain" />
+          </Link>
         </div>
-        <div className="flex flex-1 items-center justify-center">
-          <div className="w-full max-w-xs">
+        <div className="flex flex-1 items-center justify-center lg:justify-start">
+          <div className="w-full max-w-md">
             <SignupForm />
           </div>
         </div>
       </div>
-      <div className="relative hidden bg-muted lg:block">
+      <div className="relative hidden lg:block overflow-hidden border-l border-white/5">
         <img
-          src="https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=2070&auto=format&fit=crop"
+          src={Background}
           alt="Abstract Studio"
-          className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] grayscale opacity-50"
+          className="absolute inset-0 h-full w-full object-cover brightness-[0.3]"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent"></div>
-        <div className="absolute bottom-12 left-12 right-12">
-          <blockquote className="space-y-4">
-            <p className="text-2xl font-medium tracking-tight text-white leading-relaxed">
+        <div className="absolute inset-0 bg-gradient-to-tr from-[#050505] via-transparent to-[#ff7800]/10"></div>
+        <div className="absolute bottom-20 left-20 right-20">
+          <blockquote className="space-y-8">
+            <p className="text-4xl font-black tracking-tightest text-white leading-[1.1] max-w-xl">
               "The most intuitive captioning tool I've ever used. It transformed my workflow instantly."
             </p>
-            <footer className="text-sm font-bold uppercase tracking-widest text-zinc-400">
+            <footer className="text-xs font-black uppercase tracking-[0.3em] text-[#ff7800]">
               Design Lead @ AlphaCaption
             </footer>
           </blockquote>

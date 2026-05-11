@@ -10,6 +10,12 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import WaveSurfer from 'wavesurfer.js';
 import { motion } from 'motion/react';
@@ -44,7 +50,10 @@ import {
   ShieldCheck,
   Loader2,
   BarChart3,
-  LogOut
+  LogOut,
+  AudioLines,
+  FileText,
+  Info
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -160,8 +169,8 @@ function Layout() {
   // Show loading while checking auth
   if (isLoading && location.pathname !== '/login' && location.pathname !== '/signup') {
     return (
-      <div className="min-h-screen bg-[#FDFDFC] flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-4 border-zinc-900 border-t-transparent rounded-full dark:border-white"></div>
+      <div className="min-h-screen bg-[#050505] flex items-center justify-center">
+        <div className="animate-spin w-10 h-10 border-4 border-[#ff7800] border-t-transparent rounded-full shadow-[0_0_20px_rgba(255,120,0,0.3)]"></div>
       </div>
     );
   }
@@ -181,7 +190,10 @@ function Layout() {
       }} />
       <SidebarInset>
         <SiteHeader user={{ name: user?.name || "User", avatar: user?.avatar }} />
-        <main className="flex-1 overflow-auto bg-background">
+        <main className={cn(
+          "flex-1 overflow-auto transition-colors duration-500",
+          location.pathname === "/" ? "bg-[#050505]" : "bg-background"
+        )}>
           <Outlet context={{ isLoggedIn, setIsLoggedIn }} />
         </main>
       </SidebarInset>
@@ -200,7 +212,10 @@ function MainApp() {
 
   useEffect(() => {
     const state = location.state as { projectId?: number };
-    if (state?.projectId && state.projectId !== projectId) {
+    const lastProjectId = localStorage.getItem('last_project_id');
+    const effectiveProjectId = state?.projectId || (lastProjectId ? parseInt(lastProjectId) : null);
+
+    if (effectiveProjectId && effectiveProjectId !== projectId) {
       const fetchProject = async () => {
         const token = localStorage.getItem('auth_token');
         try {
@@ -209,6 +224,7 @@ function MainApp() {
           });
           const p = res.data;
           setProjectId(p.id);
+          localStorage.setItem('last_project_id', p.id.toString());
           setAudioUrl(p.audio_url);
           setAudioFile({ name: p.name } as any); // Mock file for UI
           
@@ -331,6 +347,17 @@ function MainApp() {
     transitionType
   }), [segments, fontFamily, fontSize, fontColor, strokeColor, strokeWidth, textShadow, textAlign, textPosition, transitionType]);
 
+  // Auto-save effect
+  useEffect(() => {
+    if (!projectId || segments.length === 0) return;
+    
+    const timer = setTimeout(() => {
+      saveProject();
+    }, 5000); // Auto-save every 5 seconds of inactivity
+
+    return () => clearTimeout(timer);
+  }, [segments, transcript, fontFamily, fontSize, fontColor, strokeColor, strokeWidth, textShadow, textAlign, textPosition, transitionType]);
+
   // Push to history when important states change
   useEffect(() => {
     if (isInternalChange.current) {
@@ -400,6 +427,7 @@ function MainApp() {
     setAudioFile(null);
     setAudioUrl(null);
     setProjectId(null);
+    localStorage.removeItem('last_project_id');
     setSegments([]);
     setIsPlaying(false);
     setCurrentTime(0);
@@ -460,6 +488,7 @@ function MainApp() {
         }
       });
       setProjectId(res.data.id);
+      localStorage.setItem('last_project_id', res.data.id.toString());
       return res.data.id;
     } catch (err) {
       console.error('Error uploading to backend:', err);
@@ -570,15 +599,28 @@ function MainApp() {
   useEffect(() => {
     if (!waveformRef.current || !audioUrl) return;
 
+    const ctx = document.createElement('canvas').getContext('2d');
+    const waveGradient = ctx!.createLinearGradient(0, 0, 0, 140);
+    waveGradient.addColorStop(0, 'rgba(255, 120, 0, 0.3)'); // Top
+    waveGradient.addColorStop(0.5, 'rgba(255, 180, 0, 0.5)'); // Middle brightness
+    waveGradient.addColorStop(1, 'rgba(255, 120, 0, 0.3)'); // Bottom
+
+    const progressGradient = ctx!.createLinearGradient(0, 0, 0, 140);
+    progressGradient.addColorStop(0, '#e66c00'); // Deeper orange top
+    progressGradient.addColorStop(0.5, '#ff9d00'); // Bright orange middle
+    progressGradient.addColorStop(1, '#e66c00'); // Deeper orange bottom
+
     wavesurfer.current = WaveSurfer.create({
       container: waveformRef.current,
-      waveColor: '#27272a', // zinc-800
-      progressColor: '#09090b', // zinc-950
-      cursorColor: '#09090b',
-      barWidth: 2,
-      barRadius: 3,
-      height: 120,
+      waveColor: waveGradient,
+      progressColor: progressGradient,
+      cursorColor: '#ff7800',
+      barWidth: 4,
+      barRadius: 4,
+      height: 140,
       normalize: true,
+      dragToSeek: true,
+      cursorWidth: 2,
     });
 
     wavesurfer.current.load(audioUrl);
@@ -962,110 +1004,114 @@ function MainApp() {
     <>
       <div className="max-w-7xl mx-auto px-6 py-8">
         {!audioUrl ? (
-          <div className="flex flex-col items-center justify-center py-24 border-2 border-dashed border-zinc-200 rounded-3xl bg-white group hover:border-zinc-400 transition-colors cursor-pointer relative overflow-hidden">
+          <div className="flex flex-col items-center justify-center py-32 premium-upload-box rounded-[2.5rem] group cursor-pointer relative overflow-hidden border-orange-500/20">
             <input
               type="file"
               accept="audio/mp3,audio/wav,audio/mpeg"
               onChange={handleFileUpload}
-              className="absolute inset-0 opacity-0 cursor-pointer"
+              className="absolute inset-0 opacity-0 cursor-pointer z-10"
             />
-            <div className="w-16 h-16 bg-zinc-100 rounded-2xl flex items-center justify-center text-zinc-400 group-hover:bg-zinc-50 group-hover:text-zinc-800 transition-all mb-4">
-              <Upload size={32} />
+            <div className="w-20 h-20 premium-icon-box rounded-2xl flex items-center justify-center mb-6 premium-glow-orange group-hover:scale-110 transition-transform">
+              <Upload size={36} />
             </div>
-            <h2 className="text-xl font-bold mb-2">Upload Audio File</h2>
-            <p className="text-zinc-500 text-sm">MP3 or WAV files supported</p>
+            <h2 className="text-3xl font-black mb-2 text-white tracking-tight">Upload Audio File</h2>
+            <p className="text-zinc-400 font-medium">MP3 or WAV files supported</p>
+            
+            {/* Decorative Glow */}
+            <div className="absolute -bottom-24 left-1/2 -translate-x-1/2 w-96 h-48 bg-orange-500/10 blur-[100px] rounded-full pointer-events-none" />
           </div>
         ) : (
           <div className="space-y-8">
             {/* Player Section */}
-            <div className="bg-white rounded-3xl p-8 shadow-sm border border-zinc-200">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-4">
+            <div className="premium-card rounded-[2.5rem] p-10 relative overflow-hidden">
+              <div className="flex items-center justify-between mb-10">
+                <div className="flex items-center gap-6">
                   <button
                     onClick={() => wavesurfer.current?.playPause()}
-                    className="w-14 h-14 bg-zinc-900 text-white rounded-full flex items-center justify-center hover:bg-zinc-800 transition-all active:scale-90 shadow-lg shadow-zinc-100"
+                    className="w-16 h-16 bg-[#ff7800] text-white rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-[0_0_30px_rgba(255,120,0,0.4)]"
                   >
-                    {isPlaying ? <Pause size={28} /> : <Play size={28} className="ml-1" />}
+                    {isPlaying ? <Pause size={32} fill="white" /> : <Play size={32} fill="white" className="ml-1" />}
                   </button>
                   <div>
-                    <h3 className="font-bold text-zinc-900">{audioFile?.name}</h3>
-                    <p className="text-sm text-zinc-500 font-mono">
+                    <h3 className="font-black text-xl text-white tracking-tight">{audioFile?.name}</h3>
+                    <p className="text-sm text-zinc-500 font-mono mt-1">
                       {formatTime(currentTime).replace(',', '.')} / {formatTime(duration).replace(',', '.')}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <button
                     onClick={resetApp}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-zinc-500 hover:text-red-600 hover:bg-red-50 transition-all"
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest text-zinc-500 hover:text-white hover:bg-white/5 transition-all"
                   >
-                    <Trash2 size={18} />
+                    <Trash2 size={16} />
                     Reset
                   </button>
 
                   <button
                     onClick={isTranscribing ? stopTranscription : transcribeAudio}
                     className={cn(
-                      "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-50",
+                      "flex items-center gap-3 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.1em] transition-all disabled:opacity-50 border border-white/10",
                       isTranscribing
-                        ? "bg-red-50 text-red-700 hover:bg-red-100 ring-1 ring-red-200"
-                        : "bg-zinc-50 text-zinc-900 hover:bg-zinc-100"
+                        ? "bg-red-500/10 text-red-500 border-red-500/20"
+                        : "bg-white/5 text-white hover:bg-white/10"
                     )}
                   >
-                    {isTranscribing ? <X size={18} /> : <Settings2 size={18} />}
-                    {isTranscribing ? 'Stop' : 'Transcribe Audio (AI)'}
+                    {isTranscribing ? <X size={16} /> : <Settings2 size={16} />}
+                    {isTranscribing ? 'Stop' : 'Transcribe Audio'}
                   </button>
                   <button
                     onClick={saveProject}
                     disabled={!projectId || isSaving}
-                    className="flex items-center gap-2 bg-white border border-zinc-200 text-zinc-900 px-4 py-2 rounded-xl text-sm font-bold hover:bg-zinc-50 transition-all shadow-sm disabled:opacity-50 active:scale-95 ml-2"
+                    className="flex items-center gap-3 bg-white/5 border border-white/10 text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.1em] hover:bg-white/10 transition-all disabled:opacity-50"
                   >
-                    {isSaving ? <Loader2 size={18} className="animate-spin" /> : <ShieldCheck size={18} />}
+                    {isSaving ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />}
                     {isSaving ? 'Saving...' : 'Save Changes'}
                   </button>
                   <button
                     onClick={() => setShowDownloadModal(true)}
                     disabled={segments.length === 0}
-                    className="flex items-center gap-2 bg-zinc-900 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-zinc-800 transition-all shadow-lg shadow-zinc-200 disabled:opacity-50 active:scale-95 ml-2"
+                    className="flex items-center gap-3 bg-[#ff7800] text-white px-7 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-[0.1em] hover:bg-[#e66c00] transition-all shadow-[0_0_20px_rgba(255,120,0,0.2)] disabled:opacity-50 active:scale-95 ml-2"
                   >
-                    <Download size={18} />
+                    <Download size={16} />
                     Export SRT
                   </button>
                 </div>
               </div>
 
-              <div ref={waveformRef} className="mb-4" />
-
-
+              <div id="waveform-container" ref={waveformRef} className="mb-8 relative" />
+              
+              <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-orange-500/5 blur-[100px] rounded-full pointer-events-none" />
             </div>
 
             {/* Tabs Section */}
-            <div className="flex items-center gap-4 border-b border-zinc-200">
+            <div className="flex items-center gap-8 border-b border-white/5">
               <button
                 onClick={() => setActiveTab('captions')}
                 className={cn(
-                  "px-6 py-3 text-sm font-bold transition-all border-b-2",
-                  activeTab === 'captions' ? "border-zinc-900 text-zinc-900" : "border-transparent text-zinc-400 hover:text-zinc-600"
+                  "px-4 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2",
+                  activeTab === 'captions' ? "border-[#ff7800] text-[#ff7800]" : "border-transparent text-zinc-600 hover:text-zinc-400"
                 )}
               >
                 Caption Editor
               </button>
-
             </div>
 
 
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                 {/* Left Side: Full Transcript */}
                 <div className="lg:col-span-4 sticky top-8">
-                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-zinc-200">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-bold text-zinc-900 flex items-center gap-2">
-                        <Type size={18} className="text-zinc-900" />
+                  <div className="premium-card rounded-[2rem] p-8">
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="font-black text-sm text-white flex items-center gap-3 uppercase tracking-widest">
+                        <div className="w-8 h-8 premium-icon-box rounded-lg flex items-center justify-center premium-text-orange">
+                          <Type size={16} />
+                        </div>
                         Full Transcript
                       </h3>
                       {detectedLanguage && (
-                        <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-full border border-emerald-100 uppercase tracking-wider">
+                        <span className="px-3 py-1 bg-orange-500/10 text-[#ff7800] text-[10px] font-black rounded-full border border-orange-500/20 uppercase tracking-widest">
                           {detectedLanguage}
                         </span>
                       )}
@@ -1074,64 +1120,83 @@ function MainApp() {
                       placeholder="Transcript will appear here..."
                       value={transcript}
                       onChange={(e) => setTranscript(e.target.value)}
-                      className="w-full h-[400px] bg-zinc-50 border border-zinc-200 rounded-2xl p-4 text-sm font-medium focus:ring-2 focus:ring-zinc-800 focus:border-transparent transition-all mb-4 resize-none"
+                      className="w-full h-[400px] bg-white/5 border border-white/10 rounded-2xl p-5 text-sm font-medium text-white placeholder:text-zinc-600 focus:ring-2 focus:ring-[#ff7800] focus:border-transparent transition-all mb-6 resize-none custom-scrollbar"
                     />
                     <button
                       onClick={isAligning ? stopAlignment : alignTranscript}
                       disabled={(!transcript && !isAligning) || (!audioFile && !isAligning)}
                       className={cn(
-                        "w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:pointer-events-none",
+                        "w-full flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-xs font-black transition-all shadow-xl active:scale-95 disabled:opacity-50 disabled:pointer-events-none uppercase tracking-widest",
                         isAligning
-                          ? "bg-red-600 text-white shadow-red-100 hover:bg-red-700"
-                          : "bg-zinc-900 text-white shadow-zinc-100 hover:bg-zinc-800"
+                          ? "bg-red-500 text-white hover:bg-red-600"
+                          : "premium-button-orange"
                       )}
                     >
                       {isAligning ? (
                         <>
-                          <X size={16} />
+                          <X size={18} />
                           Stop
                         </>
                       ) : (
                         <>
-                          <Sparkles size={16} />
+                          <Sparkles size={18} />
                           Smart AI Sync
                         </>
                       )}
                     </button>
-                    <p className="text-[9px] text-zinc-400 mt-3 text-center uppercase tracking-widest font-bold">
+                    <p className="text-[10px] text-zinc-500 mt-4 text-center uppercase tracking-widest font-black">
                       Analyze audio to sync text with timing
                     </p>
                   </div>
                 </div>
 
                 {/* Right Side: Captions List */}
-                <div className="lg:col-span-8 space-y-4">
+                <div className="lg:col-span-8 space-y-6">
                   <div className="flex items-center justify-between px-2">
-                    <div className="flex items-center gap-4">
-                      <h2 className="font-bold text-lg flex items-center gap-2 text-zinc-900">
-                        <Layers size={18} className="text-zinc-900" />
+                    <div className="flex items-center gap-6">
+                      <h2 className="font-black text-sm flex items-center gap-3 text-white uppercase tracking-widest">
+                        <div className="w-8 h-8 premium-icon-box rounded-lg flex items-center justify-center premium-text-orange">
+                          <Layers size={16} />
+                        </div>
                         Captions List
-                        <span className="text-xs font-normal text-zinc-400 ml-2">({segments.length})</span>
+                        <span className="text-xs font-medium text-zinc-500 ml-2">({segments.length})</span>
                       </h2>
-                      <div className="flex items-center gap-1 ml-4">
+                      <div className="flex items-center gap-2 ml-4">
                         {segments.length > 0 && (
-                          <button
-                            onClick={isSyncingList ? stopSyncing : syncAllSegments}
-                            className={cn(
-                              "flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all shadow-sm border uppercase tracking-wider",
-                              isSyncingList
-                                ? "bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
-                                : "bg-white text-zinc-900 border-zinc-200 hover:bg-zinc-50"
-                            )}
-                          >
-                            {isSyncingList ? <X size={12} /> : <RotateCw size={12} />}
-                            {isSyncingList ? 'Stop' : 'Auto Sync'}
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={isSyncingList ? stopSyncing : syncAllSegments}
+                              className={cn(
+                                "flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black transition-all border uppercase tracking-widest",
+                                isSyncingList
+                                  ? "bg-red-500/10 text-red-500 border-red-500/20"
+                                  : "premium-card text-zinc-300 border-white/5 hover:text-white"
+                              )}
+                            >
+                              {isSyncingList ? <X size={12} /> : <RotateCw size={12} />}
+                              {isSyncingList ? 'Stop' : 'Auto Sync'}
+                            </button>
+
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button className="p-2 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center text-zinc-500 hover:text-[#ff7800] hover:bg-[#ff7800]/5 transition-all">
+                                    <Info size={14} />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="max-w-xs bg-zinc-900 border-white/10 text-white p-4 rounded-2xl shadow-2xl z-50">
+                                  <p className="text-[11px] font-medium leading-relaxed">
+                                    If you have manually edited the text or if the timing feels slightly "off", clicking <span className="text-[#ff7800] font-bold">AUTO SYNC</span> tells the AI to re-analyze the audio and re-align the timestamps precisely to the speech.
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
                         )}
                         {selectedSegmentIds.size >= 2 && (
                           <button
                             onClick={mergeSegments}
-                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold bg-zinc-900 text-white hover:bg-zinc-800 transition-all shadow-sm uppercase tracking-wider"
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black premium-button-orange active:scale-95 transition-all uppercase tracking-widest"
                           >
                             <Layers size={12} />
                             Merge ({selectedSegmentIds.size})
@@ -1139,32 +1204,37 @@ function MainApp() {
                         )}
                         <button
                           onClick={addSegment}
-                          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors uppercase tracking-wider"
+                          className="flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black bg-orange-500/10 text-[#ff7800] border border-orange-500/20 hover:bg-orange-500/20 transition-all uppercase tracking-widest"
                         >
                           <Plus size={12} />
                           Add
                         </button>
-                        <button
-                          onClick={undo}
-                          disabled={undoStack.length <= 1}
-                          className="p-1.5 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-50 rounded-lg transition-all disabled:opacity-30"
-                        >
-                          <Undo size={16} />
-                        </button>
-                        <button
-                          onClick={redo}
-                          disabled={redoStack.length === 0}
-                          className="p-1.5 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-50 rounded-lg transition-all disabled:opacity-30"
-                        >
-                          <Redo size={16} />
-                        </button>
+                        <div className="flex items-center gap-1 px-1 bg-white/5 rounded-xl border border-white/5">
+                          <button
+                            onClick={undo}
+                            disabled={undoStack.length <= 1}
+                            className="p-2 text-zinc-500 hover:text-white transition-all disabled:opacity-20"
+                          >
+                            <Undo size={16} />
+                          </button>
+                          <button
+                            onClick={redo}
+                            disabled={redoStack.length === 0}
+                            className="p-2 text-zinc-500 hover:text-white transition-all disabled:opacity-20"
+                          >
+                            <Redo size={16} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
 
                   {segments.length === 0 ? (
-                    <div className="py-24 text-center bg-zinc-50 rounded-3xl border border-dashed border-zinc-200">
-                      <p className="text-zinc-400 text-sm">No segments detected yet.</p>
+                    <div className="py-32 text-center premium-card rounded-[2rem] premium-border-orange-dashed group">
+                      <div className="w-16 h-16 premium-icon-box rounded-2xl flex items-center justify-center mx-auto mb-6 opacity-40 group-hover:opacity-100 transition-opacity">
+                        <FileText size={32} />
+                      </div>
+                      <p className="text-zinc-500 text-sm font-medium uppercase tracking-widest">No segments detected yet.</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 gap-3 overflow-y-auto max-h-[700px] pr-2 scrollbar-thin scrollbar-thumb-zinc-200">
@@ -1172,19 +1242,19 @@ function MainApp() {
                         <div
                           key={seg.id}
                           className={cn(
-                            "group bg-white border border-zinc-200 rounded-2xl p-4 flex flex-col md:flex-row gap-4 transition-all hover:border-zinc-200 hover:shadow-md",
-                            currentTime >= seg.start && currentTime <= seg.end && "border-zinc-800 bg-zinc-50/30 ring-1 ring-zinc-800",
-                            selectedSegmentIds.has(seg.id) && "border-zinc-900 bg-zinc-50/50"
+                            "group premium-card rounded-2xl p-6 flex flex-col md:flex-row gap-6 transition-all hover:border-white/20",
+                            currentTime >= seg.start && currentTime <= seg.end && "border-[#ff7800] bg-orange-500/5 ring-1 ring-[#ff7800]/50",
+                            selectedSegmentIds.has(seg.id) && "border-[#ff7800] bg-orange-500/10"
                           )}
                         >
-                          <div className="flex items-center gap-3 md:w-48 shrink-0">
+                          <div className="flex items-center gap-4 md:w-56 shrink-0">
                             <input
                               type="checkbox"
                               checked={selectedSegmentIds.has(seg.id)}
                               onChange={() => toggleSegmentSelection(seg.id)}
-                              className="w-4 h-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-800 cursor-pointer"
+                              className="w-5 h-5 rounded border-white/10 bg-white/5 text-[#ff7800] focus:ring-[#ff7800] cursor-pointer transition-all"
                             />
-                            <div className="w-8 h-8 bg-zinc-100 rounded-lg flex items-center justify-center text-xs font-bold text-zinc-500">
+                            <div className="w-10 h-10 premium-icon-box rounded-xl flex items-center justify-center text-xs font-black text-white">
                               {index + 1}
                             </div>
                             <button
@@ -1272,28 +1342,67 @@ function MainApp() {
       </div>
 
       {/* Footer Info */}
-      <footer className="max-w-6xl mx-auto px-6 py-12 border-t border-zinc-200 mt-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm text-zinc-500">
-          <div>
-            <h4 className="font-bold text-zinc-900 mb-2">How it works</h4>
-            <p className="leading-relaxed">
-              This tool uses signal processing to analyze audio amplitude. It detects "islands" of sound
-              separated by silence to automatically create caption timings. You can then manually enter
-              the text for each segment. No AI or external servers are used for transcription.
-            </p>
+      <footer className="max-w-7xl mx-auto px-6 py-20 mt-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+          <div className="premium-card p-10 rounded-[2.5rem] relative overflow-hidden group">
+            <div className="flex items-start gap-6 relative z-10">
+              <div className="w-14 h-14 premium-icon-box rounded-2xl flex items-center justify-center shrink-0 premium-glow-orange">
+                <AudioLines size={28} />
+              </div>
+              <div>
+                <h4 className="text-xl font-black text-white mb-4 tracking-tight">How it works</h4>
+                <p className="text-zinc-400 leading-relaxed font-medium">
+                  This tool uses signal processing to analyze audio amplitude. It detects "islands" of sound
+                  separated by silence to automatically create caption timings. You can then manually enter
+                  the text for each segment. No AI or external servers are used for transcription.
+                </p>
+              </div>
+            </div>
+            <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-orange-500/5 blur-3xl rounded-full group-hover:bg-orange-500/10 transition-colors" />
           </div>
-          <div>
-            <h4 className="font-bold text-zinc-900 mb-2">Instructions</h4>
-            <ul className="list-disc list-inside space-y-1">
-              <li>Upload an MP3 or WAV file.</li>
-              <li>Adjust "Silence Threshold" if detection is too sensitive.</li>
-              <li>Click "Auto-Detect Timings" to generate segments.</li>
-              <li>Enter text for each segment and export as .srt.</li>
-            </ul>
+
+          <div className="premium-card p-10 rounded-[2.5rem] relative overflow-hidden group">
+            <div className="flex items-start gap-6 relative z-10">
+              <div className="w-14 h-14 premium-icon-box rounded-2xl flex items-center justify-center shrink-0 premium-glow-orange">
+                <FileText size={28} />
+              </div>
+              <div>
+                <h4 className="text-xl font-black text-white mb-4 tracking-tight">Instructions</h4>
+                <ul className="space-y-3 text-zinc-400 font-medium">
+                  <li className="flex items-center gap-3">
+                    <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                    Upload an MP3 or WAV file.
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                    Adjust "Silence Threshold" if detection is too sensitive.
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                    Click "Auto-Detect Timings" to generate segments.
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                    Enter text for each segment and export as .srt.
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-orange-500/5 blur-3xl rounded-full group-hover:bg-orange-500/10 transition-colors" />
           </div>
         </div>
-        <div className="mt-8 pt-8 border-t border-zinc-100 flex justify-between items-center bg-zinc-50/50 p-6 rounded-2xl">
-          <p className="text-xs text-zinc-400">© 2026 Vcaptiona AI. All rights reserved.</p>
+
+        <div className="premium-card p-8 rounded-3xl flex justify-between items-center border-white/5">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 premium-icon-box rounded-xl flex items-center justify-center premium-glow-orange">
+              <ShieldCheck size={20} />
+            </div>
+            <p className="text-sm font-bold text-zinc-400">© 2026 Vcaptiona AI. All rights reserved.</p>
+          </div>
+          <div className="flex gap-8">
+            <span className="text-xs font-black uppercase tracking-widest text-zinc-600 hover:text-white cursor-pointer transition-colors">Privacy</span>
+            <span className="text-xs font-black uppercase tracking-widest text-zinc-600 hover:text-white cursor-pointer transition-colors">Terms</span>
+          </div>
         </div>
       </footer>
 

@@ -11,12 +11,13 @@ import {
 } from "@/components/ui/sidebar"
 import { NavUser } from "@/components/nav-user"
 import {
-  BarChart3Icon,
-  ShieldCheckIcon,
-  SparklesIcon,
-  UsersIcon,
-  Settings2Icon,
-  LayoutDashboardIcon
+  BarChart3 as BarChart3Icon,
+  ShieldCheck as ShieldCheckIcon,
+  Sparkles as SparklesIcon,
+  Users as UsersIcon,
+  Settings2 as Settings2Icon,
+  LayoutDashboard as LayoutDashboardIcon,
+  AudioLines as AudioLinesIcon
 } from "lucide-react"
 import { Link } from "react-router-dom"
 
@@ -61,6 +62,11 @@ export function StudioSidebar({ user, ...props }: StudioSidebarProps) {
       }
     ] : [
       {
+        title: "Studio Project",
+        url: "/",
+        icon: <AudioLinesIcon />,
+      },
+      {
         title: "Dashboard",
         url: "/dashboard",
         icon: <LayoutDashboardIcon />,
@@ -75,7 +81,7 @@ export function StudioSidebar({ user, ...props }: StudioSidebarProps) {
 
 
   return (
-    <Sidebar collapsible="icon" {...props} className="border-r border-zinc-200/50">
+    <Sidebar collapsible="icon" {...props} className="border-r border-white/5 bg-[#0a0a0a]">
       <SidebarHeader className="pt-4 group-data-[collapsible=icon]:p-2">
         <SidebarMenu>
           <SidebarMenuItem>
@@ -83,11 +89,7 @@ export function StudioSidebar({ user, ...props }: StudioSidebarProps) {
               size="lg"
               render={
                 <Link to="/" className="flex items-center gap-3">
-                  <div className="flex items-center justify-center min-w-10 overflow-hidden">
-                    <img src="/logo.png" alt="Vcaptiona Logo" className="h-10 w-auto object-contain group-data-[collapsible=icon]:h-8" />
-                  </div>
-                  <div className="flex flex-col gap-0 group-data-[collapsible=icon]:hidden overflow-hidden">
-                  </div>
+                  <img src="/logo.png" alt="Vcaptiona Logo" className="h-10 w-auto object-contain" />
                 </Link>
               }
               className="hover:bg-transparent active:bg-transparent"

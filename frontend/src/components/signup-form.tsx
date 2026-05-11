@@ -10,7 +10,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { useNavigate, Link } from "react-router-dom"
 import axios from "axios"
-import { Loader2, ArrowRight, CheckCircle2, AlertCircle, ShieldAlert } from "lucide-react"
+import { Loader2, ArrowRight, CheckCircle2, AlertCircle, ShieldAlert, User, Mail, Phone, Lock, Eye, EyeOff } from "lucide-react"
 
 import { API_BASE_URL } from "@/api/config"
 
@@ -34,6 +34,8 @@ export function SignupForm({
     confirmPassword: "",
     otp: ""
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     let timer: any;
@@ -111,83 +113,112 @@ export function SignupForm({
   };
 
   return (
-    <form className={cn("flex flex-col gap-6", className)} {...props} onSubmit={handleSubmit}>
+    <form className={cn("flex flex-col gap-4", className)} {...props} onSubmit={handleSubmit}>
       <FieldGroup>
-        <div className="flex flex-col items-center gap-1 text-center">
-          <h1 className="text-2xl font-bold">Create your account</h1>
-          <p className="text-sm text-balance text-muted-foreground">
-            {showOtp ? "Enter the verification code sent to your email" : "Fill in the form below to create your account"}
-          </p>
-        </div>
+      <div className="flex flex-col gap-1 mb-4">
+        <h1 className="text-4xl font-black text-white tracking-tightest">Create account</h1>
+        <p className="text-zinc-500 font-medium">
+          {showOtp ? "Enter the verification code sent to your email" : "Fill in the form below to create your account"}
+        </p>
+      </div>
 
         {!showOtp ? (
           <>
-            <Field>
-              <FieldLabel htmlFor="name">Full Name</FieldLabel>
-              <Input
-                id="name"
-                type="text"
-                placeholder="John Doe"
-                required
-                minLength={2}
-                value={formData.name}
-                onChange={handleChange}
-                className="bg-zinc-50/50"
-              />
+            <Field className="space-y-2">
+              <FieldLabel htmlFor="name" className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 ml-1">Full Name</FieldLabel>
+              <div className="relative">
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-[#ff7800]/60" size={18} />
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="John Doe"
+                  required
+                  value={formData.name}
+                  onChange={handleChange}
+                  className="bg-white/5 border-white/5 h-12 pl-12 rounded-xl text-white placeholder:text-zinc-700 focus-visible:ring-[#ff7800]/50"
+                />
+              </div>
             </Field>
-            <Field>
-              <FieldLabel htmlFor="email">Email</FieldLabel>
-              <Input
-                id="email"
-                type="email"
-                placeholder="m@example.com"
-                required
-                value={formData.email}
-                onChange={handleChange}
-                className="bg-zinc-50/50"
-              />
-              <FieldDescription>
-                We&apos;ll use this to contact you.
+
+            <Field className="space-y-2">
+              <FieldLabel htmlFor="email" className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 ml-1">Email</FieldLabel>
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[#ff7800]/60" size={18} />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="m@example.com"
+                  required
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="bg-white/5 border-white/5 h-12 pl-12 rounded-xl text-white placeholder:text-zinc-700 focus-visible:ring-[#ff7800]/50"
+                />
+              </div>
+              <FieldDescription className="text-zinc-600 text-[11px] font-medium ml-1">
+                We'll use this to contact you.
               </FieldDescription>
             </Field>
-            <Field>
-              <FieldLabel htmlFor="mobile">Phone Number</FieldLabel>
-              <Input
-                id="mobile"
-                type="tel"
-                placeholder="9876543210"
-                pattern="[0-9]{10}"
-                title="Please enter a 10-digit mobile number"
-                value={formData.mobile}
-                onChange={handleChange}
-                className="bg-zinc-50/50"
-              />
+
+            <Field className="space-y-2">
+              <FieldLabel htmlFor="mobile" className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 ml-1">Phone Number</FieldLabel>
+              <div className="relative">
+                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-[#ff7800]/60" size={18} />
+                <Input
+                  id="mobile"
+                  type="tel"
+                  placeholder="9876543210"
+                  value={formData.mobile}
+                  onChange={handleChange}
+                  className="bg-white/5 border-white/5 h-12 pl-12 rounded-xl text-white placeholder:text-zinc-700 focus-visible:ring-[#ff7800]/50"
+                />
+              </div>
             </Field>
-            <Field>
-              <FieldLabel htmlFor="password">Password</FieldLabel>
-              <Input
-                id="password"
-                type="password"
-                required
-                minLength={8}
-                value={formData.password}
-                onChange={handleChange}
-                className="bg-zinc-50/50"
-              />
-              <FieldDescription>
+
+            <Field className="space-y-2">
+              <FieldLabel htmlFor="password" className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 ml-1">Password</FieldLabel>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[#ff7800]/60" size={18} />
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={formData.password}
+                  onChange={handleChange}
+                  className="bg-white/5 border-white/5 h-12 pl-12 pr-12 rounded-xl text-white placeholder:text-zinc-700 focus-visible:ring-[#ff7800]/50"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-white transition-colors"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              <FieldDescription className="text-zinc-600 text-[11px] font-medium ml-1">
                 At least 8 characters with a number or symbol.
               </FieldDescription>
             </Field>
-            <Field>
-              <FieldLabel htmlFor="confirmPassword">Confirm Password</FieldLabel>
-              <Input
-                id="confirmPassword"
-                type="password"
-                required
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                className="bg-zinc-50/50"
-              />
+
+            <Field className="space-y-2">
+              <FieldLabel htmlFor="confirmPassword" className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 ml-1">Confirm Password</FieldLabel>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[#ff7800]/60" size={18} />
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  required
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  className="bg-white/5 border-white/5 h-12 pl-12 pr-12 rounded-xl text-white placeholder:text-zinc-700 focus-visible:ring-[#ff7800]/50"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-white transition-colors"
+                >
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </Field>
           </>
         ) : (
@@ -242,18 +273,18 @@ export function SignupForm({
           </div>
         )}
 
-        <Button type="submit" disabled={loading} className="w-full font-bold">
+        <Button type="submit" disabled={loading} className="w-full h-12 rounded-xl bg-[#ff7800] hover:bg-[#e66c00] text-white font-black uppercase text-[10px] tracking-widest shadow-[0_0_20px_rgba(255,120,0,0.3)] transition-all">
           {loading ? (
-            <Loader2 className="animate-spin" size={18} />
+            <Loader2 className="animate-spin" size={20} />
           ) : (
             showOtp ? "Verify & Create Account" : "Send Verification Code"
           )}
         </Button>
 
-        <p className="text-center text-sm text-muted-foreground">
+        <p className="text-center text-sm font-medium text-zinc-500">
           Already have an account?{" "}
-          <Link to="/login" className="font-bold text-primary underline underline-offset-4 decoration-primary/30">
-            Sign in
+          <Link to="/login" className="font-black text-[#ff7800] hover:underline underline-offset-8 decoration-[#ff7800]/30 transition-all">
+            Sign In
           </Link>
         </p>
       </FieldGroup>

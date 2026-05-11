@@ -169,18 +169,25 @@ export default function UserDashboard() {
   };
 
   return (
-    <div className="flex flex-1 flex-col gap-10 p-4 md:p-8 pt-6 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between space-y-2">
+    <div className="flex flex-1 flex-col gap-10 p-4 md:p-8 pt-6 max-w-[1600px] mx-auto w-full">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div>
-          <h2 className="text-4xl font-black tracking-tight text-zinc-900">Studio Dashboard</h2>
+          <h2 className="text-4xl font-black tracking-tight text-white">Studio Dashboard</h2>
           <p className="text-zinc-500 font-medium mt-1">Welcome back, {user?.name.split(' ')[0]}!</p>
         </div>
-        <div className="flex items-center space-x-3">
-          <Button variant="outline" onClick={() => navigate('/pricing')} className="font-bold border-zinc-200 h-11 px-6 rounded-2xl hover:bg-zinc-50">
-            <Zap size={18} className="mr-2 text-primary fill-primary/20" />
+        <div className="flex items-center space-x-4">
+          <Button 
+            variant="outline" 
+            onClick={() => navigate('/pricing')} 
+            className="font-black uppercase tracking-widest text-[10px] border-white/10 bg-white/5 text-white h-12 px-7 rounded-2xl hover:bg-white/10 transition-all"
+          >
+            <Zap size={16} className="mr-2 text-[#ff7800] fill-[#ff7800]/20" />
             Upgrade Plan
           </Button>
-          <Button onClick={() => navigate('/')} className="font-bold bg-zinc-900 text-white h-11 px-6 rounded-2xl hover:bg-zinc-800 shadow-lg shadow-zinc-200">
+          <Button 
+            onClick={() => navigate('/')} 
+            className="font-black uppercase tracking-widest text-[10px] bg-[#ff7800] text-white h-12 px-7 rounded-2xl hover:bg-[#e66c00] shadow-[0_0_25px_rgba(255,120,0,0.3)] transition-all active:scale-95"
+          >
             <Plus size={18} className="mr-2" />
             New Project
           </Button>
@@ -189,9 +196,9 @@ export default function UserDashboard() {
 
       <SectionCards cards={statCards} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
         {/* Projects Section */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="lg:col-span-3 space-y-4">
           <DashboardTable
             title="Recent Projects"
             data={projects.map(p => ({
@@ -206,50 +213,50 @@ export default function UserDashboard() {
         {/* Usage & Billing Sidebar */}
         <div className="lg:col-span-1 space-y-8">
           {/* Credit Progress Card */}
-          <div className="bg-white p-8 rounded-[2.5rem] border border-zinc-100 shadow-xl shadow-zinc-100/30">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="font-black text-lg">Usage Analytics</h3>
-              <div className="p-2 bg-zinc-50 rounded-xl"><ArrowUpRight size={18} className="text-zinc-400" /></div>
+          <div className="premium-card p-8 rounded-[2.5rem] border border-white/5 bg-zinc-900/40 backdrop-blur-xl shadow-2xl">
+            <div className="flex items-center justify-between mb-8">
+              <h3 className="font-black text-lg text-white">Usage Analytics</h3>
+              <div className="p-2 bg-[#ff7800]/10 rounded-xl"><ArrowUpRight size={18} className="text-[#ff7800]" /></div>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div className="flex justify-between items-end">
-                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Monthly Credits</span>
-                <span className="text-sm font-black text-zinc-900">{user?.credits}m Left</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Monthly Credits</span>
+                <span className="text-sm font-black text-white">{user?.credits}m Left</span>
               </div>
-              <div className="h-3 w-full bg-zinc-100 rounded-full overflow-hidden">
+              <div className="h-2.5 w-full bg-white/5 rounded-full overflow-hidden">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${Math.min(100, ((user?.credits || 0) / 500) * 100)}%` }}
-                  className="h-full bg-zinc-900 rounded-full"
+                  className="h-full bg-[#ff7800] rounded-full shadow-[0_0_10px_rgba(255,120,0,0.5)]"
                 />
               </div>
-              <p className="text-[10px] font-bold text-zinc-400 text-center uppercase tracking-widest leading-relaxed">
+              <p className="text-[10px] font-bold text-zinc-500 text-center uppercase tracking-widest leading-relaxed">
                 Automatic reset in 22 days
               </p>
             </div>
 
-            <Button onClick={() => navigate('/settings?tab=subscription')} variant="ghost" className="w-full mt-6 text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-900 h-12 rounded-xl">
+            <Button onClick={() => navigate('/settings?tab=subscription')} variant="ghost" className="w-full mt-8 text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-[#ff7800] hover:bg-transparent transition-all">
               Detailed Report <ChevronRight size={14} className="ml-1" />
             </Button>
           </div>
 
           {/* Quick History Card */}
-          <div className="bg-zinc-900 p-8 rounded-[2.5rem] text-white shadow-xl shadow-zinc-900/10">
-            <h3 className="font-black text-lg mb-6">Recent Billing</h3>
-            <div className="space-y-6">
+          <div className="bg-zinc-900/60 p-8 rounded-[2.5rem] text-white shadow-2xl border border-white/5">
+            <h3 className="font-black text-lg mb-8">Recent Billing</h3>
+            <div className="space-y-8">
               {billingHistory.length > 0 ? billingHistory.map((item, i) => (
                 <div key={i} className="flex items-center justify-between group cursor-pointer" onClick={() => navigate('/settings?tab=subscription')}>
                   <div className="flex items-center gap-4">
-                    <div className={`size-10 rounded-xl flex items-center justify-center ${item.type === 'credit' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-500'}`}>
-                      <History size={18} />
+                    <div className={`size-10 rounded-2xl flex items-center justify-center bg-zinc-800 border border-white/5 shadow-inner`}>
+                      <History size={18} className={item.type === 'credit' ? 'text-emerald-400' : 'text-[#ff7800]'} />
                     </div>
                     <div>
                       <p className="text-sm font-black text-white">Credits {item.type === 'credit' ? 'Added' : 'Used'}</p>
                       <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{new Date(item.created_at).toLocaleDateString()}</p>
                     </div>
                   </div>
-                  <span className={`text-sm font-black ${item.type === 'credit' ? 'text-emerald-400' : 'text-red-400'}`}>
+                  <span className={`text-sm font-black ${item.type === 'credit' ? 'text-emerald-400' : 'text-[#ff7800]'}`}>
                     {item.type === 'credit' ? '+' : '-'}{item.amount}m
                   </span>
                 </div>
@@ -258,7 +265,7 @@ export default function UserDashboard() {
               )}
             </div>
 
-            <Button onClick={() => navigate('/pricing')} className="w-full mt-8 bg-white text-zinc-900 hover:bg-zinc-100 font-black h-12 rounded-xl border-none">
+            <Button onClick={() => navigate('/pricing')} className="w-full mt-10 bg-transparent border border-white/10 text-white hover:bg-white/5 font-black uppercase tracking-widest text-[10px] h-14 rounded-2xl transition-all">
               Buy More Credits
             </Button>
           </div>

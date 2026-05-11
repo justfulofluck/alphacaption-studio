@@ -67,20 +67,20 @@ export function NavUser({
             nativeButton={true}
             className="w-full"
             render={
-              <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
-                <Avatar className="size-8 rounded-lg grayscale">
+              <SidebarMenuButton size="lg" className="data-[state=open]:bg-white/5 data-[state=open]:text-white hover:bg-white/5 group">
+                <Avatar className="size-8 rounded-lg">
                   <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback className="rounded-lg bg-primary text-white font-bold">
+                  <AvatarFallback className="rounded-lg bg-[#ff7800] text-white font-black">
                     {user.name.substring(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-black">{user.name}</span>
-                  <span className="truncate text-[10px] font-bold text-primary uppercase tracking-widest leading-none">
+                  <span className="truncate font-black text-white">{user.name}</span>
+                  <span className="truncate text-[10px] font-black text-[#ff7800] uppercase tracking-widest leading-none">
                     {user.plan || 'Free'} Plan
                   </span>
                 </div>
-                <EllipsisVerticalIcon className="ml-auto size-4" />
+                <EllipsisVerticalIcon className="ml-auto size-4 text-zinc-500 group-hover:text-white transition-colors" />
               </SidebarMenuButton>
             }
           />

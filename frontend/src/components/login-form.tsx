@@ -10,7 +10,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { useNavigate, Link } from "react-router-dom"
 import axios from "axios"
-import { Loader2, ArrowRight, AlertCircle } from "lucide-react"
+import { Loader2, ArrowRight, AlertCircle, Mail, Lock, Eye, EyeOff } from "lucide-react"
 
 import { API_BASE_URL } from "@/api/config"
 
@@ -26,6 +26,7 @@ export function LoginForm({
     email: "",
     password: ""
   });
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, [e.target.id]: e.target.value }));
@@ -51,44 +52,57 @@ export function LoginForm({
   };
 
   return (
-    <form className={cn("flex flex-col gap-6", className)} {...props} onSubmit={handleSubmit}>
+    <form className={cn("flex flex-col gap-4", className)} {...props} onSubmit={handleSubmit}>
       <FieldGroup>
-        <div className="flex flex-col items-center gap-1 text-center">
-          <h1 className="text-2xl font-bold font-sans">Welcome back</h1>
-          <p className="text-sm text-balance text-muted-foreground font-medium">
+        <div className="flex flex-col gap-1 mb-4">
+          <h1 className="text-4xl font-black text-white tracking-tightest">Welcome back</h1>
+          <p className="text-zinc-500 font-medium">
             Enter your credentials to access your studio
           </p>
         </div>
-        <Field>
-          <FieldLabel htmlFor="email">Email</FieldLabel>
-          <Input
-            id="email"
-            type="email"
-            placeholder="m@example.com"
-            required
-            value={formData.email}
-            onChange={handleChange}
-            className="bg-zinc-50/50"
-          />
+        <Field className="space-y-2">
+          <FieldLabel htmlFor="email" className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 ml-1">Email Address</FieldLabel>
+          <div className="relative">
+            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[#ff7800]/60" size={18} />
+            <Input
+              id="email"
+              type="email"
+              placeholder="m@example.com"
+              required
+              value={formData.email}
+              onChange={handleChange}
+              className="bg-white/5 border-white/5 h-12 pl-12 rounded-xl text-white placeholder:text-zinc-700 focus-visible:ring-[#ff7800]/50"
+            />
+          </div>
         </Field>
-        <Field>
-          <div className="flex items-center">
-            <FieldLabel htmlFor="password">Password</FieldLabel>
+        <Field className="space-y-2">
+          <div className="flex items-center ml-1">
+            <FieldLabel htmlFor="password" className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Password</FieldLabel>
             <Link
               to="/reset-password"
-              className="ml-auto text-xs font-bold text-zinc-900 hover:text-zinc-900"
+              className="ml-auto text-[10px] font-black text-[#ff7800] uppercase tracking-widest hover:underline underline-offset-4"
             >
               Forgot?
             </Link>
           </div>
-          <Input
-            id="password"
-            type="password"
-            required
-            value={formData.password}
-            onChange={handleChange}
-            className="bg-zinc-50/50"
-          />
+          <div className="relative">
+            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[#ff7800]/60" size={18} />
+            <Input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              required
+              value={formData.password}
+              onChange={handleChange}
+              className="bg-white/5 border-white/5 h-12 pl-12 pr-12 rounded-xl text-white placeholder:text-zinc-700 focus-visible:ring-[#ff7800]/50"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-white transition-colors"
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
         </Field>
 
         {error && (
@@ -98,17 +112,17 @@ export function LoginForm({
           </div>
         )}
 
-        <Button type="submit" disabled={loading} className="w-full font-bold">
+        <Button type="submit" disabled={loading} className="w-full h-12 rounded-xl bg-[#ff7800] hover:bg-[#e66c00] text-white font-black uppercase text-[10px] tracking-widest shadow-[0_0_20px_rgba(255,120,0,0.3)] transition-all">
           {loading ? (
-            <Loader2 className="animate-spin" size={18} />
+            <Loader2 className="animate-spin" size={20} />
           ) : (
             <>Sign In <ArrowRight size={18} /></>
           )}
         </Button>
-        <p className="text-center text-sm text-muted-foreground">
+        <p className="text-center text-sm font-medium text-zinc-500">
           Don&apos;t have an account?{" "}
-          <Link to="/signup" className="font-bold text-primary underline underline-offset-4 decoration-primary/30">
-            Sign up
+          <Link to="/signup" className="font-black text-[#ff7800] hover:underline underline-offset-8 decoration-[#ff7800]/30 transition-all">
+            Sign Up
           </Link>
         </p>
       </FieldGroup>

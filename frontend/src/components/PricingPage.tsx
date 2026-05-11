@@ -201,58 +201,80 @@ export default function PricingPage() {
     }
 
     return (
-        <div className="container mx-auto px-4 py-16">
-            <div className="text-center mb-16">
-                <h1 className="text-4xl font-bold mb-4">Choose Your Plan</h1>
-                <p className="text-muted-foreground text-lg">Pick the best plan for your transcription needs</p>
+        <div className="container mx-auto px-6 py-6 max-w-[1400px] h-full flex flex-col justify-center">
+            <div className="text-center mb-8">
+                <h1 className="text-4xl font-black mb-2 premium-text-gradient tracking-tight">Choose Your Plan</h1>
+                <p className="text-zinc-500 text-sm font-medium max-w-xl mx-auto leading-relaxed">
+                    Pick the power level that fits your workflow.
+                </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
                 {plans.map((plan) => (
-                    <div key={plan.id} className="bg-card border rounded-2xl p-8 flex flex-col shadow-sm hover:shadow-md transition-shadow">
-                        <div className="mb-8">
-                            <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
+                    <div key={plan.id} className="premium-card p-6 rounded-[2rem] flex flex-col shadow-2xl relative overflow-hidden group">
+                        {/* Decorative glow */}
+                        <div className="absolute -top-16 -right-16 size-32 bg-[#ff7800]/5 blur-[40px] rounded-full group-hover:bg-[#ff7800]/10 transition-all" />
+                        
+                        <div className="mb-6 relative">
+                            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#ff7800] mb-1 block">
+                                Professional
+                            </span>
+                            <h3 className="text-xl font-black text-white mb-2 tracking-tight">{plan.name}</h3>
                             <div className="flex items-baseline gap-1">
-                                <span className="text-4xl font-bold">Rs. {plan.price}</span>
-                                <span className="text-muted-foreground">/{plan.validity_days} days</span>
+                                <span className="text-3xl font-black text-white tracking-tighter">₹{plan.price}</span>
+                                <span className="text-zinc-500 text-[9px] font-bold uppercase tracking-widest">/ {plan.validity_days}d</span>
                             </div>
                         </div>
 
-                        <ul className="space-y-4 mb-8 flex-1">
-                            <li className="flex items-center gap-3">
-                                <div className="bg-primary/10 p-1 rounded-full text-primary">
-                                    <Check size={16} />
+                        <ul className="space-y-3 mb-8 flex-1 relative">
+                            <li className="flex items-start gap-3">
+                                <div className="mt-1 size-4 rounded-full bg-[#ff7800]/10 border border-[#ff7800]/20 flex items-center justify-center text-[#ff7800]">
+                                    <Check size={10} strokeWidth={4} />
                                 </div>
-                                <span>{plan.credits_included} Minutes of AI Transcription</span>
+                                <span className="text-zinc-300 text-xs font-semibold">
+                                    <span className="text-white font-black">{plan.credits_included}m</span> Transcription
+                                </span>
                             </li>
-                            <li className="flex items-center gap-3">
-                                <div className="bg-primary/10 p-1 rounded-full text-primary">
-                                    <Check size={16} />
+                            <li className="flex items-start gap-3">
+                                <div className="mt-1 size-4 rounded-full bg-[#ff7800]/10 border border-[#ff7800]/20 flex items-center justify-center text-[#ff7800]">
+                                    <Check size={10} strokeWidth={4} />
                                 </div>
-                                <span>Automatic Caption Alignment</span>
+                                <span className="text-zinc-300 text-xs font-semibold">Auto Alignment</span>
                             </li>
-                            <li className="flex items-center gap-3">
-                                <div className="bg-primary/10 p-1 rounded-full text-primary">
-                                    <Check size={16} />
+                            <li className="flex items-start gap-3">
+                                <div className="mt-1 size-4 rounded-full bg-[#ff7800]/10 border border-[#ff7800]/20 flex items-center justify-center text-[#ff7800]">
+                                    <Check size={10} strokeWidth={4} />
                                 </div>
-                                <span>Export to .SRT</span>
+                                <span className="text-zinc-300 text-xs font-semibold">SRT Export</span>
+                            </li>
+                            <li className="flex items-start gap-3">
+                                <div className="mt-1 size-4 rounded-full bg-[#ff7800]/10 border border-[#ff7800]/20 flex items-center justify-center text-[#ff7800]">
+                                    <Check size={10} strokeWidth={4} />
+                                </div>
+                                <span className="text-zinc-300 text-xs font-semibold">Hindi & Global</span>
                             </li>
                         </ul>
 
                         <Button
                             onClick={() => handlePurchase(plan.id)}
-                            className="w-full font-bold group"
+                            className="w-full premium-button-orange h-11 rounded-xl relative z-10 text-[9px]"
                             disabled={purchaseLoading !== null}
                         >
                             {purchaseLoading === plan.id ? (
-                                <Loader2 className="animate-spin mr-2" size={18} />
+                                <Loader2 className="animate-spin mr-2" size={14} />
                             ) : (
-                                <Zap size={18} className="mr-2 group-hover:fill-current" />
+                                <Zap size={14} className="mr-2 fill-white/20" />
                             )}
-                            {purchaseLoading === plan.id ? "Processing..." : `Buy ${plan.name} Plan`}
+                            {purchaseLoading === plan.id ? "..." : `Activate ${plan.name}`}
                         </Button>
                     </div>
                 ))}
+            </div>
+
+            <div className="mt-10 text-center">
+                <p className="text-zinc-600 text-[9px] font-bold uppercase tracking-[0.2em]">
+                    SECURE PAYMENTS VIA RAZORPAY
+                </p>
             </div>
         </div>
     );

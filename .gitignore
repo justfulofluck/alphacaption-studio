@@ -10,3 +10,5 @@ coverage/
 # GCP Service Account credentials - DO NOT COMMIT
 server/credentials/
 server/credentials/*.json
+alphacaption-studio/
+

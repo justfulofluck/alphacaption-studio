@@ -25,7 +25,6 @@ export function SiteHeader({ user }: { user?: { name: string; avatar?: string; e
   const location = useLocation();
   const navigate = useNavigate();
   const pathnames = location.pathname.split("/").filter((x) => x);
-  const [isDark, setIsDark] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -65,28 +64,13 @@ export function SiteHeader({ user }: { user?: { name: string; avatar?: string; e
   };
 
   useEffect(() => {
-    const theme = localStorage.getItem("theme");
-    if (theme === "dark" || (!theme && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
-      document.documentElement.classList.add("dark");
-      setIsDark(true);
-    }
+    document.documentElement.classList.add("dark");
     fetchNotifications();
     // Refresh every minute
     const interval = setInterval(fetchNotifications, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  const toggleDarkMode = () => {
-    if (isDark) {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-      setIsDark(false);
-    } else {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-      setIsDark(true);
-    }
-  };
 
   const getPageTitle = () => {
     if (pathnames.length === 0) return "Studio Workspace";
@@ -109,12 +93,12 @@ export function SiteHeader({ user }: { user?: { name: string; avatar?: string; e
   };
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 w-full items-center gap-4 border-b bg-background/60 backdrop-blur-xl px-4 md:px-6 shrink-0 shadow-sm transition-colors duration-300">
+    <header className="sticky top-0 z-40 flex h-16 w-full items-center gap-4 border-b border-white/5 bg-[#050505]/80 backdrop-blur-xl px-4 md:px-6 shrink-0 shadow-xl transition-colors duration-300">
       <div className="flex items-center gap-4">
         <SidebarTrigger className="-ml-1" />
         <Separator orientation="vertical" className="mr-2 h-4 hidden md:block" />
         <div className="flex items-center gap-2 select-none">
-          <h1 className="text-lg font-black uppercase tracking-tight text-zinc-900 dark:text-white">
+          <h1 className="text-sm font-black uppercase tracking-[0.2em] text-[#ff7800]">
             {getPageTitle()}
           </h1>
         </div>
@@ -122,17 +106,13 @@ export function SiteHeader({ user }: { user?: { name: string; avatar?: string; e
 
       <div className="flex items-center ml-auto gap-2">
         <DropdownMenu onOpenChange={(open) => open && markAllAsRead()}>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 rounded-full text-zinc-500 hover:text-zinc-900 dark:hover:text-white relative"
-            >
+          <DropdownMenuTrigger>
+            <button className="relative flex h-9 w-9 items-center justify-center rounded-full text-zinc-500 hover:text-white transition-colors outline-none focus:bg-white/5">
               <BellIcon size={18} />
               {unreadCount > 0 && (
-                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-background animate-pulse" />
+                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-[#050505] animate-pulse" />
               )}
-            </Button>
+            </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-80 p-0 overflow-hidden rounded-2xl border-zinc-200 dark:border-zinc-800 shadow-2xl">
             <div className="p-4 border-b bg-zinc-50/50 dark:bg-zinc-900/50 flex items-center justify-between">
@@ -183,19 +163,6 @@ export function SiteHeader({ user }: { user?: { name: string; avatar?: string; e
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleDarkMode}
-          className="h-9 w-9 rounded-full text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
-        >
-          {isDark ? (
-            <SunIcon className="size-5 transition-all duration-500 rotate-0 scale-100" />
-          ) : (
-            <MoonIcon className="size-5 transition-all duration-500 rotate-[360deg] scale-100" />
-          )}
-          <span className="sr-only">Toggle dark mode</span>
-        </Button>
       </div>
     </header>
   )
