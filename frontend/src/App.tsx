@@ -551,9 +551,10 @@ function MainApp() {
         setTranscript(res.data.transcript);
         setDetectedLanguage(res.data.language);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error transcribing audio:', error);
-      alert('Transcription failed. Please try again.');
+      const errorMsg = error.response?.data?.error || 'Transcription failed. Please try again.';
+      alert(errorMsg);
     } finally {
       setIsTranscribing(false);
     }
@@ -587,9 +588,10 @@ function MainApp() {
         setSegments(newSegments);
         setUndoStack([{ segments: newSegments, fontFamily, fontSize, fontColor, strokeColor, strokeWidth, textShadow, textAlign, textPosition, transitionType }]);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error aligning transcript:', error);
-      alert('Alignment failed. Please try again.');
+      const errorMsg = error.response?.data?.error || 'Alignment failed. Please try again.';
+      alert(errorMsg);
     } finally {
       setIsAligning(false);
     }

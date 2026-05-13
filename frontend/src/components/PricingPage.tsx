@@ -216,11 +216,7 @@ export default function PricingPage() {
                         <div className="absolute -top-16 -right-16 size-32 bg-[#ff7800]/5 blur-[40px] rounded-full group-hover:bg-[#ff7800]/10 transition-all" />
                         
                         <div className="mb-6 relative">
-                            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#ff7800] mb-1 block">
-                                Professional
-                            </span>
-                            <h3 className="text-xl font-black text-white mb-2 tracking-tight">{plan.name}</h3>
-                            <div className="flex items-baseline gap-1">
+                            <div className="flex items-baseline gap-1 mt-4">
                                 <span className="text-3xl font-black text-white tracking-tighter">₹{plan.price}</span>
                                 <span className="text-zinc-500 text-[9px] font-bold uppercase tracking-widest">/ {plan.validity_days}d</span>
                             </div>
@@ -239,19 +235,9 @@ export default function PricingPage() {
                                 <div className="mt-1 size-4 rounded-full bg-[#ff7800]/10 border border-[#ff7800]/20 flex items-center justify-center text-[#ff7800]">
                                     <Check size={10} strokeWidth={4} />
                                 </div>
-                                <span className="text-zinc-300 text-xs font-semibold">Auto Alignment</span>
-                            </li>
-                            <li className="flex items-start gap-3">
-                                <div className="mt-1 size-4 rounded-full bg-[#ff7800]/10 border border-[#ff7800]/20 flex items-center justify-center text-[#ff7800]">
-                                    <Check size={10} strokeWidth={4} />
-                                </div>
-                                <span className="text-zinc-300 text-xs font-semibold">SRT Export</span>
-                            </li>
-                            <li className="flex items-start gap-3">
-                                <div className="mt-1 size-4 rounded-full bg-[#ff7800]/10 border border-[#ff7800]/20 flex items-center justify-center text-[#ff7800]">
-                                    <Check size={10} strokeWidth={4} />
-                                </div>
-                                <span className="text-zinc-300 text-xs font-semibold">Hindi & Global</span>
+                                <span className="text-zinc-300 text-xs font-semibold">
+                                    Validity: <span className="text-white font-black">{plan.validity_days} Days</span>
+                                </span>
                             </li>
                         </ul>
 
@@ -265,7 +251,7 @@ export default function PricingPage() {
                             ) : (
                                 <Zap size={14} className="mr-2 fill-white/20" />
                             )}
-                            {purchaseLoading === plan.id ? "..." : `Activate ${plan.name}`}
+                            {purchaseLoading === plan.id ? "..." : `Activate Plan`}
                         </Button>
                     </div>
                 ))}

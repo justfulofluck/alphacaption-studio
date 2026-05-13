@@ -83,7 +83,7 @@ class VertexService:
         return model.generate_content(
             [prompt, {"mime_type": mime_type, "data": audio_bytes}],
             generation_config={"response_mime_type": "application/json"},
-            request_options={"timeout": 60}
+            request_options={"timeout": 180}
         )
 
     def transcribe(self, audio_path: str) -> Dict[str, Any]:
@@ -111,20 +111,45 @@ IMPORTANT FORMATTING RULES:
             return {'language': 'Unknown', 'transcript': '', 'error': str(e)}
     
     def align_transcript(self, audio_path: str, transcript: str) -> Dict[str, Any]:
-        if not os.path.exists(audio_path): return {'segments': []}
-        with open(audio_path, 'rb') as f: audio_bytes = f.read()
+        if not os.path.exists(audio_path): 
+            return {'segments': [], 'error': 'Audio file not found'}
+            
+        with open(audio_path, 'rb') as f: 
+            audio_bytes = f.read()
+            
         mime_type = self._get_mime_type(audio_path)
         prompt = f"Given this audio and transcript, create precise caption segments (2-6 words each) with start/end timestamps. TRANSCRIPT: {transcript}\nReturn ONLY JSON: {{\"segments\": [{{ \"start\": 0.0, \"end\": 2.5, \"text\": \"...\" }}]}}"
         
         try:
+            print(f"[Gemini] Starting alignment for {len(transcript)} chars transcript")
             response = self._generate_content(prompt, audio_bytes, mime_type)
-            result = json.loads(self._clean_json_response(response.text))
+            
+            if not response or not hasattr(response, 'text'):
+                print(f"[Gemini] Alignment failed: No text in response. Finish reason: {getattr(response, 'candidates', [{}])[0].get('finish_reason', 'unknown') if hasattr(response, 'candidates') else 'N/A'}")
+                return {'segments': [], 'error': 'AI failed to generate a response. The transcript might be too long or the audio unclear.'}
+
+            cleaned_text = self._clean_json_response(response.text)
+            if not cleaned_text:
+                return {'segments': [], 'error': 'AI returned an empty response for alignment.'}
+                
+            result = json.loads(cleaned_text)
             segments = result.get('segments', [])
+            
+            if not segments:
+                print(f"[Gemini] No segments found in JSON response: {cleaned_text[:200]}")
+                return {'segments': [], 'error': 'AI failed to generate valid caption segments.'}
+
             for seg in segments:
                 seg['start'] = float(seg.get('start', 0))
                 seg['end'] = float(seg.get('end', 0))
+                
+            print(f"[Gemini] Successfully generated {len(segments)} segments")
             return {'segments': sorted(segments, key=lambda x: x['start'])}
-        except Exception: return {'segments': []}
+        except Exception as e: 
+            print(f"[Gemini] Unexpected error during alignment: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return {'segments': [], 'error': str(e)}
     
     def sync_segments(self, audio_path: str, current_segments: List[Dict[str, Any]]) -> Dict[str, Any]:
         if not os.path.exists(audio_path): return {'segments': current_segments}

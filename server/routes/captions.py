@@ -43,14 +43,18 @@ def transcribe(project_id):
     if not user_id:
         return jsonify({'error': 'Unauthorized'}), 401
     
-    # Check balance before starting
-    balance = CreditService.get_balance(user_id)
-    if balance <= 0:
-        return jsonify({'error': 'Insufficient credits. Please recharge your account.'}), 402
+    # Check project and duration
     project = Project.query.filter_by(id=project_id, user_id=user_id).first()
-    
     if not project:
         return jsonify({'error': 'Project not found'}), 404
+    
+    import math
+    duration_mins = max(1, math.ceil(project.duration / 60))
+    
+    # Check balance before starting
+    balance = CreditService.get_balance(user_id)
+    if balance < duration_mins:
+        return jsonify({'error': f'Insufficient credits. This project requires {duration_mins} credits, but you only have {balance:.1f}.'}), 402
     
     if not project.audio_filename:
         return jsonify({'error': 'No audio file associated with this project'}), 400
@@ -97,10 +101,8 @@ def transcribe(project_id):
         project.status = 'transcribed'
         project.language = language
         
-        # Deduct credits (1 credit per minute, minimum 1)
-        import math
+        # Credits are already calculated at the start
         from models.usage import Usage
-        duration_mins = max(1, math.ceil(project.duration / 60))
         
         usage = Usage(
             user_id=user_id,
@@ -150,14 +152,18 @@ def align(project_id):
     if not user_id:
         return jsonify({'error': 'Unauthorized'}), 401
     
-    # Check balance (alignment also requires credits)
-    balance = CreditService.get_balance(user_id)
-    if balance <= 0:
-        return jsonify({'error': 'Insufficient credits. Please recharge your account.'}), 402
+    # Check project and duration
     project = Project.query.filter_by(id=project_id, user_id=user_id).first()
-    
     if not project:
         return jsonify({'error': 'Project not found'}), 404
+
+    import math
+    duration_mins = max(1, math.ceil(project.duration / 60))
+    
+    # Check balance (alignment also requires credits)
+    balance = CreditService.get_balance(user_id)
+    if balance < duration_mins:
+        return jsonify({'error': f'Insufficient credits. This project requires {duration_mins} credits, but you only have {balance:.1f}.'}), 402
     
     data = request.get_json()
     transcript = data.get('transcript', '')
@@ -177,24 +183,27 @@ def align(project_id):
         vertex = get_vertex_service()
         result = vertex.align_transcript(filepath, transcript)
         
+        segments = result.get('segments', [])
+        if not segments:
+            error_msg = result.get('error', 'Alignment failed to generate segments. Please try again or check if the audio is clear.')
+            return jsonify({'error': error_msg}), 500
+
         caption = Caption.query.filter_by(project_id=project_id).first()
         if caption:
             caption.transcript = transcript
-            caption.segments_json = json.dumps(result.get('segments', []))
+            caption.segments_json = json.dumps(segments)
         else:
             caption = Caption(
                 project_id=project_id,
                 transcript=transcript,
-                segments_json=json.dumps(result.get('segments', []))
+                segments_json=json.dumps(segments)
             )
             db.session.add(caption)
         
         project.status = 'aligned'
         
         # Deduct credits for alignment
-        import math
         from models.usage import Usage
-        duration_mins = max(1, math.ceil(project.duration / 60))
         
         usage = Usage(
             user_id=user_id,
