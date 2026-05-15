@@ -18,7 +18,9 @@ import {
   Download,
   MoreHorizontal,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ChevronDown,
+  X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -46,6 +48,11 @@ export default function ProfileSettings() {
     new_password: '',
     confirm_password: ''
   });
+  const [showDetails, setShowDetails] = useState(false);
+  const [showReport, setShowReport] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
+  const [reportData, setReportData] = useState({ category: 'Billing Issue', description: '' });
+  const [reporting, setReporting] = useState(false);
 
   const queryParams = new URLSearchParams(location.search);
   const activeTab = queryParams.get('tab') || 'profile';
@@ -505,7 +512,13 @@ export default function ProfileSettings() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-48 bg-zinc-900 border-white/10 rounded-2xl p-2 shadow-2xl backdrop-blur-xl">
-                                  <DropdownMenuItem className="flex items-center gap-3 p-3 rounded-xl text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all">
+                                  <DropdownMenuItem 
+                                    className="flex items-center gap-3 p-3 rounded-xl text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all"
+                                    onClick={() => {
+                                      setSelectedTransaction(item);
+                                      setShowDetails(true);
+                                    }}
+                                  >
                                     <FileText size={14} className="text-[#ff7800]" /> View Details
                                   </DropdownMenuItem>
                                   {item.type === 'credit' && (
@@ -513,7 +526,13 @@ export default function ProfileSettings() {
                                       <Download size={14} className="text-[#ff7800]" /> Download Receipt
                                     </DropdownMenuItem>
                                   )}
-                                  <DropdownMenuItem className="flex items-center gap-3 p-3 rounded-xl text-xs font-black uppercase tracking-widest text-red-400 hover:text-red-300 hover:bg-red-400/5 cursor-pointer transition-all">
+                                  <DropdownMenuItem 
+                                    className="flex items-center gap-3 p-3 rounded-xl text-xs font-black uppercase tracking-widest text-red-400 hover:text-red-300 hover:bg-red-400/5 cursor-pointer transition-all"
+                                    onClick={() => {
+                                      setSelectedTransaction(item);
+                                      setShowReport(true);
+                                    }}
+                                  >
                                     <AlertCircle size={14} /> Report Issue
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
@@ -581,6 +600,178 @@ export default function ProfileSettings() {
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Transaction Details Modal */}
+      {showDetails && selectedTransaction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="bg-zinc-900 border border-white/5 rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden relative"
+          >
+            <div className="p-10">
+              <div className="flex justify-between items-start mb-10">
+                <div>
+                  <span className="text-[10px] font-black text-[#ff7800] uppercase tracking-[0.3em]">Transaction Details</span>
+                  <h2 className="text-3xl font-black text-white mt-2 tracking-tight">TXN-{selectedTransaction.id}</h2>
+                </div>
+                <button
+                  onClick={() => setShowDetails(false)}
+                  className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl text-zinc-500 hover:text-white transition-all"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="space-y-8">
+                <div className="grid grid-cols-2 gap-8">
+                  <div className="p-6 bg-white/5 rounded-3xl border border-white/5">
+                    <span className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">Type</span>
+                    <span className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest inline-block border ${
+                      selectedTransaction.type === 'credit' 
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                        : 'bg-[#ff7800]/10 text-[#ff7800] border-[#ff7800]/20'
+                    }`}>
+                      {selectedTransaction.type === 'credit' ? 'Credit Added' : 'Credit Used'}
+                    </span>
+                  </div>
+                  <div className="p-6 bg-white/5 rounded-3xl border border-white/5">
+                    <span className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">Amount</span>
+                    <span className={`text-xl font-black ${selectedTransaction.type === 'credit' ? 'text-emerald-400' : 'text-[#ff7800]'}`}>
+                      {selectedTransaction.type === 'credit' ? '+' : '-'}{selectedTransaction.amount}m
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-8 bg-white/5 rounded-[2rem] border border-white/5 space-y-6">
+                  <div className="flex justify-between items-center pb-6 border-b border-white/5">
+                    <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Date</span>
+                    <span className="text-sm font-bold text-white">{new Date(selectedTransaction.created_at).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center pb-6 border-b border-white/5">
+                    <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Status</span>
+                    <span className="text-sm font-bold text-emerald-400 flex items-center gap-2">
+                      <CheckCircle2 size={16} /> Completed
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Payment Mode</span>
+                    <span className="text-sm font-bold text-white">Digital Wallet</span>
+                  </div>
+                </div>
+
+                <div className="flex gap-4 pt-4">
+                  <Button 
+                    className="flex-1 bg-[#ff7800] text-white h-14 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-[0_0_20px_rgba(255,120,0,0.3)] hover:bg-[#e66c00] transition-all"
+                    onClick={() => {
+                      // Placeholder for actual download receipt logic
+                      alert('Receipt download feature coming soon!');
+                    }}
+                  >
+                    <Download size={16} className="mr-2" /> Download Receipt
+                  </Button>
+                </div>
+              </div>
+            </div>
+            
+            {/* Decorative Glow */}
+            <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-[#ff7800]/5 blur-[80px] rounded-full pointer-events-none" />
+          </motion.div>
+        </div>
+      )}
+
+      {/* Report Issue Modal */}
+      {showReport && selectedTransaction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="bg-zinc-900 border border-white/5 rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden relative"
+          >
+            <div className="p-10">
+              <div className="flex justify-between items-start mb-8">
+                <div>
+                  <span className="text-[10px] font-black text-red-500 uppercase tracking-[0.3em]">Support Ticket</span>
+                  <h2 className="text-3xl font-black text-white mt-2 tracking-tight">Report Issue</h2>
+                  <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mt-2">Relating to TXN-{selectedTransaction.id}</p>
+                </div>
+                <button
+                  onClick={() => setShowReport(false)}
+                  className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl text-zinc-500 hover:text-white transition-all"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                setReporting(true);
+                setError(null);
+                
+                const token = localStorage.getItem('auth_token');
+                try {
+                  await axios.post(`${API_BASE_URL}/api/support/report`, {
+                    txn_id: selectedTransaction.id,
+                    category: reportData.category,
+                    description: reportData.description
+                  }, {
+                    headers: { Authorization: `Bearer ${token}` }
+                  });
+                  
+                  setShowReport(false);
+                  alert('Support ticket raised successfully! Our team will contact you shortly via email.');
+                  setReportData({ category: 'Billing Issue', description: '' });
+                } catch (err: any) {
+                  setError(err.response?.data?.error || 'Failed to raise support ticket');
+                } finally {
+                  setReporting(false);
+                }
+              }} className="space-y-8">
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Issue Category</label>
+                  <div className="relative">
+                    <select 
+                      value={reportData.category}
+                      onChange={(e) => setReportData({ ...reportData, category: e.target.value })}
+                      className="w-full px-6 py-4.5 bg-white/5 border border-white/5 rounded-2xl text-sm font-bold text-white focus:ring-2 focus:ring-red-500/50 outline-none appearance-none cursor-pointer"
+                    >
+                      <option className="bg-zinc-900">Billing Issue</option>
+                      <option className="bg-zinc-900">Credits Not Added</option>
+                      <option className="bg-zinc-900">Incorrect Deduction</option>
+                      <option className="bg-zinc-900">Other Technical Glitch</option>
+                    </select>
+                    <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" size={18} />
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Description</label>
+                  <textarea 
+                    required
+                    value={reportData.description}
+                    onChange={(e) => setReportData({ ...reportData, description: e.target.value })}
+                    placeholder="Describe your issue in detail..."
+                    className="w-full px-6 py-5 bg-white/5 border border-white/5 rounded-3xl text-sm font-bold text-white focus:ring-2 focus:ring-red-500/50 outline-none h-40 resize-none transition-all placeholder:text-zinc-800"
+                  />
+                </div>
+
+                <div className="flex gap-4 pt-4">
+                  <Button 
+                    type="submit"
+                    disabled={reporting}
+                    className="flex-1 bg-red-500 text-white h-14 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-[0_0_20px_rgba(239,68,68,0.3)] hover:bg-red-600 transition-all"
+                  >
+                    {reporting ? <Loader2 className="animate-spin" size={20} /> : "Submit Report"}
+                  </Button>
+                </div>
+              </form>
+            </div>
+            
+            {/* Decorative Glow */}
+            <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-red-500/5 blur-[80px] rounded-full pointer-events-none" />
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

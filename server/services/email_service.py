@@ -91,6 +91,30 @@ Best,
 VCaptiona Team"""
         return self.send(to_email, subject, body)
 
+    def send_support_ticket(self, user_name, user_email, txn_id, category, description):
+        subject = f"New Support Ticket: {category} (TXN-{txn_id})"
+        body = f"""Hello Admin,
+
+A new support ticket has been raised by a user.
+
+User Details:
+- Name: {user_name}
+- Email: {user_email}
+
+Transaction Details:
+- Reference ID: TXN-{txn_id}
+- Category: {category}
+
+Issue Description:
+{description}
+
+Please investigate and respond to the user at {user_email}.
+
+Best,
+VCaptiona System"""
+        # Send to the configured system email (admin account)
+        return self.send(self.username, subject, body)
+
     def send(self, to_email, subject, body):
         import sys
         import threading
