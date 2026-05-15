@@ -10,5 +10,16 @@ coverage/
 # GCP Service Account credentials - DO NOT COMMIT
 server/credentials/
 server/credentials/*.json
+
+# Python artifacts
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+server/venv/
+
+# Uploaded media files
+server/uploads/
+
 alphacaption-studio/
 
