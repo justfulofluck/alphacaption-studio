@@ -1354,10 +1354,8 @@ function MainApp() {
                   )}
                 </div>
               </div>
-
-          </div>
+            </div>
         )}
-      </div>
 
       {/* Footer Info */}
       <footer className="max-w-7xl mx-auto px-6 py-20 mt-12">
@@ -1535,8 +1533,8 @@ function MainApp() {
 
               <div className="space-y-3">
                 <button 
-                  onClick={() => navigate('/settings?tab=subscription')}
-                  className="w-full bg-[#ff7800] text-white h-12 rounded-xl font-black uppercase text-[10px] tracking-[0.2em] hover:bg-[#e66c00] transition-all flex items-center justify-center"
+                  onClick={() => navigate('/pricing')}
+                  className="w-full bg-[#ff7800] text-white h-12 rounded-xl font-black uppercase text-[10px] tracking-[0.2em] hover:bg-[#e66c00] transition-all flex items-center justify-center cursor-pointer"
                 >
                   Upgrade Plan
                 </button>

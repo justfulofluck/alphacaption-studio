@@ -39,13 +39,14 @@ def assign_trial_plan(user):
     )
     db.session.add(subscription)
 
-    db.session.add(CreditLedger(
+    from services.credit_service import CreditService
+    CreditService.add_credits(
         user_id=user.id,
-        type='credit',
         amount=trial_plan.credits_included,
         source='trial',
-        reference_id=str(trial_plan.id)
-    ))
+        reference_id=str(trial_plan.id),
+        description="Welcome Trial Credits"
+    )
     user.plan = trial_plan.name
 
 def generate_otp(email, purpose):
@@ -113,33 +114,45 @@ def register():
     if not verify_otp(email, otp, 'registration'):
         return jsonify({'error': 'Invalid or expired OTP'}), 400
     
-    hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-    user = User(
-        email=email,
-        password=hashed.decode('utf-8'),
-        name=name or email.split('@')[0],
-        phone=phone or None
-    )
-    db.session.add(user)
-    db.session.flush()
-    assign_trial_plan(user)
-    db.session.commit()
-    email_service.send_welcome(user.email, user.name)
-    token = create_access_token(identity=user.id)
-    
-    from flask_jwt_extended import decode_token
-    user.current_jti = decode_token(token)['jti']
-    db.session.commit()
-    
-    from services.credit_service import CreditService
-    user_data = user.to_dict()
-    user_data['credits'] = CreditService.get_balance(user.id)
-    
-    return jsonify({
-        'message': 'Registration successful',
-        'user': user_data,
-        'token': token
-    }), 201
+    try:
+        hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+        user = User(
+            email=email,
+            password=hashed.decode('utf-8'),
+            name=name or email.split('@')[0],
+            phone=phone or None
+        )
+        db.session.add(user)
+        db.session.flush()
+        assign_trial_plan(user)
+        db.session.commit()
+        
+        try:
+            email_service.send_welcome(user.email, user.name)
+        except Exception as e:
+            print(f"[Auth] Welcome email failed: {e}")
+            
+        token = create_access_token(identity=user.id)
+        
+        from flask_jwt_extended import decode_token
+        user.current_jti = decode_token(token)['jti']
+        db.session.commit()
+        
+        from services.credit_service import CreditService
+        user_data = user.to_dict()
+        user_data['credits'] = CreditService.get_balance(user.id)
+        
+        return jsonify({
+            'message': 'Registration successful',
+            'user': user_data,
+            'token': token
+        }), 201
+    except Exception as e:
+        db.session.rollback()
+        print(f"[Auth] Registration error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Registration failed: {str(e)}'}), 500
 
 @auth_bp.route('/login', methods=['POST'])
 @limiter.limit("10 per minute")
