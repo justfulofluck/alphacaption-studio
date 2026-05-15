@@ -910,68 +910,23 @@ function MainApp() {
     syncAbortRef.current = new AbortController();
 
     try {
-      const { GoogleGenAI } = await import("@google/genai");
-      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || '' });
+      let currentId = projectId;
+      if (!currentId) {
+        currentId = await uploadToBackend();
+      }
+      if (!currentId) throw new Error('Could not get project ID');
 
-      const arrayBuffer = await audioFile.arrayBuffer();
-      const base64Data = btoa(
-        new Uint8Array(arrayBuffer)
-          .reduce((data, byte) => data + String.fromCharCode(byte), '')
-      );
-
-      const segmentsJson = segments.map(s => ({ start: s.start, end: s.end, text: s.text }));
-
-      const prompt = `
-        I have an audio file and its current caption segments.
-        CURRENT SEGMENTS: ${JSON.stringify(segmentsJson)}
-        
-        CRITICAL TASK: RE-SYNCHRONIZE TIMINGS
-        1. Analyze the audio carefully.
-        2. Keep the EXACT text for each segment as provided. Do not combine or split them.
-        3. Match the text of each segment to its precise audio timestamp.
-        4. Provide the EXACT start and end times for each segment.
-        5. Timings must be accurate to the millisecond.
-        6. Ensure NO overlaps.
-        
-        Return the result as a JSON object with a "segments" field:
-        {
-          "segments": [
-            {
-              "start": number,
-              "end": number,
-              "text": "original text"
-            }
-          ]
-        }
-      `;
-
-      const result_promise = (ai as any).models.generateContent({
-        model: aiModel,
-        contents: [
-          {
-            parts: [
-              { text: prompt },
-              {
-                inlineData: {
-                  mimeType: audioFile.type || 'audio/mpeg',
-                  data: base64Data
-                }
-              }
-            ]
-          }
-        ],
-        config: {
-          responseMimeType: "application/json",
-        }
+      const token = localStorage.getItem('auth_token');
+      const res = await axios.post(`${API_BASE_URL}/api/captions/${currentId}/sync`, {
+        segments: segments.map(s => ({ start: s.start, end: s.end, text: s.text }))
+      }, {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
 
-      const response = await result_promise;
       if (syncAbortRef.current?.signal.aborted) return;
 
-      const result = JSON.parse(response.text || '{}');
-
-      if (result.segments && Array.isArray(result.segments)) {
-        const sortedResults = result.segments.sort((a, b) => a.start - b.start);
+      if (res.data.segments && Array.isArray(res.data.segments)) {
+        const sortedResults = res.data.segments.sort((a: any, b: any) => a.start - b.start);
         const newSegments = sortedResults.map((seg: any, i: number) => ({
           id: `seg-sync-${Date.now()}-${i}`,
           start: parseFloat(seg.start),
@@ -980,9 +935,11 @@ function MainApp() {
         }));
         setSegments(newSegments);
       }
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof Error && error.name === 'AbortError') return;
       console.error('Error syncing segments:', error);
+      const errorMsg = error.response?.data?.error || 'Sync failed. Please try again.';
+      alert(errorMsg);
     } finally {
       setIsSyncingList(false);
     }
