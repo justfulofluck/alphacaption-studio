@@ -10,6 +10,7 @@ class CreditLedger(db.Model):
     amount = db.Column(db.Integer, nullable=False) # Store in minutes or custom units
     source = db.Column(db.String(50), nullable=False) # subscription, usage, bonus, topup
     reference_id = db.Column(db.String(100)) # ID of payment or usage record
+    description = db.Column(db.String(255)) # Description of transaction
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def to_dict(self):
@@ -23,7 +24,7 @@ class CreditLedger(db.Model):
             'type': self.type,
             'amount': self.amount,
             'source': self.source.replace('_', ' ').capitalize(),
-            'description': f"{self.source.capitalize()} transaction", # Fallback for UI
+            'description': self.description or f"{self.source.capitalize()} transaction", 
             'reference_id': self.reference_id,
             'created_at': self.created_at.isoformat()
         }

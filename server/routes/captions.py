@@ -119,7 +119,8 @@ def transcribe(project_id):
             user_id=user_id,
             amount=duration_mins,
             source='usage',
-            reference_id=str(usage.id)
+            reference_id=str(usage.id),
+            description=f"Transcription for project: {project.name}"
         )
         
         # Notify user about project completion
@@ -220,7 +221,8 @@ def align(project_id):
             user_id=user_id,
             amount=duration_mins,
             source='usage_align',
-            reference_id=str(usage.id)
+            reference_id=str(usage.id),
+            description=f"AI Sync for project: {project.name}"
         )
         
         db.session.commit()

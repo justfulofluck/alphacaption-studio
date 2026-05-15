@@ -23,7 +23,7 @@ class CreditService:
         return credits_sum - debits_sum
 
     @staticmethod
-    def add_credits(user_id, amount, source, reference_id=None):
+    def add_credits(user_id, amount, source, reference_id=None, description=None):
         """
         Adds credits to a user's account by creating a credit entry in the ledger.
         """
@@ -32,14 +32,15 @@ class CreditService:
             type='credit',
             amount=amount,
             source=source,
-            reference_id=reference_id
+            reference_id=reference_id,
+            description=description
         )
         db.session.add(new_entry)
         db.session.commit()
         return new_entry
 
     @staticmethod
-    def deduct_credits(user_id, amount, source, reference_id=None):
+    def deduct_credits(user_id, amount, source, reference_id=None, description=None):
         """
         Deducts credits from a user's account by creating a debit entry in the ledger.
         Checks if the user has enough balance before deducting.
@@ -53,7 +54,8 @@ class CreditService:
             type='debit',
             amount=amount,
             source=source,
-            reference_id=reference_id
+            reference_id=reference_id,
+            description=description
         )
         db.session.add(new_entry)
         db.session.commit()

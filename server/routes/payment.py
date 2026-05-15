@@ -42,14 +42,13 @@ def apply_plan_entitlements(user_id, plan, payment):
         if user:
             user.plan = plan.name
 
-    credit_entry = CreditLedger(
+    CreditService.add_credits(
         user_id=user_id,
-        type='credit',
         amount=plan.credits_included,
         source=getattr(plan, 'plan_type', 'subscription'),
-        reference_id=str(payment.id)
+        reference_id=str(payment.id),
+        description=f"Subscription for {plan.name} Plan"
     )
-    db.session.add(credit_entry)
 
 
 @payment_bp.route('/plans', methods=['GET'])

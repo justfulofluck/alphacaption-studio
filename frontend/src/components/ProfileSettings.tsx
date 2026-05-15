@@ -125,9 +125,9 @@ export default function ProfileSettings() {
   const exportToCSV = () => {
     if (!history.length) return;
     
-    const headers = ["Reference ID", "Date", "Type", "Amount"];
     const rows = history.map(item => [
       `TXN-${item.id}`,
+      item.description || item.source,
       new Date(item.created_at).toLocaleDateString(),
       item.type === 'credit' ? 'Credit Added' : 'Credit Used',
       `${item.type === 'credit' ? '+' : '-'}${item.amount}m`
@@ -399,61 +399,76 @@ export default function ProfileSettings() {
                 className="space-y-8"
               >
                 {/* Current Plan Multi-Metric Card */}
-                <div className="premium-card p-8 sm:p-12 rounded-[3rem] border border-white/5 bg-zinc-900/40 backdrop-blur-2xl shadow-2xl group overflow-hidden relative">
-                  <div className="flex flex-col sm:flex-row justify-between gap-8 mb-12 items-start">
-                    <div>
-                      <span className="text-[10px] font-black text-[#ff7800] uppercase tracking-[0.3em]">Current Membership</span>
-                      <h2 className="text-3xl md:text-5xl font-black text-white mt-2 tracking-tight">{userData?.plan.toUpperCase()} Plan</h2>
-                      <p className="text-zinc-500 text-sm font-medium mt-2">Next renewal on <span className="text-[#ff7800]">May 27, 2026</span></p>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="h-fit bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-                        <CheckCircle2 size={16} /> Active
-                      </div>
-                      <Button onClick={() => navigate('/pricing')} className="bg-[#ff7800] text-white h-12 px-8 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-[0_0_20px_rgba(255,120,0,0.3)] hover:bg-[#e66c00] transition-all">Upgrade</Button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                    <div className="space-y-8 lg:pr-12 lg:border-r border-white/5">
-                      <div className="flex justify-between items-end">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Resource Usage</span>
-                        <span className="text-sm font-black text-white">{credits}m Available</span>
-                      </div>
-                      <div className="h-2.5 w-full bg-white/5 rounded-full overflow-hidden">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${Math.min(100, ((credits || 0) / 500) * 100)}%` }}
-                          className="h-full bg-[#ff7800] rounded-full shadow-[0_0_15px_rgba(255,120,0,0.5)]"
-                        />
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">{Math.max(0, 500 - credits)}m Spent</span>
-                        <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">500m Total</span>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                      <div className="p-8 bg-white/5 rounded-[2.5rem] border border-white/5 group-hover:bg-white/10 transition-colors">
-                        <div className="size-10 rounded-xl bg-zinc-900 border border-white/10 flex items-center justify-center mb-5">
-                          <CreditCard className="text-[#ff7800]" size={20} />
-                        </div>
-                        <span className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Pricing</span>
-                        <span className="text-2xl font-black text-white">{userData?.plan === 'free' ? '₹0/mo' : '₹999/mo'}</span>
-                      </div>
-                      <div className="p-8 bg-white/5 rounded-[2.5rem] border border-white/5 group-hover:bg-white/10 transition-colors">
-                        <div className="size-10 rounded-xl bg-zinc-900 border border-white/10 flex items-center justify-center mb-5">
-                          <Clock className="text-[#ff7800]" size={20} />
-                        </div>
-                        <span className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Validity</span>
-                        <span className="text-2xl font-black text-white">30 Days</span>
-                      </div>
-                    </div>
-                  </div>
+                {(() => {
+                  const planName = userData?.plan?.toLowerCase() || 'free';
+                  const planConfigs: Record<string, any> = {
+                    'trial': { total: 2, price: '₹0', validity: '3 Days' },
+                    'free': { total: 2, price: '₹0', validity: '3 Days' },
+                    'p1': { total: 5, price: '₹119', validity: '7 Days' },
+                    'p2': { total: 10, price: '₹199', validity: '15 Days' },
+                    'p3': { total: 20, price: '₹349', validity: '30 Days' },
+                    'p4': { total: 50, price: '₹749', validity: '45 Days' }
+                  };
+                  const config = planConfigs[planName] || { total: 5, price: 'N/A', validity: 'N/A' };
                   
-                  {/* Bottom orange glow */}
-                  <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-[#ff7800]/20 to-transparent" />
-                </div>
+                  return (
+                    <div className="premium-card p-8 sm:p-12 rounded-[3rem] border border-white/5 bg-zinc-900/40 backdrop-blur-2xl shadow-2xl group overflow-hidden relative">
+                      <div className="flex flex-col sm:flex-row justify-between gap-8 mb-12 items-start">
+                        <div>
+                          <span className="text-[10px] font-black text-[#ff7800] uppercase tracking-[0.3em]">Current Membership</span>
+                          <h2 className="text-3xl md:text-5xl font-black text-white mt-2 tracking-tight">{userData?.plan.toUpperCase()} Plan</h2>
+                          <p className="text-zinc-500 text-sm font-medium mt-2">Next renewal on <span className="text-[#ff7800]">May 27, 2026</span></p>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="h-fit bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                            <CheckCircle2 size={16} /> Active
+                          </div>
+                          <Button onClick={() => navigate('/pricing')} className="bg-[#ff7800] text-white h-12 px-8 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-[0_0_20px_rgba(255,120,0,0.3)] hover:bg-[#e66c00] transition-all">Upgrade</Button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                        <div className="space-y-8 lg:pr-12 lg:border-r border-white/5">
+                          <div className="flex justify-between items-end">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Resource Usage</span>
+                            <span className="text-sm font-black text-white">{credits}m Available</span>
+                          </div>
+                          <div className="h-2.5 w-full bg-white/5 rounded-full overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${Math.min(100, ((credits || 0) / config.total) * 100)}%` }}
+                              className="h-full bg-[#ff7800] rounded-full shadow-[0_0_15px_rgba(255,120,0,0.5)]"
+                            />
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">{Math.max(0, config.total - credits)}m Spent</span>
+                            <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">{config.total}m Total</span>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                          <div className="p-8 bg-white/5 rounded-[2.5rem] border border-white/5 group-hover:bg-white/10 transition-colors">
+                            <div className="size-10 rounded-xl bg-zinc-900 border border-white/10 flex items-center justify-center mb-5">
+                              <CreditCard className="text-[#ff7800]" size={20} />
+                            </div>
+                            <span className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Pricing</span>
+                            <span className="text-2xl font-black text-white">{config.price}</span>
+                          </div>
+                          <div className="p-8 bg-white/5 rounded-[2.5rem] border border-white/5 group-hover:bg-white/10 transition-colors">
+                            <div className="size-10 rounded-xl bg-zinc-900 border border-white/10 flex items-center justify-center mb-5">
+                              <Clock className="text-[#ff7800]" size={20} />
+                            </div>
+                            <span className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Validity</span>
+                            <span className="text-2xl font-black text-white">{config.validity}</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Bottom orange glow */}
+                      <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-[#ff7800]/20 to-transparent" />
+                    </div>
+                  );
+                })()}
 
                 {/* Billing History Table */}
                 <div className="premium-card p-8 sm:p-12 rounded-[3rem] border border-white/5 bg-zinc-900/40 backdrop-blur-2xl shadow-2xl group overflow-hidden relative">
@@ -475,7 +490,7 @@ export default function ProfileSettings() {
                     <table className="w-full text-left">
                       <thead>
                         <tr className="border-b border-white/5">
-                          <th className="pb-8 text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] px-4">Reference ID</th>
+                          <th className="pb-8 text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] px-4">Transaction Details</th>
                           <th className="pb-8 text-center text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] px-4">Type</th>
                           <th className="pb-8 text-center text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] px-4">Amount</th>
                           <th className="pb-8 text-right text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] px-4">Action</th>
@@ -486,8 +501,14 @@ export default function ProfileSettings() {
                           <tr key={i} className="group hover:bg-white/5 transition-all">
                             <td className="py-8 px-4">
                               <div className="flex flex-col">
-                                <span className="text-sm font-bold text-white group-hover:text-[#ff7800] transition-colors">TXN-{item.id}</span>
-                                <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">{new Date(item.created_at).toLocaleDateString()}</span>
+                                <span className="text-sm font-bold text-white group-hover:text-[#ff7800] transition-colors">
+                                  {item.description || `Transaction #${item.id}`}
+                                </span>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">TXN-{item.id}</span>
+                                  <span className="text-zinc-800">•</span>
+                                  <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">{new Date(item.created_at).toLocaleDateString()}</span>
+                                </div>
                               </div>
                             </td>
                             <td className="py-8 px-4 text-center">

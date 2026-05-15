@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/tooltip"
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import WaveSurfer from 'wavesurfer.js';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   Upload,
   Download,
@@ -53,7 +53,9 @@ import {
   LogOut,
   AudioLines,
   FileText,
-  Info
+  Info,
+  AlertTriangle,
+  Zap
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -294,6 +296,8 @@ function MainApp() {
   const [aiModel, setAiModel] = useState('gemini-flash-latest');
   const [selectedSegmentIds, setSelectedSegmentIds] = useState<Set<string>>(new Set());
   const [showDownloadModal, setShowDownloadModal] = useState(false);
+  const [showCreditModal, setShowCreditModal] = useState(false);
+  const [creditErrorMsg, setCreditErrorMsg] = useState('');
   const [userData, setUserData] = useState({ name: '', email: '', phone: '', countryCode: '+91' });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
@@ -554,7 +558,12 @@ function MainApp() {
     } catch (error: any) {
       console.error('Error transcribing audio:', error);
       const errorMsg = error.response?.data?.error || 'Transcription failed. Please try again.';
-      alert(errorMsg);
+      if (errorMsg.toLowerCase().includes('credit')) {
+        setCreditErrorMsg(errorMsg);
+        setShowCreditModal(true);
+      } else {
+        alert(errorMsg);
+      }
     } finally {
       setIsTranscribing(false);
     }
@@ -591,7 +600,12 @@ function MainApp() {
     } catch (error: any) {
       console.error('Error aligning transcript:', error);
       const errorMsg = error.response?.data?.error || 'Alignment failed. Please try again.';
-      alert(errorMsg);
+      if (errorMsg.toLowerCase().includes('credit')) {
+        setCreditErrorMsg(errorMsg);
+        setShowCreditModal(true);
+      } else {
+        alert(errorMsg);
+      }
     } finally {
       setIsAligning(false);
     }
@@ -1075,15 +1089,60 @@ function MainApp() {
                         </span>
                       )}
                     </div>
-                    <textarea
-                      placeholder="Transcript will appear here..."
-                      value={transcript}
-                      onChange={(e) => setTranscript(e.target.value)}
-                      className="w-full h-[400px] bg-white/5 border border-white/10 rounded-2xl p-5 text-sm font-medium text-white placeholder:text-zinc-600 focus:ring-2 focus:ring-[#ff7800] focus:border-transparent transition-all mb-6 resize-none custom-scrollbar"
-                    />
+                    <div className="relative">
+                      <textarea
+                        placeholder="Transcript will appear here..."
+                        value={transcript}
+                        onChange={(e) => setTranscript(e.target.value)}
+                        className={cn(
+                          "w-full h-[400px] bg-white/5 border border-white/10 rounded-2xl p-5 text-sm font-medium text-white placeholder:text-zinc-600 focus:ring-2 focus:ring-[#ff7800] focus:border-transparent transition-all mb-6 resize-none custom-scrollbar",
+                          isTranscribing && "blur-[2px] opacity-30"
+                        )}
+                      />
+                      
+                      <AnimatePresence>
+                        {isTranscribing && (
+                          <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center"
+                          >
+                            <div className="relative mb-8">
+                              <motion.div 
+                                animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }}
+                                transition={{ duration: 2, repeat: Infinity }}
+                                className="absolute inset-0 bg-[#ff7800] blur-3xl rounded-full"
+                              />
+                              <div className="relative w-24 h-24 bg-[#ff7800]/20 border border-[#ff7800]/30 rounded-3xl flex items-center justify-center text-[#ff7800]">
+                                <Sparkles size={48} className="animate-pulse" />
+                              </div>
+                              
+                              {/* Scanning Beam */}
+                              <motion.div 
+                                animate={{ top: ['0%', '100%', '0%'] }}
+                                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                                className="absolute left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[#ff7800] to-transparent shadow-[0_0_15px_#ff7800] z-20"
+                              />
+                            </div>
+                            
+                            <h4 className="text-xl font-black text-white mb-2 tracking-tight">AI is Listening...</h4>
+                            <p className="text-zinc-400 text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                              Transcribing your audio
+                              <span className="flex gap-1">
+                                <motion.span animate={{ opacity: [0, 1, 0] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0 }} className="w-1 h-1 bg-[#ff7800] rounded-full" />
+                                <motion.span animate={{ opacity: [0, 1, 0] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0.3 }} className="w-1 h-1 bg-[#ff7800] rounded-full" />
+                                <motion.span animate={{ opacity: [0, 1, 0] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0.6 }} className="w-1 h-1 bg-[#ff7800] rounded-full" />
+                              </span>
+                            </p>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+
                     <button
                       onClick={isAligning ? stopAlignment : alignTranscript}
-                      disabled={(!transcript && !isAligning) || (!audioFile && !isAligning)}
+                      disabled={(!transcript && !isAligning) || (!audioFile && !isAligning) || isTranscribing}
                       className={cn(
                         "w-full flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-xs font-black transition-all shadow-xl active:scale-95 disabled:opacity-50 disabled:pointer-events-none uppercase tracking-widest",
                         isAligning
@@ -1455,6 +1514,41 @@ function MainApp() {
               </form>
             </div>
           </motion.div>
+        </div>
+      )}
+
+      {/* Insufficient Credits Modal */}
+      {showCreditModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-zinc-900 border border-white/10 rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden relative">
+            <div className="p-10 text-center">
+              <div className="mb-8 flex justify-center">
+                <div className="size-20 bg-[#ff7800]/10 border border-[#ff7800]/20 rounded-[2rem] flex items-center justify-center text-[#ff7800]">
+                  <Zap size={32} />
+                </div>
+              </div>
+
+              <h2 className="text-2xl font-black text-white mb-3 tracking-tight">Insufficient Credits</h2>
+              <p className="text-zinc-400 text-sm font-medium mb-8 leading-relaxed">
+                You don't have enough credits to complete this action. Please upgrade your plan to continue.
+              </p>
+
+              <div className="space-y-3">
+                <button 
+                  onClick={() => navigate('/settings?tab=subscription')}
+                  className="w-full bg-[#ff7800] text-white h-12 rounded-xl font-black uppercase text-[10px] tracking-[0.2em] hover:bg-[#e66c00] transition-all flex items-center justify-center"
+                >
+                  Upgrade Plan
+                </button>
+                <button 
+                  onClick={() => setShowCreditModal(false)}
+                  className="w-full h-12 rounded-xl text-zinc-500 hover:text-white text-[10px] font-black uppercase tracking-[0.2em] transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </>
