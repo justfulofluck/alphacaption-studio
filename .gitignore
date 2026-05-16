@@ -17,6 +17,7 @@ server/credentials/*.json
 *.pyo
 *.pyd
 server/venv/
+test_env/
 
 # Uploaded media files
 server/uploads/
