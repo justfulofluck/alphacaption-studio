@@ -1354,8 +1354,9 @@ function MainApp() {
                   )}
                 </div>
               </div>
-            </div>
+          </div>
         )}
+      </div>
 
       {/* Footer Info */}
       <footer className="max-w-7xl mx-auto px-6 py-20 mt-12">
