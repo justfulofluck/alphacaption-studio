@@ -77,7 +77,7 @@ def create_app():
     
     @app.route('/api/public/pricing', methods=['GET'])
     def public_pricing():
-        plans = Plan.query.order_by(Plan.price.asc()).all()
+        plans = Plan.query.filter(Plan.price > 0).order_by(Plan.price.asc()).all()
         return jsonify({'plans': [p.to_dict() for p in plans]})
     
     @app.route('/api/health')
