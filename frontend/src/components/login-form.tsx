@@ -125,7 +125,7 @@ export function LoginForm({
         </Button>
         <p className="text-center text-sm font-medium text-zinc-500">
           Don&apos;t have an account?{" "}
-          <Link to="/signup" className="font-black text-[#ff7800] hover:underline underline-offset-8 decoration-[#ff7800]/30 transition-all">
+          <Link to={`/signup${window.location.search}`} className="font-black text-[#ff7800] hover:underline underline-offset-8 decoration-[#ff7800]/30 transition-all">
             Sign Up
           </Link>
         </p>

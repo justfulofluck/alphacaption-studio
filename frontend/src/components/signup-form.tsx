@@ -310,7 +310,7 @@ export function SignupForm({
 
         <p className="text-center text-sm font-medium text-zinc-500">
           Already have an account?{" "}
-          <Link to="/login" className="font-black text-[#ff7800] hover:underline underline-offset-8 decoration-[#ff7800]/30 transition-all">
+          <Link to={`/login${window.location.search}`} className="font-black text-[#ff7800] hover:underline underline-offset-8 decoration-[#ff7800]/30 transition-all">
             Sign In
           </Link>
         </p>

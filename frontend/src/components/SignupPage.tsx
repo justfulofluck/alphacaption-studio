@@ -1,5 +1,5 @@
 import { useEffect } from "react"
-import { useNavigate, Link } from "react-router-dom"
+import { useNavigate, useSearchParams, Link } from "react-router-dom"
 import { GalleryVerticalEnd } from "lucide-react"
 import { SignupForm } from "@/components/signup-form"
 import Background from "@/assets/Background.png"
@@ -8,21 +8,25 @@ import axios from "axios"
 
 export default function SignupPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
     if (token && token !== 'undefined' && token !== 'null') {
+      const redirect = searchParams.get('redirect') || '/dashboard';
+      const planId = searchParams.get('plan');
+      const target = planId ? `${redirect}?plan=${planId}` : redirect;
       axios.get(`${API_BASE_URL}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` }
       }).then(res => {
         if (res.data?.id) {
-          navigate('/dashboard');
+          navigate(target);
         }
       }).catch(() => {
         localStorage.removeItem('auth_token');
       });
     }
-  }, [navigate]);
+  }, [navigate, searchParams]);
 
   return (
     <div className="grid h-screen lg:grid-cols-2 bg-[#050505] font-sans overflow-hidden">
