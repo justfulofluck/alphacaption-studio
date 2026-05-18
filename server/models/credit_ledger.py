@@ -15,16 +15,17 @@ class CreditLedger(db.Model):
 
     def to_dict(self):
         from models.user import User
-        user = User.query.get(self.user_id)
+        user = User.query.get(self.user_id) if self.user_id else None
         
+        src = (self.source or 'unknown').replace('_', ' ').capitalize()
         return {
             'id': self.id,
             'user_id': self.user_id,
             'user_email': user.email if user else "Unknown User",
             'type': self.type,
             'amount': self.amount,
-            'source': self.source.replace('_', ' ').capitalize(),
-            'description': self.description or f"{self.source.capitalize()} transaction", 
+            'source': src,
+            'description': self.description or f"{src} transaction",
             'reference_id': self.reference_id,
-            'created_at': self.created_at.isoformat()
+            'created_at': self.created_at.isoformat() if self.created_at else None
         }

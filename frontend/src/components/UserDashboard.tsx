@@ -91,7 +91,7 @@ export default function UserDashboard() {
   const statCards = [
     {
       description: "Remaining Credits",
-      value: `${user?.credits || 0}m`,
+      value: `${user?.credits || 0}cr`,
       icon: Zap,
       footerLabel: "Usage Rate",
       footerDescription: `${Math.min(100, Math.round(((user?.credits || 0) / 500) * 100))}% available`,
@@ -222,7 +222,7 @@ export default function UserDashboard() {
             <div className="space-y-6">
               <div className="flex justify-between items-end">
                 <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Monthly Credits</span>
-                <span className="text-sm font-black text-white">{user?.credits}m Left</span>
+                <span className="text-sm font-black text-white">{user?.credits}cr Left</span>
               </div>
               <div className="h-2.5 w-full bg-white/5 rounded-full overflow-hidden">
                 <motion.div
@@ -257,7 +257,7 @@ export default function UserDashboard() {
                     </div>
                   </div>
                   <span className={`text-sm font-black ${item.type === 'credit' ? 'text-emerald-400' : 'text-[#ff7800]'}`}>
-                    {item.type === 'credit' ? '+' : '-'}{item.amount}m
+                    {item.type === 'credit' ? '+' : '-'}{item.amount}cr
                   </span>
                 </div>
               )) : (

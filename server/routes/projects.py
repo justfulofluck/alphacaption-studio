@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, current_app, send_from_directory, url_for
-from extensions import db
+from extensions import db, limiter
 from models.user import Project, Caption
 from werkzeug.utils import secure_filename
 import os
@@ -56,6 +56,7 @@ def list_projects():
 
 
 @projects_bp.route('', methods=['POST'])
+@limiter.limit("10 per minute")
 def create_project():
     user_id = get_user_from_token()
     if not user_id:

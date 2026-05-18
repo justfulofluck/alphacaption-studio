@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, current_app, Response
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from extensions import db
+from extensions import db, limiter
 from models.user import Project, Caption
 from services.vertex_service import VertexService
 from utils.srt_generator import generate_srt
@@ -37,6 +37,7 @@ def get_user_from_token():
     return None
 
 @captions_bp.route('/<int:project_id>/transcribe', methods=['POST'])
+@limiter.limit("5 per minute")
 def transcribe(project_id):
     from services.credit_service import CreditService
     user_id = get_user_from_token()
@@ -147,6 +148,7 @@ def transcribe(project_id):
 
 
 @captions_bp.route('/<int:project_id>/align', methods=['POST'])
+@limiter.limit("5 per minute")
 def align(project_id):
     from services.credit_service import CreditService
     user_id = get_user_from_token()
@@ -296,6 +298,7 @@ def update_captions(project_id):
 
 
 @captions_bp.route('/<int:project_id>/sync', methods=['POST'])
+@limiter.limit("5 per minute")
 def sync_captions(project_id):
     user_id = get_user_from_token()
     if not user_id:

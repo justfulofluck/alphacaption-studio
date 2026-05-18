@@ -1004,7 +1004,7 @@ function MainApp() {
           <div className="flex flex-col items-center justify-center py-16 md:py-32 premium-upload-box rounded-2xl md:rounded-[2.5rem] group cursor-pointer relative overflow-hidden border-orange-500/20">
             <input
               type="file"
-              accept="audio/mp3,audio/wav,audio/mpeg"
+              accept="audio/mp3,audio/wav,audio/mpeg,audio/ogg,audio/mp4,audio/webm,.ogg,.m4a,.mp4,.webm"
               onChange={handleFileUpload}
               className="absolute inset-0 opacity-0 cursor-pointer z-10"
             />

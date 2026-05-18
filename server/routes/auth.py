@@ -22,12 +22,14 @@ def assign_trial_plan(user):
         trial_plan = Plan(
             name='Trial',
             price=0,
-            credits_included=2,
+            credits_included=5,
             validity_days=3,
             plan_type='trial'
         )
         db.session.add(trial_plan)
         db.session.flush()
+    elif trial_plan.credits_included != 5:
+        trial_plan.credits_included = 5
 
     now = datetime.utcnow()
     subscription = Subscription(
