@@ -72,6 +72,7 @@ import LoginPage from './components/LoginPage';
 import ResetPasswordPage from './components/ResetPasswordPage';
 import PricingPage from './components/PricingPage';
 import { cn } from './lib/utils';
+import { AudioProvider, useAudio } from './lib/AudioContext';
 import axios from 'axios';
 
 const MODELS = [
@@ -190,26 +191,27 @@ function Layout() {
         role: "user",
         plan: user?.plan || "Free"
       }} />
-      <SidebarInset>
-        <SiteHeader user={{ name: user?.name || "User", avatar: user?.avatar }} />
-        <main className={cn(
-          "flex-1 overflow-auto transition-colors duration-500",
-          location.pathname === "/" ? "bg-[#050505]" : "bg-background"
-        )}>
-          <Outlet context={{ isLoggedIn, setIsLoggedIn }} />
-        </main>
-      </SidebarInset>
+      <AudioProvider>
+        <SidebarInset>
+          <SiteHeader user={{ name: user?.name || "User", avatar: user?.avatar }} />
+          <main className={cn(
+            "flex-1 overflow-auto transition-colors duration-500",
+            location.pathname === "/" ? "bg-[#050505]" : "bg-background"
+          )}>
+            <Outlet context={{ isLoggedIn, setIsLoggedIn }} />
+          </main>
+        </SidebarInset>
+      </AudioProvider>
     </SidebarProvider>
   );
 }
 
 function MainApp() {
   const { isLoggedIn, setIsLoggedIn } = useOutletContext<any>();
+  const navigate = useNavigate();
   const location = useLocation();
-  const [audioFile, setAudioFile] = useState<File | null>(null);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const { audioFile, setAudioFile, audioUrl, setAudioUrl, projectId, setProjectId } = useAudio();
   const [segments, setSegments] = useState<CaptionSegment[]>([]);
-  const [projectId, setProjectId] = useState<number | null>(null);
   const [detectedLanguage, setDetectedLanguage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -501,6 +503,26 @@ function MainApp() {
     }
   };
 
+  const doBackgroundUpload = async (file: File) => {
+    const token = localStorage.getItem('auth_token');
+    const formData = new FormData();
+    formData.append('audio', file);
+    formData.append('name', file.name);
+
+    try {
+      const res = await axios.post(`${API_BASE_URL}/api/projects`, formData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      setProjectId(res.data.id);
+      localStorage.setItem('last_project_id', res.data.id.toString());
+    } catch (err) {
+      console.error('Background upload failed:', err);
+    }
+  };
+
   const [isSaving, setIsSaving] = useState(false);
 
   const saveProject = async () => {
@@ -674,6 +696,8 @@ function MainApp() {
       };
       setUndoStack([initialState]);
       setRedoStack([]);
+
+      doBackgroundUpload(file);
     }
   };
 

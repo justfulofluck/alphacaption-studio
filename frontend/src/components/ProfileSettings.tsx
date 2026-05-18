@@ -59,6 +59,7 @@ export default function ProfileSettings() {
 
   const [userData, setUserData] = useState<any>(null);
   const [credits, setCredits] = useState(0);
+  const [validUntil, setValidUntil] = useState<string | null>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -80,14 +81,16 @@ export default function ProfileSettings() {
 
     try {
       const headers = { Authorization: `Bearer ${token}` };
-      const [userRes, creditRes, historyRes] = await Promise.all([
+      const [userRes, creditRes, historyRes, overviewRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/api/auth/me`, { headers }),
         axios.get(`${API_BASE_URL}/api/credit/balance`, { headers }),
-        axios.get(`${API_BASE_URL}/api/credit/history`, { headers })
+        axios.get(`${API_BASE_URL}/api/credit/history`, { headers }),
+        axios.get(`${API_BASE_URL}/api/dashboard/overview`, { headers })
       ]);
 
       setUserData(userRes.data);
       setCredits(creditRes.data.balance);
+      setValidUntil(overviewRes.data?.plan?.valid_until || null);
       setHistory(historyRes.data || []);
 
       setFormData(prev => ({
@@ -125,16 +128,18 @@ export default function ProfileSettings() {
   const exportToCSV = () => {
     if (!history.length) return;
     
+    const csvHeaders = ['ID', 'Description', 'Date', 'Type', 'Amount'];
+
     const rows = history.map(item => [
       `TXN-${item.id}`,
-      item.description || item.source,
+      `"${(item.description || item.source).replace(/"/g, '""')}"`,
       new Date(item.created_at).toLocaleDateString(),
       item.type === 'credit' ? 'Credit Added' : 'Credit Used',
-      `${item.type === 'credit' ? '+' : '-'}${item.amount}m`
+      `${item.type === 'credit' ? '+' : '-'}${item.amount}cr`
     ]);
 
     const csvContent = [
-      headers.join(","),
+      csvHeaders.join(","),
       ...rows.map(row => row.join(","))
     ].join("\n");
 
@@ -263,7 +268,7 @@ export default function ProfileSettings() {
                     <Zap size={18} className="text-[#ff7800] fill-[#ff7800]/20" />
                     <span className="text-[10px] font-black uppercase tracking-[0.15em] text-zinc-500">Credits</span>
                   </div>
-                  <span className="font-black text-white">{credits}m</span>
+                  <span className="font-black text-white">{credits}cr</span>
                 </div>
                 <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
                   <div className="flex items-center gap-3">
@@ -417,7 +422,7 @@ export default function ProfileSettings() {
                         <div>
                           <span className="text-[10px] font-black text-[#ff7800] uppercase tracking-[0.3em]">Current Membership</span>
                           <h2 className="text-3xl md:text-5xl font-black text-white mt-2 tracking-tight">{userData?.plan.toUpperCase()} Plan</h2>
-                          <p className="text-zinc-500 text-sm font-medium mt-2">Next renewal on <span className="text-[#ff7800]">May 27, 2026</span></p>
+                          <p className="text-zinc-500 text-sm font-medium mt-2">Next renewal on <span className="text-[#ff7800]">{validUntil ? new Date(validUntil).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'}</span></p>
                         </div>
                         <div className="flex items-center gap-4">
                           <div className="h-fit bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
@@ -431,7 +436,7 @@ export default function ProfileSettings() {
                         <div className="space-y-8 lg:pr-12 lg:border-r border-white/5">
                           <div className="flex justify-between items-end">
                             <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Resource Usage</span>
-                            <span className="text-sm font-black text-white">{credits}m Available</span>
+                            <span className="text-sm font-black text-white">{credits}cr Available</span>
                           </div>
                           <div className="h-2.5 w-full bg-white/5 rounded-full overflow-hidden">
                             <motion.div
@@ -441,8 +446,8 @@ export default function ProfileSettings() {
                             />
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">{Math.max(0, config.total - credits)}m Spent</span>
-                            <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">{config.total}m Total</span>
+                            <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">{Math.max(0, config.total - credits)}cr Spent</span>
+                            <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">{config.total}cr Total</span>
                           </div>
                         </div>
 
@@ -522,7 +527,7 @@ export default function ProfileSettings() {
                             </td>
                             <td className="py-8 px-4 text-center">
                               <span className={`text-sm font-black ${item.type === 'credit' ? 'text-emerald-400' : 'text-[#ff7800]'}`}>
-                                {item.type === 'credit' ? '+' : '-'}{item.amount}m
+                                {item.type === 'credit' ? '+' : '-'}{item.amount}cr
                               </span>
                             </td>
                             <td className="py-8 px-4 text-right">
@@ -659,7 +664,7 @@ export default function ProfileSettings() {
                   <div className="p-6 bg-white/5 rounded-3xl border border-white/5">
                     <span className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">Amount</span>
                     <span className={`text-xl font-black ${selectedTransaction.type === 'credit' ? 'text-emerald-400' : 'text-[#ff7800]'}`}>
-                      {selectedTransaction.type === 'credit' ? '+' : '-'}{selectedTransaction.amount}m
+                      {selectedTransaction.type === 'credit' ? '+' : '-'}{selectedTransaction.amount}cr
                     </span>
                   </div>
                 </div>
