@@ -60,7 +60,7 @@ def get_plans():
     return jsonify([p.to_dict() for p in plans]), 200
 
 
-@payment_bp.route('/public/pricing', methods=['GET'])
+@payment_bp.route('/public-pricing', methods=['GET'])
 def get_public_pricing():
     plans = Plan.query.order_by(Plan.price.asc()).all()
     return jsonify({'plans': [p.to_dict() for p in plans]}), 200

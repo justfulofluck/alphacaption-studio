@@ -63,6 +63,7 @@ def create_app():
     from routes.dashboard import dashboard_bp
     from routes.notification import notification_bp
     from routes.support import support_bp
+    from models.plan import Plan
     
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(projects_bp, url_prefix='/api/projects')
@@ -73,6 +74,11 @@ def create_app():
     app.register_blueprint(dashboard_bp, url_prefix='/api/dashboard')
     app.register_blueprint(notification_bp, url_prefix='/api/notifications')
     app.register_blueprint(support_bp, url_prefix='/api/support')
+    
+    @app.route('/api/public/pricing', methods=['GET'])
+    def public_pricing():
+        plans = Plan.query.order_by(Plan.price.asc()).all()
+        return jsonify({'plans': [p.to_dict() for p in plans]})
     
     @app.route('/api/health')
     def health():
