@@ -1,5 +1,6 @@
 from extensions import db
 from datetime import datetime
+import json
 
 class Plan(db.Model):
     __tablename__ = 'plans'
@@ -14,6 +15,52 @@ class Plan(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    DEFAULT_FEATURES = {
+        'Trial': [
+            '2 minutes free transcription',
+            'AI transcription with Gemini',
+            'Timeline editor',
+            'SRT download',
+            'Waveform visualization'
+        ],
+        'Basic': [
+            '5 minutes transcription',
+            'AI transcription with Gemini',
+            'Timeline editor',
+            'SRT download',
+            'Export captions'
+        ],
+        'Starter': [
+            '60 minutes transcription',
+            'Everything in Basic',
+            'Priority processing',
+            'Multiple export formats',
+            'Batch processing'
+        ],
+        'Professional': [
+            '250 minutes transcription',
+            'Everything in Starter',
+            'Advanced timeline editing',
+            'Custom branding',
+            'API access'
+        ],
+        'Business': [
+            '1000 minutes transcription',
+            'Everything in Professional',
+            'Unlimited exports',
+            'Priority support',
+            'Dedicated account manager'
+        ]
+    }
+
+    def get_features(self):
+        if self.features_json:
+            try:
+                return json.loads(self.features_json)
+            except (json.JSONDecodeError, TypeError):
+                pass
+        return self.DEFAULT_FEATURES.get(self.name, [])
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -22,5 +69,6 @@ class Plan(db.Model):
             'credits_included': self.credits_included,
             'validity_days': self.validity_days,
             'plan_type': self.plan_type,
+            'features': self.get_features(),
             'created_at': self.created_at.isoformat()
         }

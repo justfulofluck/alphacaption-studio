@@ -8,7 +8,7 @@ import {
   FieldSeparator,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { useNavigate, Link } from "react-router-dom"
+import { useNavigate, useSearchParams, Link } from "react-router-dom"
 import axios from "axios"
 import { Loader2, ArrowRight, AlertCircle, Mail, Lock, Eye, EyeOff } from "lucide-react"
 
@@ -21,6 +21,7 @@ export function LoginForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -42,7 +43,10 @@ export function LoginForm({
       const res = await axios.post(`${API_BASE_URL}/api/auth/login`, formData);
       if (res.data.token) {
         localStorage.setItem('auth_token', res.data.token);
-        navigate('/');
+        const redirect = searchParams.get('redirect') || '/';
+        const planId = searchParams.get('plan');
+        const target = planId ? `${redirect}?plan=${planId}` : redirect;
+        navigate(target);
       }
     } catch (err: any) {
       setError(err.response?.data?.error || "Invalid email or password.");

@@ -8,9 +8,9 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { useNavigate, Link } from "react-router-dom"
+import { useNavigate, useSearchParams, Link } from "react-router-dom"
 import axios from "axios"
-import { Loader2, ArrowRight, CheckCircle2, AlertCircle, ShieldAlert, User, Mail, Phone, Lock, Eye, EyeOff } from "lucide-react"
+import { Loader2, ArrowRight, CheckCircle2, AlertCircle, ShieldAlert, User, Mail, Phone, Lock, Eye, EyeOff, RefreshCw } from "lucide-react"
 
 import { API_BASE_URL } from "@/api/config"
 
@@ -24,7 +24,9 @@ export function SignupForm({
   const [showOtp, setShowOtp] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const [isRequesting, setIsRequesting] = useState(false);
+  const [otpErrorCount, setOtpErrorCount] = useState(0);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -96,20 +98,31 @@ export function SignupForm({
       const res = await axios.post(`${API_BASE_URL}/api/auth/register`, formData);
       if (res.data.token) {
         localStorage.setItem('auth_token', res.data.token);
-        navigate('/');
+        const redirect = searchParams.get('redirect') || '/';
+        const planId = searchParams.get('plan');
+        const target = planId ? `${redirect}?plan=${planId}` : redirect;
+        navigate(target);
       }
     } catch (err: any) {
-      setError(err.response?.data?.error || "Verification failed. Please check your code.");
+      const msg = err.response?.data?.error || "Verification failed. Please check your code.";
+      setError(msg);
+      setOtpErrorCount(c => c + 1);
+      if (timeLeft <= 0 || msg.toLowerCase().includes("expired")) {
+        setInfo("Your code has expired. Click 'Resend Code' below to get a new one.");
+      } else {
+        setInfo("Wrong code? Click 'Resend Code' below to get a new one.");
+      }
     } finally {
       setLoading(false);
       setIsRequesting(false);
     }
   };
 
-  const handleResendOtp = () => {
-    if (!isRequesting) {
-      handleSendOtp();
-    }
+  const handleResendOtp = async () => {
+    if (isRequesting) return;
+    setError(null);
+    setInfo("Sending a new code...");
+    await handleSendOtp();
   };
 
   return (
@@ -226,8 +239,10 @@ export function SignupForm({
             <Field>
               <div className="flex justify-between items-center mb-1.5">
                 <FieldLabel htmlFor="otp">Verification Code</FieldLabel>
-                <span className="text-[10px] font-bold text-zinc-400">
-                  {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+                <span className={`text-[10px] font-bold ${timeLeft === 0 ? "text-red-500" : "text-zinc-400"}`}>
+                  {timeLeft > 0
+                    ? `${Math.floor(timeLeft / 60)}:${(timeLeft % 60).toString().padStart(2, '0')}`
+                    : "Expired"}
                 </span>
               </div>
               <div className="relative">
@@ -244,17 +259,29 @@ export function SignupForm({
                 />
               </div>
             </Field>
-            <div className="text-center">
+            <div className="flex flex-col gap-2">
               <Button
-                variant="link"
-                size="sm"
                 type="button"
-                disabled={loading || isRequesting || timeLeft > 120}
+                disabled={loading || isRequesting}
                 onClick={handleResendOtp}
-                className="text-xs font-bold text-zinc-900 h-auto p-0"
+                className="w-full h-11 rounded-xl bg-white/10 hover:bg-white/20 text-white font-black uppercase text-[10px] tracking-widest border border-white/10 transition-all"
               >
-                Resend Code {timeLeft > 120 ? `in ${timeLeft - 120}s` : ''}
+                {loading || isRequesting ? (
+                  <Loader2 className="animate-spin" size={16} />
+                ) : (
+                  <><RefreshCw size={14} className="mr-2" /> Resend Code</>
+                )}
               </Button>
+              {timeLeft > 0 && timeLeft <= 120 && (
+                <p className="text-center text-[10px] font-bold text-zinc-500">
+                  You can resend every 60 seconds
+                </p>
+              )}
+              {timeLeft === 0 && (
+                <p className="text-center text-[10px] font-bold text-red-400">
+                  Code expired — click Resend Code above for a new one
+                </p>
+              )}
             </div>
           </div>
         )}

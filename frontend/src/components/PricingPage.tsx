@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { Check, Loader2, Zap } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { API_BASE_URL } from "@/api/config";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 interface Plan {
     id: number;
@@ -89,6 +89,15 @@ export default function PricingPage() {
     const [loading, setLoading] = useState(true);
     const [purchaseLoading, setPurchaseLoading] = useState<number | null>(null);
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const highlightPlanId = searchParams.get('plan');
+    const highlightedRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (highlightedRef.current) {
+            highlightedRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, [plans, highlightPlanId]);
 
     useEffect(() => {
         const fetchPlans = async () => {
@@ -140,7 +149,7 @@ export default function PricingPage() {
                             headers: { Authorization: `Bearer ${token}` }
                         });
 
-                        alert(`Success! ${verifyRes.data.credits_added} credits added. New balance: ${verifyRes.data.new_balance} mins.`);
+                        alert(`Success! ${verifyRes.data.credits_added} credits added. New balance: ${verifyRes.data.new_balance} credits.`);
                         navigate('/dashboard');
                     } catch (err: any) {
                         alert(err.response?.data?.error || "Payment verification failed");
@@ -210,8 +219,14 @@ export default function PricingPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
-                {plans.map((plan) => (
-                    <div key={plan.id} className="premium-card p-6 rounded-[2rem] flex flex-col shadow-2xl relative overflow-hidden group">
+                {plans.map((plan) => {
+                    const isHighlighted = highlightPlanId && String(plan.id) === highlightPlanId;
+                    return (
+                    <div
+                        key={plan.id}
+                        ref={isHighlighted ? highlightedRef : null}
+                        className={`premium-card p-6 rounded-[2rem] flex flex-col shadow-2xl relative overflow-hidden group transition-all duration-500 ${isHighlighted ? 'ring-2 ring-[#ff7800] scale-[1.02] shadow-[0_0_40px_rgba(255,120,0,0.3)]' : ''}`}
+                    >
                         {/* Decorative glow */}
                         <div className="absolute -top-16 -right-16 size-32 bg-[#ff7800]/5 blur-[40px] rounded-full group-hover:bg-[#ff7800]/10 transition-all" />
                         
@@ -228,7 +243,7 @@ export default function PricingPage() {
                                     <Check size={10} strokeWidth={4} />
                                 </div>
                                 <span className="text-zinc-300 text-xs font-semibold">
-                                    <span className="text-white font-black">{plan.credits_included}m</span> Transcription
+                                    <span className="text-white font-black">{plan.credits_included}cr</span> Transcription
                                 </span>
                             </li>
                             <li className="flex items-start gap-3">
@@ -254,7 +269,8 @@ export default function PricingPage() {
                             {purchaseLoading === plan.id ? "..." : `Activate Plan`}
                         </Button>
                     </div>
-                ))}
+                    );
+                })}
             </div>
 
             <div className="mt-10 text-center">
