@@ -532,11 +532,14 @@ export default function ProfileSettings() {
                             </td>
                             <td className="py-8 px-4 text-right">
                               <DropdownMenu>
-                                <DropdownMenuTrigger asChild={false}>
-                                  <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl text-zinc-500 hover:text-white hover:bg-white/10 transition-all">
-                                    <MoreHorizontal className="size-5" />
-                                  </Button>
-                                </DropdownMenuTrigger>
+                                <DropdownMenuTrigger
+                                  nativeButton={true}
+                                  render={
+                                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl text-zinc-500 hover:text-white hover:bg-white/10 transition-all">
+                                      <MoreHorizontal className="size-5" />
+                                    </Button>
+                                  }
+                                />
                                 <DropdownMenuContent align="end" className="w-48 bg-zinc-900 border-white/10 rounded-2xl p-2 shadow-2xl backdrop-blur-xl">
                                   <DropdownMenuItem 
                                     className="flex items-center gap-3 p-3 rounded-xl text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all"

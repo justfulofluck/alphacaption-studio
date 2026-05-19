@@ -51,7 +51,8 @@ import {
   FileText,
   Info,
   AlertTriangle,
-  Zap
+  Zap,
+  X
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -441,7 +442,6 @@ function MainApp() {
     setDetectedLanguage(null);
     setActiveTab('captions');
     setIsTranscribing(false);
-    setFormErrors({});
     // Reset studio
     setFontFamily('Inter');
     setFontSize(48);
@@ -1167,11 +1167,11 @@ function MainApp() {
 
                             <TooltipProvider>
                               <Tooltip>
-                                <TooltipTrigger asChild>
+                                <TooltipTrigger render={
                                   <button className="p-2 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center text-zinc-500 hover:text-[#ff7800] hover:bg-[#ff7800]/5 transition-all">
                                     <Info size={14} />
                                   </button>
-                                </TooltipTrigger>
+                                } />
                                 <TooltipContent side="top" className="max-w-xs bg-zinc-900 border-white/10 text-white p-4 rounded-2xl shadow-2xl z-50">
                                   <p className="text-[11px] font-medium leading-relaxed">
                                     If you have manually edited the text or if the timing feels slightly "off", clicking <span className="text-[#ff7800] font-bold">AUTO SYNC</span> tells the AI to re-analyze the audio and re-align the timestamps precisely to the speech.
