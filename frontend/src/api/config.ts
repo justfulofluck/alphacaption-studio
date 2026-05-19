@@ -23,7 +23,7 @@ const getApiBaseUrl = () => {
     }
 
     if (isLocalhost) {
-        return `http://${hostname}:5000`;
+        return `http://${hostname}:8000`;
     }
 
     if (envUrl) {

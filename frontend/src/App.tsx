@@ -33,10 +33,6 @@ import {
   Settings2,
   Clock,
   Type,
-  User,
-  Mail,
-  Phone,
-  X,
   Video,
   Palette,
   Monitor,
@@ -213,6 +209,8 @@ function MainApp() {
   const { audioFile, setAudioFile, audioUrl, setAudioUrl, projectId, setProjectId } = useAudio();
   const [segments, setSegments] = useState<CaptionSegment[]>([]);
   const [detectedLanguage, setDetectedLanguage] = useState<string | null>(null);
+  const [transcript, setTranscript] = useState('');
+  const [showCreditModal, setShowCreditModal] = useState(false);
 
   useEffect(() => {
     const state = location.state as { projectId?: number };
@@ -231,7 +229,7 @@ function MainApp() {
           localStorage.setItem('last_project_id', p.id.toString());
           setAudioUrl(p.audio_url);
           setAudioFile({ name: p.name } as any); // Mock file for UI
-          
+
           if (p.caption) {
             if (p.caption.transcript) {
               setTranscript(p.caption.transcript);
@@ -242,7 +240,7 @@ function MainApp() {
                 id: seg.id || `seg-${Date.now()}-${Math.random()}`
               }));
               setSegments(loadedSegments);
-              
+
               // Initialize history with loaded state
               const initialState: HistoryState = {
                 segments: loadedSegments,
@@ -256,7 +254,7 @@ function MainApp() {
                 textPosition: p.caption.style?.textPosition || 80,
                 transitionType: p.caption.style?.transitionType || 'fade'
               };
-              
+
               // Apply styles if they exist
               if (p.caption.style) {
                 const s = p.caption.style;
@@ -270,7 +268,7 @@ function MainApp() {
                 if (s.textPosition) setTextPosition(s.textPosition);
                 if (s.transitionType) setTransitionType(s.transitionType);
               }
-              
+
               setUndoStack([initialState]);
             }
           }
@@ -290,18 +288,13 @@ function MainApp() {
   const [minSilenceDuration, setMinSilenceDuration] = useState(0.05); // 50ms for gaps
   const [padding, setPadding] = useState(0.05); // 50ms padding
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [transcript, setTranscript] = useState('');
   const [isAligning, setIsAligning] = useState(false);
   const [activeTab, setActiveTab] = useState<'captions' | 'transcript' | 'studio'>('captions');
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isSyncingList, setIsSyncingList] = useState(false);
   const [aiModel, setAiModel] = useState('gemini-flash-latest');
   const [selectedSegmentIds, setSelectedSegmentIds] = useState<Set<string>>(new Set());
-  const [showDownloadModal, setShowDownloadModal] = useState(false);
-  const [showCreditModal, setShowCreditModal] = useState(false);
   const [creditErrorMsg, setCreditErrorMsg] = useState('');
-  const [userData, setUserData] = useState({ name: '', email: '', phone: '', countryCode: '+91' });
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   // Studio States
   const [fontFamily, setFontFamily] = useState('Inter');
@@ -462,19 +455,6 @@ function MainApp() {
     setUndoStack([]);
     setRedoStack([]);
   };
-
-  const countryCodes = [
-    { code: '+91', name: 'India' },
-    { code: '+1', name: 'USA/Canada' },
-    { code: '+44', name: 'UK' },
-    { code: '+61', name: 'Australia' },
-    { code: '+81', name: 'Japan' },
-    { code: '+49', name: 'Germany' },
-    { code: '+33', name: 'France' },
-    { code: '+971', name: 'UAE' },
-    { code: '+65', name: 'Singapore' },
-    { code: '+86', name: 'China' },
-  ];
 
   const waveformRef = useRef<HTMLDivElement>(null);
   const wavesurfer = useRef<WaveSurfer | null>(null);
@@ -811,40 +791,6 @@ function MainApp() {
     }
   };
 
-  const validateForm = () => {
-    const errors: Record<string, string> = {};
-    if (!userData.name.trim()) errors.name = 'Name is required';
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!userData.email.trim()) {
-      errors.email = 'Email is required';
-    } else if (!emailRegex.test(userData.email)) {
-      errors.email = 'Invalid email format';
-    }
-
-    const phoneRegex = /^\d{7,15}$/;
-    if (!userData.phone.trim()) {
-      errors.phone = 'Phone number is required';
-    } else if (!phoneRegex.test(userData.phone.replace(/\D/g, ''))) {
-      errors.phone = 'Invalid phone number (7-15 digits)';
-    }
-
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const handleDownloadSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (validateForm()) {
-      setShowDownloadModal(false);
-      performExport();
-    }
-  };
-
-  const exportSRT = () => {
-    setShowDownloadModal(true);
-  };
-
   const performExport = () => {
     const content = segments
       .map((seg, index) => {
@@ -1067,7 +1013,7 @@ function MainApp() {
                     {isSaving ? 'Saving' : 'Save'}
                   </button>
                   <button
-                    onClick={() => setShowDownloadModal(true)}
+                    onClick={performExport}
                     disabled={segments.length === 0}
                     className="flex items-center gap-2 md:gap-3 bg-[#ff7800] text-white px-5 py-3 md:px-7 md:py-3.5 rounded-xl md:rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-[0.1em] hover:bg-[#e66c00] transition-all shadow-[0_0_20px_rgba(255,120,0,0.2)] disabled:opacity-50 active:scale-95 w-full md:w-auto justify-center"
                   >
@@ -1117,9 +1063,9 @@ function MainApp() {
                       <textarea
                         placeholder="Transcript will appear here..."
                         value={transcript}
-                        onChange={(e) => setTranscript(e.target.value)}
+                        readOnly
                         className={cn(
-                          "w-full h-[400px] bg-white/5 border border-white/10 rounded-2xl p-5 text-sm font-medium text-white placeholder:text-zinc-600 focus:ring-2 focus:ring-[#ff7800] focus:border-transparent transition-all mb-6 resize-none custom-scrollbar",
+                          "w-full h-[400px] bg-white/5 border border-white/10 rounded-2xl p-5 text-sm font-medium text-white placeholder:text-zinc-600 transition-all mb-6 resize-none custom-scrollbar cursor-default",
                           isTranscribing && "blur-[2px] opacity-30"
                         )}
                       />
@@ -1447,99 +1393,6 @@ function MainApp() {
         </div>
       </footer>
 
-      {/* Download Modal */}
-      {showDownloadModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden"
-          >
-            <div className="p-8">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-zinc-900">Download SRT</h2>
-                <button
-                  onClick={() => setShowDownloadModal(false)}
-                  className="p-2 hover:bg-zinc-100 rounded-full transition-colors"
-                >
-                  <X size={20} className="text-zinc-500" />
-                </button>
-              </div>
-
-              <p className="text-zinc-500 mb-8 text-sm">
-                Please provide your details to download your perfectly synced captions.
-              </p>
-
-              <form onSubmit={handleDownloadSubmit} className="space-y-5">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Full Name</label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
-                    <input
-                      type="text"
-                      value={userData.name}
-                      onChange={(e) => setUserData({ ...userData, name: e.target.value })}
-                      placeholder="John Doe"
-                      className={`w-full bg-zinc-50 border ${formErrors.name ? 'border-red-500' : 'border-zinc-200'} rounded-xl pl-10 pr-4 py-3 text-sm focus:ring-2 focus:ring-zinc-800 outline-none transition-all`}
-                    />
-                  </div>
-                  {formErrors.name && <p className="text-[10px] text-red-500 font-medium">{formErrors.name}</p>}
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Email Address</label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
-                    <input
-                      type="email"
-                      value={userData.email}
-                      onChange={(e) => setUserData({ ...userData, email: e.target.value })}
-                      placeholder="john@example.com"
-                      className={`w-full bg-zinc-50 border ${formErrors.email ? 'border-red-500' : 'border-zinc-200'} rounded-xl pl-10 pr-4 py-3 text-sm focus:ring-2 focus:ring-zinc-800 outline-none transition-all`}
-                    />
-                  </div>
-                  {formErrors.email && <p className="text-[10px] text-red-500 font-medium">{formErrors.email}</p>}
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Phone Number</label>
-                  <div className="flex gap-2">
-                    <select
-                      value={userData.countryCode}
-                      onChange={(e) => setUserData({ ...userData, countryCode: e.target.value })}
-                      className="bg-zinc-50 border border-zinc-200 rounded-xl px-2 py-3 text-sm focus:ring-2 focus:ring-zinc-800 outline-none transition-all w-24"
-                    >
-                      {countryCodes.map(c => (
-                        <option key={c.code} value={c.code}>{c.code} ({c.name})</option>
-                      ))}
-                    </select>
-                    <div className="relative flex-1">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
-                      <input
-                        type="tel"
-                        value={userData.phone}
-                        onChange={(e) => setUserData({ ...userData, phone: e.target.value })}
-                        placeholder="9876543210"
-                        className={`w-full bg-zinc-50 border ${formErrors.phone ? 'border-red-500' : 'border-zinc-200'} rounded-xl pl-10 pr-4 py-3 text-sm focus:ring-2 focus:ring-zinc-800 outline-none transition-all`}
-                      />
-                    </div>
-                  </div>
-                  {formErrors.phone && <p className="text-[10px] text-red-500 font-medium">{formErrors.phone}</p>}
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full bg-zinc-900 text-white font-bold py-4 rounded-xl hover:bg-zinc-800 transition-all shadow-lg shadow-zinc-200 mt-4 flex items-center justify-center gap-2"
-                >
-                  <Download size={20} />
-                  Submit & Download SRT
-                </button>
-              </form>
-            </div>
-          </motion.div>
-        </div>
-      )}
-
       {/* Insufficient Credits Modal */}
       {showCreditModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4">
@@ -1547,7 +1400,7 @@ function MainApp() {
             <div className="p-10 text-center">
               <div className="mb-8 flex justify-center">
                 <div className="size-20 bg-[#ff7800]/10 border border-[#ff7800]/20 rounded-[2rem] flex items-center justify-center text-[#ff7800]">
-                  <Zap size={32} />
+                  <span className="text-3xl">⚡</span>
                 </div>
               </div>
 
