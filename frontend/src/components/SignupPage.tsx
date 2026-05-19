@@ -1,5 +1,5 @@
 import { useEffect } from "react"
-import { useNavigate, useSearchParams, Link } from "react-router-dom"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import { GalleryVerticalEnd } from "lucide-react"
 import { SignupForm } from "@/components/signup-form"
 import Background from "@/assets/Background.png"
@@ -32,9 +32,9 @@ export default function SignupPage() {
     <div className="grid h-screen lg:grid-cols-2 bg-[#050505] font-sans overflow-hidden">
       <div className="flex flex-col gap-4 p-8 md:p-10 lg:p-12 relative z-10 overflow-y-auto lg:overflow-hidden">
         <div className="flex justify-center lg:justify-start mb-8">
-          <Link to="/" className="flex items-center gap-2">
+          <a href="https://vcaptiona.com" className="flex items-center gap-2">
             <img src="/logo.png" alt="Vcaptiona Logo" className="h-10 w-auto object-contain" />
-          </Link>
+          </a>
         </div>
         <div className="flex flex-1 items-center justify-center lg:justify-start">
           <div className="w-full max-w-md">

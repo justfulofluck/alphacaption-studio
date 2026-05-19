@@ -18,7 +18,7 @@ export default function LoginPage() {
     <div className="grid h-screen lg:grid-cols-2 bg-[#050505] font-sans overflow-hidden">
       <div className="flex flex-col gap-4 p-8 md:p-10 lg:p-12 relative z-10 overflow-y-auto lg:overflow-hidden">
         <div className="flex justify-center lg:justify-start mb-8">
-          <a href="/" className="flex items-center gap-2">
+          <a href="https://vcaptiona.com" className="flex items-center gap-2">
             <img src="/logo.png" alt="Vcaptiona Logo" className="h-10 w-auto object-contain" />
           </a>
         </div>
