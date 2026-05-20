@@ -320,19 +320,26 @@ def get_admin_stats():
     
     from models.payment import Payment
     from models.usage import Usage
+    from models.visitor import Visitor, VisitorEvent
     from sqlalchemy.sql import func
     
-    total_revenue = db.session.query(func.sum(Payment.amount)).scalar() or 0.0
+    total_revenue = db.session.query(func.sum(Payment.amount)).filter(Payment.status == 'captured').scalar() or 0.0
     total_cost = db.session.query(func.sum(Usage.cost_incurred)).scalar() or 0.0
     total_duration = db.session.query(func.sum(Usage.duration_minutes)).scalar() or 0.0
+    
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    total_visitors = Visitor.query.count()
+    today_visitors = Visitor.query.filter(Visitor.visited_at >= today_start).count()
     
     return jsonify({
         'totalUsers': total_users,
         'activeSubscribers': active_subs,
         'totalDurationProcessed': round(total_duration, 2),
-        'totalRevenue': f"${round(total_revenue, 2)}",
-        'totalCost': f"${round(total_cost, 4)}",
-        'margin': f"${round(total_revenue - total_cost, 2)}"
+        'totalRevenue': f"₹{round(total_revenue, 2)}",
+        'totalCost': f"₹{round(total_cost, 4)}",
+        'margin': f"₹{round(total_revenue - total_cost, 2)}",
+        'totalVisitors': total_visitors,
+        'todayVisitors': today_visitors
     })
 
 @auth_bp.route('/reset-password-request', methods=['POST'])

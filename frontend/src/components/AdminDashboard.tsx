@@ -15,7 +15,9 @@ import {
   PlusCircle,
   History,
   X,
-  UserCog
+  UserCog,
+  Eye,
+  Clock
 } from 'lucide-react';
 import {
   SidebarInset,
@@ -46,9 +48,13 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState({
     totalUsers: 0,
     activeSubscribers: 0,
-    totalTokensUsed: 0,
-    monthlyRevenue: "$0"
+    totalDurationProcessed: 0,
+    totalRevenue: "$0",
+    totalVisitors: 0,
+    todayVisitors: 0
   });
+
+  const [recentEvents, setRecentEvents] = useState<any[]>([]);
 
   // Modal states
   const [showPlanModal, setShowPlanModal] = useState(false);
@@ -100,8 +106,27 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchRecentEvents = async () => {
+    const token = localStorage.getItem('admin_token');
+    if (!token) return;
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/visitor/events/recent`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setRecentEvents(res.data);
+    } catch (err) {
+      // Silently fail — not critical
+    }
+  };
+
   useEffect(() => {
     fetchData();
+    fetchRecentEvents();
+    const interval = setInterval(() => {
+      fetchData();
+      fetchRecentEvents();
+    }, 10000);
+    return () => clearInterval(interval);
   }, [navigate, section]);
 
   const handleCreatePlan = async (e: React.FormEvent) => {
@@ -232,22 +257,31 @@ export default function AdminDashboard() {
       actionLabel: "+5.2%"
     },
     {
-      description: "Tokens Consumed",
-      value: `${(stats.totalTokensUsed / 1000000).toFixed(1)}M`,
+      description: "Duration Processed",
+      value: `${stats.totalDurationProcessed.toFixed(1)}m`,
       icon: Cpu,
-      footerLabel: "AI Usage",
-      footerDescription: "Steady API utilization",
+      footerLabel: "Total Minutes",
+      footerDescription: "Audio processed",
       isUp: true,
       actionLabel: "Optimal"
     },
     {
       description: "Revenue",
-      value: stats.monthlyRevenue,
+      value: stats.totalRevenue,
       icon: BarChart3,
       footerLabel: "MRR",
       footerDescription: "Monthly Recurring Revenue",
       isUp: true,
       actionLabel: "Growth"
+    },
+    {
+      description: "Visitors Today",
+      value: stats.todayVisitors.toLocaleString(),
+      icon: Eye,
+      footerLabel: "Total Visitors",
+      footerDescription: `${stats.totalVisitors.toLocaleString()} all time`,
+      isUp: true,
+      actionLabel: "Active"
     }
   ];
 
@@ -350,6 +384,49 @@ export default function AdminDashboard() {
         )}
 
         {section === 'users' && <SectionCards cards={statCards} />}
+
+        {section === 'users' && (
+          <div className="rounded-[2rem] bg-zinc-900/40 backdrop-blur-xl border border-white/5 p-6 text-white">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Clock size={18} className="text-orange-400" />
+                <h2 className="text-lg font-bold tracking-tight">Recent Activity</h2>
+              </div>
+              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest flex items-center gap-1">
+                <span className="size-1.5 rounded-full bg-green-500 animate-pulse" />
+                Live
+              </span>
+            </div>
+            <div className="space-y-1 max-h-80 overflow-y-auto">
+              {recentEvents.length === 0 ? (
+                <p className="text-sm text-zinc-500 py-4 text-center">No recent visitor activity</p>
+              ) : (
+                recentEvents.slice(0, 20).map((event: any) => (
+                  <div key={event.id} className="flex items-start gap-3 py-2 border-b border-white/5 last:border-0">
+                    <span className="mt-0.5 text-sm">
+                      {event.event_type === 'page_view' ? '🟢' : '🖱️'}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">
+                        {event.event_type === 'page_view' ? 'New visitor arrived' : `Clicked "${event.event_label}"`}
+                      </p>
+                      <p className="text-xs text-zinc-500">
+                        {(() => {
+                          const diff = Date.now() - new Date(event.created_at).getTime();
+                          const sec = Math.floor(diff / 1000);
+                          if (sec < 60) return `${sec}s ago`;
+                          const min = Math.floor(sec / 60);
+                          if (min < 60) return `${min}m ${sec % 60}s ago`;
+                          return `${Math.floor(min / 60)}h ago`;
+                        })()}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="space-y-4">
           {loading ? (

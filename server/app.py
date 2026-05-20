@@ -63,6 +63,7 @@ def create_app():
     from routes.dashboard import dashboard_bp
     from routes.notification import notification_bp
     from routes.support import support_bp
+    from routes.visitor import visitor_bp
     from models.plan import Plan
     
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
@@ -74,6 +75,7 @@ def create_app():
     app.register_blueprint(dashboard_bp, url_prefix='/api/dashboard')
     app.register_blueprint(notification_bp, url_prefix='/api/notifications')
     app.register_blueprint(support_bp, url_prefix='/api/support')
+    app.register_blueprint(visitor_bp, url_prefix='/api/visitor')
     
     @app.route('/api/public/pricing', methods=['GET'])
     def public_pricing():
