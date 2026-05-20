@@ -51,11 +51,6 @@ export function StudioSidebar({ user, ...props }: StudioSidebarProps) {
         icon: <ShieldCheckIcon />,
       },
       {
-        title: "Payment Logs",
-        url: "/admin?section=payments",
-        icon: <BarChart3Icon />,
-      },
-      {
         title: "Plan Setup",
         url: "/admin?section=plans",
         icon: <Settings2Icon />,

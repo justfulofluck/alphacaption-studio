@@ -153,3 +153,48 @@ def manage_user(user_id):
         
     db.session.commit()
     return jsonify(target_user.to_dict())
+
+@admin_bp.route('/ledger-matrix', methods=['GET'])
+@jwt_required()
+def get_ledger_matrix():
+    if not check_admin():
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    users = User.query.all()
+    result = []
+    
+    for i, user in enumerate(users):
+        ledgers = CreditLedger.query.filter_by(user_id=user.id).order_by(CreditLedger.created_at.desc()).all()
+        
+        latest_payment = Payment.query.filter_by(user_id=user.id, status='captured').order_by(Payment.created_at.desc()).first()
+        payment_status = "Paid" if latest_payment else ("Free" if user.plan in ['free', 'Trial'] else "Unpaid")
+        
+        plan_amount = f"{user.plan.capitalize()} | ₹{latest_payment.amount if latest_payment else 0}"
+        
+        from models.subscription import Subscription
+        sub = Subscription.query.filter_by(user_id=user.id).order_by(Subscription.end_date.desc()).first()
+        if sub:
+            dates_info = f"{sub.start_date.strftime('%d-%b-%y')}\n{sub.end_date.strftime('%d-%b-%y')}"
+        else:
+            dates_info = "N/A"
+            
+        total_credits = sum(l.amount for l in ledgers if l.type == 'credit')
+        used_credits = sum(l.amount for l in ledgers if l.type == 'debit')
+        credits_info = f"{used_credits} / {total_credits}"
+        
+        result.append({
+            'sr_no': i + 1,
+            'user_id_display': f"U{str(user.id).zfill(3)}",
+            'user_name': user.name,
+            'user_email': user.email,
+            'mobile_number': user.phone or 'N/A',
+            'signup_date': user.created_at.strftime('%d-%b-%y') if user.created_at else 'N/A',
+            'credits_info': credits_info,
+            'plan_amount': plan_amount,
+            'dates_info': dates_info,
+            'payment_status': payment_status,
+            'last_login': user.last_login_at.strftime('%d-%b-%Y') if user.last_login_at else 'N/A',
+            'transactions': [l.to_dict() for l in ledgers]
+        })
+        
+    return jsonify(result)

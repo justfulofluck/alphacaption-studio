@@ -59,6 +59,7 @@ import { twMerge } from 'tailwind-merge';
 
 import { BrowserRouter, Routes, Route, Link, useNavigate, useLocation, useOutletContext, Outlet } from 'react-router-dom';
 import AdminDashboard from './components/AdminDashboard';
+import VisitorsDashboard from './components/VisitorsDashboard';
 import AuthPage from './components/AuthPage';
 import UserDashboard from './components/UserDashboard';
 import ProfileSettings from './components/ProfileSettings';
@@ -117,6 +118,7 @@ export default function App() {
         <Route path="/admin/login" element={<AdminLoginPage />} />
         <Route path="/admin/reset-password" element={<AdminResetPasswordPage />} />
         <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin/visitors" element={<VisitorsDashboard />} />
       </Routes>
     </BrowserRouter>
   );

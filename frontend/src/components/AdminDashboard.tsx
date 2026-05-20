@@ -43,6 +43,7 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const location = useLocation();
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [adminUser, setAdminUser] = useState<any>(null);
   const [data, setData] = useState<any[]>([]);
   const [stats, setStats] = useState({
@@ -75,14 +76,19 @@ export default function AdminDashboard() {
   const queryParams = new URLSearchParams(location.search);
   const section = queryParams.get('section') || 'users';
 
+  const intervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+  const sectionRef = React.useRef(section);
+  const navigateRef = React.useRef(navigate);
+  sectionRef.current = section;
+  navigateRef.current = navigate;
+
   const fetchData = async () => {
     const token = localStorage.getItem('admin_token');
     if (!token || token === 'undefined' || token === 'null') {
-      navigate('/admin/login');
+      navigateRef.current('/admin/login');
       return;
     }
 
-    setLoading(true);
     try {
       const headers = { Authorization: `Bearer ${token}` };
       const [meRes, statsRes] = await Promise.all([
@@ -93,16 +99,13 @@ export default function AdminDashboard() {
       setStats(statsRes.data);
 
       let contentUrl = `${API_BASE_URL}/api/auth/admin/users`;
-      if (section === 'ledger') contentUrl = `${API_BASE_URL}/api/admin/ledger`;
-      if (section === 'payments') contentUrl = `${API_BASE_URL}/api/admin/payments`;
-      if (section === 'plans') contentUrl = `${API_BASE_URL}/api/admin/plans`;
+      if (sectionRef.current === 'ledger') contentUrl = `${API_BASE_URL}/api/admin/ledger-matrix`;
+      if (sectionRef.current === 'plans') contentUrl = `${API_BASE_URL}/api/admin/plans`;
 
       const contentRes = await axios.get(contentUrl, { headers });
       setData(contentRes.data);
     } catch (err) {
       console.error("[AdminDashboard] Data fetch failed:", err);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -119,15 +122,24 @@ export default function AdminDashboard() {
     }
   };
 
+  // Initial load
   useEffect(() => {
+    setLoading(true);
     fetchData();
     fetchRecentEvents();
-    const interval = setInterval(() => {
+    setLoading(false);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Polling — uses refs so it never re-triggers the interval
+  useEffect(() => {
+    intervalRef.current = setInterval(() => {
       fetchData();
       fetchRecentEvents();
     }, 10000);
-    return () => clearInterval(interval);
-  }, [navigate, section]);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCreatePlan = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -273,15 +285,6 @@ export default function AdminDashboard() {
       footerDescription: "Monthly Recurring Revenue",
       isUp: true,
       actionLabel: "Growth"
-    },
-    {
-      description: "Visitors Today",
-      value: stats.todayVisitors.toLocaleString(),
-      icon: Eye,
-      footerLabel: "Total Visitors",
-      footerDescription: `${stats.totalVisitors.toLocaleString()} all time`,
-      isUp: true,
-      actionLabel: "Active"
     }
   ];
 
@@ -289,19 +292,19 @@ export default function AdminDashboard() {
     switch (section) {
       case 'ledger':
         return [
+          { header: "Sr. No.", accessorKey: "sr_no" },
+          { header: "User ID", accessorKey: "user_id_display" },
+          { header: "User Name", accessorKey: "user_name" },
           { header: "User Email", accessorKey: "user_email" },
-          { header: "Type", accessorKey: "type" },
-          { header: "Description", accessorKey: "source" },
-          { header: "Date", accessorKey: "created_at" }
+          { header: "Mobile", accessorKey: "mobile_number" },
+          { header: "Signup Date", accessorKey: "signup_date" },
+          { header: "Credits", accessorKey: "credits_info" },
+          { header: "Plan & Amt", accessorKey: "plan_amount" },
+          { header: "Purchase - Expiry", accessorKey: "dates_info" },
+          { header: "Payment", accessorKey: "payment_status" },
+          { header: "Last Login", accessorKey: "last_login" }
         ];
-      case 'payments':
-        return [
-          { header: "User Email", accessorKey: "user_email" },
-          { header: "Amount", accessorKey: "amount" },
-          { header: "Transaction ID", accessorKey: "transaction_id" },
-          { header: "Status", accessorKey: "status" },
-          { header: "Date", accessorKey: "created_at" }
-        ];
+
       case 'plans':
         return [
           { header: "Name", accessorKey: "name" },
@@ -321,7 +324,6 @@ export default function AdminDashboard() {
 
   const getTitle = () => {
     if (section === 'ledger') return "Credit Ledger History";
-    if (section === 'payments') return "Payment History";
     if (section === 'plans') return "Membership Plans";
     return "User Management";
   };
@@ -354,6 +356,9 @@ export default function AdminDashboard() {
                   </span>
                 </div>
               </div>
+              <Button onClick={() => navigate('/admin/visitors')} className="font-bold flex items-center gap-2 bg-zinc-900 text-white hover:bg-zinc-800 border border-white/5">
+                <Eye size={18} /> Visitors Info
+              </Button>
             </div>
           ) : (
           <div className="flex items-center justify-between">
@@ -385,48 +390,7 @@ export default function AdminDashboard() {
 
         {section === 'users' && <SectionCards cards={statCards} />}
 
-        {section === 'users' && (
-          <div className="rounded-[2rem] bg-zinc-900/40 backdrop-blur-xl border border-white/5 p-6 text-white">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Clock size={18} className="text-orange-400" />
-                <h2 className="text-lg font-bold tracking-tight">Recent Activity</h2>
-              </div>
-              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest flex items-center gap-1">
-                <span className="size-1.5 rounded-full bg-green-500 animate-pulse" />
-                Live
-              </span>
-            </div>
-            <div className="space-y-1 max-h-80 overflow-y-auto">
-              {recentEvents.length === 0 ? (
-                <p className="text-sm text-zinc-500 py-4 text-center">No recent visitor activity</p>
-              ) : (
-                recentEvents.slice(0, 20).map((event: any) => (
-                  <div key={event.id} className="flex items-start gap-3 py-2 border-b border-white/5 last:border-0">
-                    <span className="mt-0.5 text-sm">
-                      {event.event_type === 'page_view' ? '🟢' : '🖱️'}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">
-                        {event.event_type === 'page_view' ? 'New visitor arrived' : `Clicked "${event.event_label}"`}
-                      </p>
-                      <p className="text-xs text-zinc-500">
-                        {(() => {
-                          const diff = Date.now() - new Date(event.created_at).getTime();
-                          const sec = Math.floor(diff / 1000);
-                          if (sec < 60) return `${sec}s ago`;
-                          const min = Math.floor(sec / 60);
-                          if (min < 60) return `${min}m ${sec % 60}s ago`;
-                          return `${Math.floor(min / 60)}h ago`;
-                        })()}
-                      </p>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        )}
+
 
         <div className="space-y-4">
           {loading ? (
