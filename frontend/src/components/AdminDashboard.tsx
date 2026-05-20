@@ -365,7 +365,7 @@ export default function AdminDashboard() {
             <h1 className="text-3xl font-bold tracking-tight">{getTitle()}</h1>
             {section === 'plans' && (
               <Button 
-                className="font-bold flex items-center gap-2" 
+                className="font-bold flex items-center gap-2 bg-white text-black hover:bg-zinc-200 rounded-xl"
                 onClick={() => {
                   setSelectedRow(null);
                   setFormData({
@@ -435,7 +435,7 @@ export default function AdminDashboard() {
                 <span className="text-sm font-bold uppercase tracking-widest opacity-50 text-[10px]">Validity (Days)</span>
                 <Input type="number" required value={formData.validity_days} onChange={e => setFormData({ ...formData, validity_days: Number(e.target.value) })} />
               </div>
-              <Button type="submit" className="w-full font-bold h-12 mt-4 transition-all">
+              <Button type="submit" className="w-full font-bold h-12 mt-4 bg-white text-black hover:bg-zinc-200 transition-all rounded-xl">
                 {selectedRow ? "Update Membership Plan" : "Create Membership Plan"}
               </Button>
             </form>
