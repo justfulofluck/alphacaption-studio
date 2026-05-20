@@ -30,7 +30,7 @@ export default function ResetPasswordPage() {
               "Security is not a feature, it's a foundation. We protect your creativity with enterprise-grade authentication."
             </p>
             <footer className="text-xs font-black uppercase tracking-[0.3em] text-[#ff7800]">
-              Security Operations @ AlphaCaption
+              Security Operations @Vcaptiona
             </footer>
           </blockquote>
         </div>

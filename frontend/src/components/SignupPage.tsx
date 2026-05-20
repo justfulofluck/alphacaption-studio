@@ -55,7 +55,7 @@ export default function SignupPage() {
               "The most intuitive captioning tool I've ever used. It transformed my workflow instantly."
             </p>
             <footer className="text-xs font-black uppercase tracking-[0.3em] text-[#ff7800]">
-              Design Lead @ AlphaCaption
+              Design Lead @Vcaptiona
             </footer>
           </blockquote>
         </div>

@@ -38,10 +38,10 @@ export default function LoginPage() {
         <div className="absolute bottom-20 left-20 right-20">
           <blockquote className="space-y-8">
             <p className="text-4xl font-black tracking-tightest text-white leading-[1.1] max-w-xl">
-              "Experience the next generation of video accessibility with AI-powered narration and precise captioning."
+              "Upload any audio, get perfectly synced captions in minutes. Precision made simple."
             </p>
             <footer className="text-xs font-black uppercase tracking-[0.3em] text-[#ff7800]">
-              Technical Lead @ AlphaCaption
+              Technical Lead @Vcaptiona
             </footer>
           </blockquote>
         </div>
