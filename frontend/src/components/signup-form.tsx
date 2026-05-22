@@ -130,7 +130,7 @@ export function SignupForm({
       <FieldGroup>
       <div className="flex flex-col gap-1 mb-4">
         <h1 className="text-4xl font-black text-white tracking-tightest">Create account</h1>
-        <p className="text-zinc-500 font-medium">
+        <p className="text-[#A1A1A1] font-medium">
           {showOtp ? "Enter the verification code sent to your email" : "Fill in the form below to create your account"}
         </p>
       </div>
@@ -138,9 +138,9 @@ export function SignupForm({
         {!showOtp ? (
           <>
             <Field className="space-y-2">
-              <FieldLabel htmlFor="name" className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 ml-1">Full Name</FieldLabel>
+              <FieldLabel htmlFor="name" className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-[#A1A1A1] ml-1">Full Name</FieldLabel>
               <div className="relative">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-[#ff7800]/60" size={18} />
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-[#FF7A00]/60" size={18} />
                 <Input
                   id="name"
                   type="text"
@@ -148,15 +148,15 @@ export function SignupForm({
                   required
                   value={formData.name}
                   onChange={handleChange}
-                  className="bg-white/5 border-white/5 h-12 pl-12 rounded-xl text-white placeholder:text-zinc-700 focus-visible:ring-[#ff7800]/50"
+                  className="bg-[#1A1A1A] border-[#262626] h-12 pl-12 rounded-lg text-white placeholder:text-zinc-700 focus-visible:ring-[#FF7A00] focus-visible:border-[#FF7A00]"
                 />
               </div>
             </Field>
 
             <Field className="space-y-2">
-              <FieldLabel htmlFor="email" className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 ml-1">Email</FieldLabel>
+              <FieldLabel htmlFor="email" className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-[#A1A1A1] ml-1">Email</FieldLabel>
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[#ff7800]/60" size={18} />
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[#FF7A00]/60" size={18} />
                 <Input
                   id="email"
                   type="email"
@@ -164,70 +164,70 @@ export function SignupForm({
                   required
                   value={formData.email}
                   onChange={handleChange}
-                  className="bg-white/5 border-white/5 h-12 pl-12 rounded-xl text-white placeholder:text-zinc-700 focus-visible:ring-[#ff7800]/50"
+                  className="bg-[#1A1A1A] border-[#262626] h-12 pl-12 rounded-lg text-white placeholder:text-zinc-700 focus-visible:ring-[#FF7A00] focus-visible:border-[#FF7A00]"
                 />
               </div>
-              <FieldDescription className="text-zinc-600 text-[11px] font-medium ml-1">
+              <FieldDescription className="text-[#A1A1A1] text-[11px] font-medium ml-1">
                 We'll use this to contact you.
               </FieldDescription>
             </Field>
 
             <Field className="space-y-2">
-              <FieldLabel htmlFor="mobile" className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 ml-1">Phone Number</FieldLabel>
+              <FieldLabel htmlFor="mobile" className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-[#A1A1A1] ml-1">Phone Number</FieldLabel>
               <div className="relative">
-                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-[#ff7800]/60" size={18} />
+                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-[#FF7A00]/60" size={18} />
                 <Input
                   id="mobile"
                   type="tel"
                   placeholder="9876543210"
                   value={formData.mobile}
                   onChange={handleChange}
-                  className="bg-white/5 border-white/5 h-12 pl-12 rounded-xl text-white placeholder:text-zinc-700 focus-visible:ring-[#ff7800]/50"
+                  className="bg-[#1A1A1A] border-[#262626] h-12 pl-12 rounded-lg text-white placeholder:text-zinc-700 focus-visible:ring-[#FF7A00] focus-visible:border-[#FF7A00]"
                 />
               </div>
             </Field>
 
             <Field className="space-y-2">
-              <FieldLabel htmlFor="password" className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 ml-1">Password</FieldLabel>
+              <FieldLabel htmlFor="password" className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-[#A1A1A1] ml-1">Password</FieldLabel>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[#ff7800]/60" size={18} />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[#FF7A00]/60" size={18} />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   required
                   value={formData.password}
                   onChange={handleChange}
-                  className="bg-white/5 border-white/5 h-12 pl-12 pr-12 rounded-xl text-white placeholder:text-zinc-700 focus-visible:ring-[#ff7800]/50"
+                  className="bg-[#1A1A1A] border-[#262626] h-12 pl-12 pr-12 rounded-lg text-white placeholder:text-zinc-700 focus-visible:ring-[#FF7A00] focus-visible:border-[#FF7A00]"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-white transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A1A1A1] hover:text-white transition-colors"
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-              <FieldDescription className="text-zinc-600 text-[11px] font-medium ml-1">
+              <FieldDescription className="text-[#A1A1A1] text-[11px] font-medium ml-1">
                 At least 8 characters with a number or symbol.
               </FieldDescription>
             </Field>
 
             <Field className="space-y-2">
-              <FieldLabel htmlFor="confirmPassword" className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 ml-1">Confirm Password</FieldLabel>
+              <FieldLabel htmlFor="confirmPassword" className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-[#A1A1A1] ml-1">Confirm Password</FieldLabel>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[#ff7800]/60" size={18} />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[#FF7A00]/60" size={18} />
                 <Input
                   id="confirmPassword"
                   type={showConfirmPassword ? "text" : "password"}
                   required
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  className="bg-white/5 border-white/5 h-12 pl-12 pr-12 rounded-xl text-white placeholder:text-zinc-700 focus-visible:ring-[#ff7800]/50"
+                  className="bg-[#1A1A1A] border-[#262626] h-12 pl-12 pr-12 rounded-lg text-white placeholder:text-zinc-700 focus-visible:ring-[#FF7A00] focus-visible:border-[#FF7A00]"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-white transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A1A1A1] hover:text-white transition-colors"
                 >
                   {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -239,14 +239,14 @@ export function SignupForm({
             <Field>
               <div className="flex justify-between items-center mb-1.5">
                 <FieldLabel htmlFor="otp">Verification Code</FieldLabel>
-                <span className={`text-[10px] font-bold ${timeLeft === 0 ? "text-red-500" : "text-zinc-400"}`}>
+                <span className={`text-[10px] font-bold ${timeLeft === 0 ? "text-red-500" : "text-[#A1A1A1]"}`}>
                   {timeLeft > 0
                     ? `${Math.floor(timeLeft / 60)}:${(timeLeft % 60).toString().padStart(2, '0')}`
                     : "Expired"}
                 </span>
               </div>
               <div className="relative">
-                <ShieldAlert className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+                <ShieldAlert className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1A1]" size={18} />
                 <Input
                   id="otp"
                   type="text"
@@ -264,7 +264,7 @@ export function SignupForm({
                 type="button"
                 disabled={loading || isRequesting}
                 onClick={handleResendOtp}
-                className="w-full h-11 rounded-xl bg-white/10 hover:bg-white/20 text-white font-black uppercase text-[10px] tracking-widest border border-white/10 transition-all"
+                className="w-full h-11 rounded-lg bg-[#262626] hover:bg-[#333333] text-white font-black uppercase text-[10px] tracking-widest border border-[#333333] transition-all"
               >
                 {loading || isRequesting ? (
                   <Loader2 className="animate-spin" size={16} />
@@ -273,7 +273,7 @@ export function SignupForm({
                 )}
               </Button>
               {timeLeft > 0 && timeLeft <= 120 && (
-                <p className="text-center text-[10px] font-bold text-zinc-500">
+                <p className="text-center text-[10px] font-bold text-[#A1A1A1]">
                   You can resend every 60 seconds
                 </p>
               )}
@@ -287,20 +287,20 @@ export function SignupForm({
         )}
 
         {error && (
-          <div className="flex items-center gap-2 p-3 rounded-xl bg-red-50 border border-red-100 text-red-700 text-xs font-bold animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-100 text-red-700 text-xs font-bold animate-in fade-in slide-in-from-top-2">
             <AlertCircle size={14} />
             {error}
           </div>
         )}
 
         {info && (
-          <div className="flex items-center gap-2 p-3 rounded-xl bg-zinc-50 border border-zinc-100 text-zinc-800 text-xs font-bold animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-zinc-50 border border-zinc-100 text-zinc-800 text-xs font-bold animate-in fade-in slide-in-from-top-2">
             <CheckCircle2 size={14} />
             {info}
           </div>
         )}
 
-        <Button type="submit" disabled={loading} className="w-full h-12 rounded-xl bg-[#ff7800] hover:bg-[#e66c00] text-white font-black uppercase text-[10px] tracking-widest shadow-[0_0_20px_rgba(255,120,0,0.3)] transition-all">
+        <Button type="submit" disabled={loading} className="w-full h-12 rounded-lg bg-[#FF7A00] hover:bg-[#e66c00] text-black font-black uppercase text-[10px] tracking-widest shadow-none hover:shadow-[0_0_20px_rgba(255,122,0,0.4)] transition-all">
           {loading ? (
             <Loader2 className="animate-spin" size={20} />
           ) : (
@@ -308,9 +308,9 @@ export function SignupForm({
           )}
         </Button>
 
-        <p className="text-center text-sm font-medium text-zinc-500">
+        <p className="text-center text-sm font-medium text-[#A1A1A1]">
           Already have an account?{" "}
-          <Link to={`/login${window.location.search}`} className="font-black text-[#ff7800] hover:underline underline-offset-8 decoration-[#ff7800]/30 transition-all">
+          <Link to={`/login${window.location.search}`} className="font-black text-[#FF7A00] hover:underline underline-offset-8 decoration-[#FF7A00]/30 transition-all">
             Sign In
           </Link>
         </p>

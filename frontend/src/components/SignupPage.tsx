@@ -29,7 +29,7 @@ export default function SignupPage() {
   }, [navigate, searchParams]);
 
   return (
-    <div className="grid h-screen lg:grid-cols-2 bg-[#050505] font-sans overflow-hidden">
+    <div className="grid h-screen lg:grid-cols-2 bg-[#0D0D0D] font-inter overflow-hidden">
       <div className="flex flex-col gap-4 p-8 md:p-10 lg:p-12 relative z-10 overflow-y-auto lg:overflow-hidden">
         <div className="flex justify-center lg:justify-start mb-8">
           <a href="https://vcaptiona.com" className="flex items-center gap-2">
@@ -42,19 +42,19 @@ export default function SignupPage() {
           </div>
         </div>
       </div>
-      <div className="relative hidden lg:block overflow-hidden border-l border-white/5">
+      <div className="relative hidden lg:block overflow-hidden border-l border-[#262626]">
         <img
           src={Background}
           alt="Abstract Studio"
           className="absolute inset-0 h-full w-full object-cover brightness-[0.3]"
         />
-        <div className="absolute inset-0 bg-gradient-to-tr from-[#050505] via-transparent to-[#ff7800]/10"></div>
+        <div className="absolute inset-0 bg-gradient-to-tr from-[#0D0D0D] via-transparent to-[#FF7A00]/10"></div>
         <div className="absolute bottom-20 left-20 right-20">
           <blockquote className="space-y-8">
             <p className="text-4xl font-black tracking-tightest text-white leading-[1.1] max-w-xl">
               "The most intuitive captioning tool I've ever used. It transformed my workflow instantly."
             </p>
-            <footer className="text-xs font-black uppercase tracking-[0.3em] text-[#ff7800]">
+            <footer className="text-xs font-black uppercase tracking-[0.3em] text-[#FF7A00]">
               Design Lead @Vcaptiona
             </footer>
           </blockquote>

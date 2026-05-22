@@ -213,7 +213,7 @@ export default function PricingPage() {
         <div className="container mx-auto px-6 py-6 max-w-[1400px] h-full flex flex-col justify-center">
             <div className="text-center mb-8">
                 <h1 className="text-4xl font-black mb-2 premium-text-gradient tracking-tight">Choose Your Plan</h1>
-                <p className="text-zinc-500 text-sm font-medium max-w-xl mx-auto leading-relaxed">
+                <p className="text-[#A1A1A1] text-sm font-medium max-w-xl mx-auto leading-relaxed">
                     Pick the power level that fits your workflow.
                 </p>
             </div>
@@ -225,32 +225,32 @@ export default function PricingPage() {
                     <div
                         key={plan.id}
                         ref={isHighlighted ? highlightedRef : null}
-                        className={`premium-card p-6 rounded-[2rem] flex flex-col shadow-2xl relative overflow-hidden group transition-all duration-500 ${isHighlighted ? 'ring-2 ring-[#ff7800] scale-[1.02] shadow-[0_0_40px_rgba(255,120,0,0.3)]' : ''}`}
+                        className={`bg-[#1A1A1A] border border-[#262626] p-6 rounded-2xl flex flex-col shadow-2xl relative overflow-hidden group transition-all duration-500 ${isHighlighted ? 'ring-2 ring-[#FF7A00] scale-[1.02] shadow-[0_0_40px_rgba(255,122,0,0.4)]' : ''}`}
                     >
                         {/* Decorative glow */}
-                        <div className="absolute -top-16 -right-16 size-32 bg-[#ff7800]/5 blur-[40px] rounded-full group-hover:bg-[#ff7800]/10 transition-all" />
+                        <div className="absolute -top-16 -right-16 size-32 bg-[#FF7A00]/5 blur-[40px] rounded-full group-hover:bg-[#FF7A00]/10 transition-all" />
                         
                         <div className="mb-6 relative">
                             <div className="flex items-baseline gap-1 mt-4">
                                 <span className="text-3xl font-black text-white tracking-tighter">₹{plan.price}</span>
-                                <span className="text-zinc-500 text-[9px] font-bold uppercase tracking-widest">/ {plan.validity_days}d</span>
+                                <span className="text-[#A1A1A1] text-[9px] font-bold uppercase tracking-widest">/ {plan.validity_days}d</span>
                             </div>
                         </div>
 
                         <ul className="space-y-3 mb-8 flex-1 relative">
                             <li className="flex items-start gap-3">
-                                <div className="mt-1 size-4 rounded-full bg-[#ff7800]/10 border border-[#ff7800]/20 flex items-center justify-center text-[#ff7800]">
+                                <div className="mt-1 size-4 rounded-full bg-[#FF7A00]/10 border border-[#FF7A00]/20 flex items-center justify-center text-[#FF7A00]">
                                     <Check size={10} strokeWidth={4} />
                                 </div>
-                                <span className="text-zinc-300 text-xs font-semibold">
+                                <span className="text-[#A1A1A1] text-xs font-semibold">
                                     <span className="text-white font-black">{plan.credits_included}cr</span> Transcription
                                 </span>
                             </li>
                             <li className="flex items-start gap-3">
-                                <div className="mt-1 size-4 rounded-full bg-[#ff7800]/10 border border-[#ff7800]/20 flex items-center justify-center text-[#ff7800]">
+                                <div className="mt-1 size-4 rounded-full bg-[#FF7A00]/10 border border-[#FF7A00]/20 flex items-center justify-center text-[#FF7A00]">
                                     <Check size={10} strokeWidth={4} />
                                 </div>
-                                <span className="text-zinc-300 text-xs font-semibold">
+                                <span className="text-[#A1A1A1] text-xs font-semibold">
                                     Validity: <span className="text-white font-black">{plan.validity_days} Days</span>
                                 </span>
                             </li>
@@ -258,7 +258,7 @@ export default function PricingPage() {
 
                         <Button
                             onClick={() => handlePurchase(plan.id)}
-                            className="w-full premium-button-orange h-11 rounded-xl relative z-10 text-[9px]"
+                            className="w-full bg-[#FF7A00] hover:bg-[#e66c00] text-black font-black uppercase tracking-widest transition-all h-11 rounded-lg relative z-10 text-[9px]"
                             disabled={purchaseLoading !== null}
                         >
                             {purchaseLoading === plan.id ? (
@@ -274,7 +274,7 @@ export default function PricingPage() {
             </div>
 
             <div className="mt-10 text-center">
-                <p className="text-zinc-600 text-[9px] font-bold uppercase tracking-[0.2em]">
+                <p className="text-[#A1A1A1] font-mono text-[9px] font-bold uppercase tracking-[0.2em]">
                     SECURE PAYMENTS VIA RAZORPAY
                 </p>
             </div>
