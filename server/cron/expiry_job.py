@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from app import create_app
 from extensions import db
 from models.subscription import Subscription
+from models.plan import Plan
 from models.user import User
 from services.credit_service import CreditService
 
@@ -18,10 +19,11 @@ def run_expiry_job():
     with app.app_context():
         now = datetime.utcnow()
         
-        # Find all active subscriptions past their expiration date
-        expired_subs = Subscription.query.filter(
+        # Find all active subscriptions past their expiration date (skip admin lifetime plans)
+        expired_subs = Subscription.query.join(Plan, Subscription.plan_id == Plan.id).filter(
             Subscription.status == 'active',
-            Subscription.end_date < now
+            Subscription.end_date < now,
+            Plan.plan_type != 'admin'
         ).all()
         
         processed_count = 0

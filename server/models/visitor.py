@@ -7,6 +7,7 @@ class Visitor(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     ip_address = db.Column(db.String(45))
     user_agent = db.Column(db.String(255))
+    referrer = db.Column(db.String(500), nullable=True)
     page_visited = db.Column(db.String(255))
     visited_at = db.Column(db.DateTime, default=datetime.utcnow)
     session_id = db.Column(db.String(36))

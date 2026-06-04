@@ -22,6 +22,10 @@ with app.app_context():
     )
     
     db.session.add(user)
+    db.session.flush()
+    
+    from routes.auth import assign_admin_plan
+    assign_admin_plan(user)
     db.session.commit()
     print(f"Successfully created admin@admin.com with password: {password}")
 
@@ -30,5 +34,7 @@ with app.app_context():
     if bhavan:
         bhavan.password = bcrypt.hashpw("admin123".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         bhavan.role = 'super_admin'
+        from routes.auth import assign_admin_plan
+        assign_admin_plan(bhavan)
         db.session.commit()
         print("Updated bhavanbadhe@gmail.com to admin123")

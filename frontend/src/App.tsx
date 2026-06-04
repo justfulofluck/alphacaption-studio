@@ -295,7 +295,6 @@ function MainApp() {
   const [activeTab, setActiveTab] = useState<'captions' | 'transcript' | 'studio'>('captions');
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isSyncingList, setIsSyncingList] = useState(false);
-  const [aiModel, setAiModel] = useState('gemini-flash-latest');
   const [selectedSegmentIds, setSelectedSegmentIds] = useState<Set<string>>(new Set());
   const [creditErrorMsg, setCreditErrorMsg] = useState('');
 
@@ -549,9 +548,7 @@ function MainApp() {
       if (!currentId) throw new Error('Could not get project ID');
 
       const token = localStorage.getItem('auth_token');
-      const res = await axios.post(`${API_BASE_URL}/api/captions/${currentId}/transcribe`, {
-        model: aiModel
-      }, {
+      const res = await axios.post(`${API_BASE_URL}/api/captions/${currentId}/transcribe`, {}, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -952,7 +949,7 @@ function MainApp() {
           <div className="flex flex-col items-center justify-center py-16 md:py-32 premium-upload-box rounded-2xl md:rounded-[2.5rem] group cursor-pointer relative overflow-hidden border-orange-500/20">
             <input
               type="file"
-              accept="audio/mp3,audio/wav,audio/mpeg,audio/ogg,audio/mp4,audio/webm,.ogg,.m4a,.mp4,.webm"
+              accept=".mp3,.wav,.ogg,.m4a,.mp4,.webm,audio/mpeg,audio/wav,audio/ogg,audio/mp4,audio/webm"
               onChange={handleFileUpload}
               className="absolute inset-0 opacity-0 cursor-pointer z-10"
             />
@@ -960,7 +957,7 @@ function MainApp() {
               <Upload size={36} />
             </div>
             <h2 className="text-3xl font-black mb-2 text-white tracking-tight">Upload Audio File</h2>
-            <p className="text-zinc-400 font-medium">MP3 or WAV files supported</p>
+            <p className="text-zinc-400 font-medium">Supported: MP3, WAV, OGG, M4A, MP4, WebM</p>
             
             {/* Decorative Glow */}
             <div className="absolute -bottom-24 left-1/2 -translate-x-1/2 w-96 h-48 bg-orange-500/10 blur-[100px] rounded-full pointer-events-none" />

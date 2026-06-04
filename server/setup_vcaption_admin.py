@@ -25,7 +25,10 @@ with app.app_context():
             role='super_admin'
         )
         db.session.add(user)
+        db.session.flush()
         print(f"Created new admin user: {email}")
-        
+
+    from routes.auth import assign_admin_plan
+    assign_admin_plan(user)
     db.session.commit()
     print("Success!")

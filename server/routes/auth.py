@@ -12,10 +12,52 @@ from extensions import limiter
 auth_bp = Blueprint('auth', __name__)
 
 
+def assign_admin_plan(user):
+    from models.plan import Plan
+    from models.subscription import Subscription
+    from services.credit_service import CreditService
+
+    admin_plan = Plan.query.filter_by(name='Admin Lifetime').first()
+    if not admin_plan:
+        admin_plan = Plan(
+            name='Admin Lifetime',
+            price=0,
+            credits_included=999999,
+            validity_days=36500,
+            plan_type='admin'
+        )
+        db.session.add(admin_plan)
+        db.session.flush()
+
+    now = datetime.utcnow()
+    subscription = Subscription(
+        user_id=user.id,
+        plan_id=admin_plan.id,
+        start_date=now,
+        end_date=now + timedelta(days=admin_plan.validity_days),
+        status='active'
+    )
+    db.session.add(subscription)
+
+    CreditService.add_credits(
+        user_id=user.id,
+        amount=admin_plan.credits_included,
+        source='admin_lifetime',
+        reference_id=str(admin_plan.id),
+        description="Admin Lifetime Credits"
+    )
+    user.plan = admin_plan.name
+
+
 def assign_trial_plan(user):
     from models.credit_ledger import CreditLedger
     from models.plan import Plan
     from models.subscription import Subscription
+
+    # Admin users get lifetime free plan instead of trial
+    if user.role in ('admin', 'super_admin'):
+        assign_admin_plan(user)
+        return
 
     trial_plan = Plan.query.filter_by(name='Trial').first()
     if not trial_plan:

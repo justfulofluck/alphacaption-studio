@@ -6,7 +6,7 @@ DEFAULT_PLANS = [
     {
         'name': 'Trial',
         'price': 0,
-        'credits_included': 2,
+        'credits_included': 5,
         'validity_days': 3,
         'plan_type': 'trial'
     },
@@ -37,6 +37,13 @@ DEFAULT_PLANS = [
         'credits_included': 1000,
         'validity_days': 365,
         'plan_type': 'subscription'
+    },
+    {
+        'name': 'Admin Lifetime',
+        'price': 0,
+        'credits_included': 999999,
+        'validity_days': 36500,
+        'plan_type': 'admin'
     }
 ]
 

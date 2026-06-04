@@ -50,6 +50,12 @@ class Plan(db.Model):
             'Unlimited exports',
             'Priority support',
             'Dedicated account manager'
+        ],
+        'Admin Lifetime': [
+            'Unlimited transcription',
+            'Everything in Business',
+            'Lifetime free access',
+            'All features unlocked'
         ]
     }
 

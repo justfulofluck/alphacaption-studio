@@ -71,11 +71,9 @@ def transcribe(project_id):
         
         vertex = get_vertex_service()
         if custom_model:
-            # Override model if requested from UI
-            vertex.google_ai_model_name = custom_model
             vertex.model_name = custom_model
             
-        print(f"[Captions] Starting transcription with model {vertex.google_ai_model_name} for {filepath}")
+        print(f"[Captions] Starting transcription with model {vertex.model_name} for {filepath}")
         result = vertex.transcribe(filepath)
         print(f"[Captions] Vertex AI result: {result}")
         
@@ -308,11 +306,6 @@ def sync_captions(project_id):
     if not project:
         return jsonify({'error': 'Project not found'}), 404
     
-    caption = Caption.query.filter_by(project_id=project_id).first()
-    
-    if not caption or not caption.segments_json:
-        return jsonify({'error': 'No captions to sync'}), 400
-    
     if not project.audio_filename:
         return jsonify({'error': 'No audio file'}), 400
     
@@ -321,7 +314,32 @@ def sync_captions(project_id):
     if not os.path.exists(filepath):
         return jsonify({'error': 'Audio file not found'}), 404
     
-    segments = json.loads(caption.segments_json)
+    # Read segments from request body first, fall back to DB
+    data = request.get_json() or {}
+    segments = data.get('segments')
+    
+    if not segments:
+        caption = Caption.query.filter_by(project_id=project_id).first()
+        if not caption or not caption.segments_json:
+            return jsonify({'error': 'No captions to sync'}), 400
+        segments = json.loads(caption.segments_json)
+    
+    if not segments:
+        return jsonify({'error': 'No segments to sync'}), 400
+    
+    # Save segments to DB before syncing
+    caption = Caption.query.filter_by(project_id=project_id).first()
+    if caption:
+        caption.segments_json = json.dumps(segments)
+    else:
+        caption = Caption(
+            project_id=project_id,
+            transcript='',
+            segments_json=json.dumps(segments),
+            style_json='{}'
+        )
+        db.session.add(caption)
+    db.session.commit()
     
     try:
         vertex = get_vertex_service()

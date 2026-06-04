@@ -62,7 +62,9 @@ def get_plans():
 
 @payment_bp.route('/public-pricing', methods=['GET'])
 def get_public_pricing():
-    plans = Plan.query.order_by(Plan.price.asc()).all()
+    plans = Plan.query.filter(
+        Plan.plan_type != 'admin'
+    ).order_by(Plan.price.asc()).all()
     return jsonify({'plans': [p.to_dict() for p in plans]}), 200
 
 

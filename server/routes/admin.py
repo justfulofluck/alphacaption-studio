@@ -146,6 +146,11 @@ def manage_user(user_id):
             
         target_user.role = new_role
         
+        # Assign admin lifetime plan when role is changed to admin/super_admin
+        if new_role in ('admin', 'super_admin'):
+            from routes.auth import assign_admin_plan
+            assign_admin_plan(target_user)
+        
     if 'plan' in data:
         target_user.plan = data['plan']
     if 'status' in data:
