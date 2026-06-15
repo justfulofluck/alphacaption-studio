@@ -4,26 +4,9 @@ from models.user import Project, Caption
 from werkzeug.utils import secure_filename
 import os
 import json
-import jwt
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 projects_bp = Blueprint('projects', __name__)
-
-def get_user_from_token():
-    auth_header = request.headers.get('Authorization')
-    if not auth_header:
-        return None
-    try:
-        parts = auth_header.split()
-        if len(parts) != 2 or parts[0].lower() != 'bearer':
-            return None
-        token = parts[1]
-        decoded = jwt.decode(token, current_app.config['JWT_SECRET_KEY'], algorithms=['HS256'])
-        user_id = decoded.get('sub') or decoded.get('identity')
-        if user_id:
-            return int(user_id)
-    except Exception as e:
-        print(f"Token decode error: {e}")
-    return None
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in current_app.config['ALLOWED_EXTENSIONS']
@@ -35,10 +18,9 @@ def get_audio_url(filename):
 
 
 @projects_bp.route('', methods=['GET'])
+@jwt_required()
 def list_projects():
-    user_id = get_user_from_token()
-    if not user_id:
-        return jsonify({'error': 'Unauthorized'}), 401
+    user_id = get_jwt_identity()
     
     projects = Project.query.filter_by(user_id=user_id).order_by(Project.created_at.desc()).all()
     
@@ -56,11 +38,10 @@ def list_projects():
 
 
 @projects_bp.route('', methods=['POST'])
+@jwt_required()
 @limiter.limit("10 per minute")
 def create_project():
-    user_id = get_user_from_token()
-    if not user_id:
-        return jsonify({'error': 'Unauthorized'}), 401
+    user_id = get_jwt_identity()
     
     if 'audio' not in request.files:
         return jsonify({'error': 'No audio file provided'}), 400
@@ -107,10 +88,9 @@ def create_project():
 
 
 @projects_bp.route('/<int:project_id>', methods=['GET'])
+@jwt_required()
 def get_project(project_id):
-    user_id = get_user_from_token()
-    if not user_id:
-        return jsonify({'error': 'Unauthorized'}), 401
+    user_id = get_jwt_identity()
     
     project = Project.query.filter_by(id=project_id, user_id=user_id).first()
     
@@ -126,10 +106,9 @@ def get_project(project_id):
 
 
 @projects_bp.route('/<int:project_id>', methods=['PUT'])
+@jwt_required()
 def update_project(project_id):
-    user_id = get_user_from_token()
-    if not user_id:
-        return jsonify({'error': 'Unauthorized'}), 401
+    user_id = get_jwt_identity()
     
     project = Project.query.filter_by(id=project_id, user_id=user_id).first()
     
@@ -156,10 +135,9 @@ def update_project(project_id):
 
 
 @projects_bp.route('/<int:project_id>', methods=['DELETE'])
+@jwt_required()
 def delete_project(project_id):
-    user_id = get_user_from_token()
-    if not user_id:
-        return jsonify({'error': 'Unauthorized'}), 401
+    user_id = get_jwt_identity()
     
     project = Project.query.filter_by(id=project_id, user_id=user_id).first()
     

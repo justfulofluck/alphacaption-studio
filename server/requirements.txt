@@ -15,3 +15,6 @@ PyJWT==2.8.0
 google-auth>=2.20.0
 Flask-Limiter
 razorpay==2.0.1
+torch>=2.0.0
+torchaudio>=2.0.0
+whisperx>=3.1.0

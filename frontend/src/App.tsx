@@ -73,6 +73,21 @@ import { cn } from './lib/utils';
 import { AudioProvider, useAudio } from './lib/AudioContext';
 import axios from 'axios';
 
+// Global Axios Interceptor for 401 Unauthorized
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem('auth_token');
+      const path = window.location.pathname;
+      if (!['/login', '/signup', '/admin/login'].includes(path)) {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 const MODELS = [
   { id: 'gemini-flash-latest', name: 'Gemini Flash (Recommended)' },
   { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash' },
@@ -147,7 +162,9 @@ function Layout() {
           setIsLoading(false);
         })
         .catch(() => {
-          // Token might be invalid but don't clear immediately - try to continue
+          // Token is invalid, clear it and redirect
+          localStorage.removeItem('auth_token');
+          setIsLoggedIn(false);
           setIsLoading(false);
         });
     } else {
@@ -214,6 +231,7 @@ function MainApp() {
   const [detectedLanguage, setDetectedLanguage] = useState<string | null>(null);
   const [transcript, setTranscript] = useState('');
   const [showCreditModal, setShowCreditModal] = useState(false);
+  const [transcriptionMode, setTranscriptionMode] = useState('native_language');
 
   useEffect(() => {
     const state = location.state as { projectId?: number };
@@ -297,6 +315,14 @@ function MainApp() {
   const [isSyncingList, setIsSyncingList] = useState(false);
   const [selectedSegmentIds, setSelectedSegmentIds] = useState<Set<string>>(new Set());
   const [creditErrorMsg, setCreditErrorMsg] = useState('');
+
+  // Clear segments when mode changes so user re-transcribes
+  useEffect(() => {
+    if (segments.length > 0 || transcript) {
+      setSegments([]);
+      setTranscript('');
+    }
+  }, [transcriptionMode]);
 
   // Studio States
   const [fontFamily, setFontFamily] = useState('Inter');
@@ -548,13 +574,31 @@ function MainApp() {
       if (!currentId) throw new Error('Could not get project ID');
 
       const token = localStorage.getItem('auth_token');
-      const res = await axios.post(`${API_BASE_URL}/api/captions/${currentId}/transcribe`, {}, {
+      const res = await axios.post(`${API_BASE_URL}/api/captions/${currentId}/transcribe`, {
+        mode: transcriptionMode
+      }, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
       if (res.data.transcript) {
         setTranscript(res.data.transcript);
         setDetectedLanguage(res.data.language);
+      }
+      if (res.data.segments && Array.isArray(res.data.segments)) {
+        const newSegments = res.data.segments.map((seg: any, i: number) => ({
+          id: `seg-${Date.now()}-${i}`,
+          start: parseFloat(seg.start),
+          end: parseFloat(seg.end),
+          text: seg.text
+        }));
+        setSegments(newSegments);
+        const initialState: HistoryState = {
+          segments: newSegments,
+          fontFamily, fontSize, fontColor, strokeColor, strokeWidth,
+          textShadow, textAlign, textPosition, transitionType
+        };
+        setUndoStack([initialState]);
+        setRedoStack([]);
       }
     } catch (error: any) {
       console.error('Error transcribing audio:', error);
@@ -990,6 +1034,16 @@ function MainApp() {
                     <Trash2 size={14} />
                     <span className="hidden sm:inline">Reset</span>
                   </button>
+
+                  <select
+                    value={transcriptionMode}
+                    onChange={(e) => setTranscriptionMode(e.target.value)}
+                    className="bg-white/5 border border-white/10 text-white px-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest outline-none focus:ring-1 focus:ring-white/20 cursor-pointer"
+                  >
+                    <option value="native_language" className="bg-zinc-900 text-white">Native Language</option>
+                    <option value="native_english" className="bg-zinc-900 text-white">Native+English</option>
+                    <option value="english" className="bg-zinc-900 text-white">English (Roman)</option>
+                  </select>
 
                   <button
                     onClick={isTranscribing ? stopTranscription : transcribeAudio}

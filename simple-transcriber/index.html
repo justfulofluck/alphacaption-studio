@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple Transcriber</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Simple Transcriber</h1>
+      <p class="subtitle">Upload audio, select language, download SRT</p>
+    </header>
+
+    <main>
+      <div class="upload-area" id="uploadArea">
+        <div class="upload-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+        </div>
+        <p class="upload-text">Drop audio file here or click to upload</p>
+        <p class="upload-hint">MP3, WAV, OGG, M4A</p>
+        <input type="file" id="audioInput" accept="audio/*" hidden>
+      </div>
+
+      <div class="config-row">
+        <div class="config-group">
+          <label for="languageSelect">Language</label>
+          <select id="languageSelect">
+            <option value="en">English</option>
+            <option value="hi">Hindi</option>
+            <option value="gu">Gujarati</option>
+            <option value="ta">Tamil</option>
+            <option value="mr">Marathi</option>
+            <option value="bn">Bengali</option>
+            <option value="pa">Punjabi</option>
+            <option value="kn">Kannada</option>
+            <option value="te">Telugu</option>
+            <option value="ml">Malayalam</option>
+            <option value="ur">Urdu</option>
+          </select>
+        </div>
+        <button id="transcribeBtn" disabled>Transcribe</button>
+      </div>
+
+      <div class="spinner" id="spinner" hidden>
+        <div class="spinner-label">Transcribing audio...</div>
+        <div class="wave-bars">
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+        </div>
+      </div>
+
+      <div class="status" id="status" hidden></div>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

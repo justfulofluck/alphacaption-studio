@@ -3,6 +3,8 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from extensions import db, limiter
 from models.user import Project, Caption
 from services.vertex_service import VertexService
+from services.whisperx_service import map_gemini_to_segments, duration_based_mapping, map_gemini_to_timestamps, distribute_text_to_segments
+
 from utils.srt_generator import generate_srt
 import json
 import os
@@ -16,35 +18,23 @@ def get_vertex_service():
         captions_bp._vertex_service = VertexService()
     return captions_bp._vertex_service
 
+def get_whisperx_service():
+    """Get or create WhisperXService instance"""
+    from services.whisperx_service import WhisperXService
+    if not hasattr(captions_bp, '_whisperx_service'):
+        captions_bp._whisperx_service = WhisperXService()
+    return captions_bp._whisperx_service
 
-import jwt
 
-def get_user_from_token():
-    auth_header = request.headers.get('Authorization')
-    if not auth_header:
-        return None
-    try:
-        parts = auth_header.split()
-        if len(parts) != 2 or parts[0].lower() != 'bearer':
-            return None
-        token = parts[1]
-        decoded = jwt.decode(token, current_app.config['JWT_SECRET_KEY'], algorithms=['HS256'])
-        user_id = decoded.get('sub') or decoded.get('identity')
-        if user_id:
-            return int(user_id)
-    except Exception as e:
-        print(f"Token decode error: {e}")
-    return None
+# get_user_from_token removed
 
 @captions_bp.route('/<int:project_id>/transcribe', methods=['POST'])
+@jwt_required()
 @limiter.limit("5 per minute")
 def transcribe(project_id):
     from services.credit_service import CreditService
-    user_id = get_user_from_token()
-    if not user_id:
-        return jsonify({'error': 'Unauthorized'}), 401
+    user_id = get_jwt_identity()
     
-    # Check project and duration
     project = Project.query.filter_by(id=project_id, user_id=user_id).first()
     if not project:
         return jsonify({'error': 'Project not found'}), 404
@@ -52,7 +42,6 @@ def transcribe(project_id):
     import math
     duration_mins = max(1, math.ceil(project.duration / 60))
     
-    # Check balance before starting
     balance = CreditService.get_balance(user_id)
     if balance < duration_mins:
         return jsonify({'error': f'Insufficient credits. This project requires {duration_mins} credits, but you only have {balance:.1f}.'}), 402
@@ -68,39 +57,86 @@ def transcribe(project_id):
     try:
         data = request.get_json() or {}
         custom_model = data.get('model')
-        
+        transcription_mode = data.get('mode', 'native_language')
+
+        valid_modes = ['native_language', 'native_english', 'english']
+        if transcription_mode not in valid_modes:
+            transcription_mode = 'native_language'
+
+        # Step 1: Gemini transcribes with selected mode (detects language + accurate text)
         vertex = get_vertex_service()
         if custom_model:
             vertex.model_name = custom_model
-            
-        print(f"[Captions] Starting transcription with model {vertex.model_name} for {filepath}")
-        result = vertex.transcribe(filepath)
-        print(f"[Captions] Vertex AI result: {result}")
-        
+        print(f"[Captions] Starting Gemini transcription (mode={transcription_mode}) for {filepath}")
+        result = vertex.transcribe(filepath, mode=transcription_mode)
+
         if result.get('error'):
-            print(f"[Captions] Transcription error: {result['error']}")
             return jsonify({'error': f"Transcription failed: {result['error']}"}), 500
-            
+
         transcript = result.get('transcript', '')
         language = result.get('language', 'English')
-        
-        # Save to database
+
+        # Step 2: Get segment-bound timing for Gemini's text
+        whisperx = get_whisperx_service()
+        from services.whisperx_service import SUPPORTED_ALIGN_LANGS, LANG_MAP
+        lang_code = LANG_MAP.get(language.lower().strip())
+
+        segments = []
+        word_segments = []
+
+        # Path 1: Word-level native timestamps → map_gemini_to_timestamps → 4-word segments
+        # Each word gets its own start/end time from Whisper's internal cross-attention.
+        # map_gemini_to_timestamps groups them into segments of 4 words each.
+        if transcript and lang_code:
+            print(f"[Captions] Word-level timing (mode={transcription_mode})")
+            wx_result = whisperx.transcribe_with_word_timestamps_native(filepath, language_code=lang_code)
+            wx_words = wx_result.get('words', [])
+            if wx_words:
+                mapping = map_gemini_to_timestamps(transcript, wx_words)
+                segments = mapping.get('segments', [])
+                word_segments = mapping.get('word_segments', [])
+                print(f"[Captions] Word-level timing: {len(word_segments)} words, {len(segments)} segments")
+
+        # Path 2: Segment-based fallback (if word-level failed)
+        if not segments and transcript:
+            print(f"[Captions] Segment-based fallback (mode={transcription_mode})")
+            wx_result = whisperx.transcribe_segments_only(filepath)
+            wx_segments = wx_result.get('segments', [])
+            if wx_segments:
+                mapping = map_gemini_to_segments(transcript, wx_segments)
+                segments = mapping.get('segments', [])
+                word_segments = mapping.get('word_segments', [])
+                print(f"[Captions] Segment-based: {len(segments)} segments, {len(word_segments)} words")
+
+        # Path 3: Duration-based proportional mapping (last resort)
+        if not segments and transcript:
+            print(f"[Captions] Using duration-based mapping as last resort")
+            mapping = duration_based_mapping(transcript, filepath)
+            segments = mapping.get('segments', [])
+            word_segments = mapping.get('word_segments', [])
+            print(f"[Captions] Duration mapping: {len(word_segments)} words, {len(segments)} segments")
+
+        # Save to DB
         caption = Caption.query.filter_by(project_id=project_id).first()
         if caption:
             caption.transcript = transcript
+            caption.segments_json = json.dumps(segments)
+            caption.word_segments_json = json.dumps(word_segments)
+            caption.transcription_mode = transcription_mode
         else:
             caption = Caption(
                 project_id=project_id,
                 transcript=transcript,
-                segments_json='[]',
-                style_json='{}'
+                segments_json=json.dumps(segments),
+                word_segments_json=json.dumps(word_segments),
+                style_json='{}',
+                transcription_mode=transcription_mode
             )
             db.session.add(caption)
-            
+        
         project.status = 'transcribed'
         project.language = language
         
-        # Credits are already calculated at the start
         from models.usage import Usage
         
         usage = Usage(
@@ -108,12 +144,11 @@ def transcribe(project_id):
             file_name=project.audio_filename,
             duration_minutes=project.duration / 60,
             credits_used=duration_mins,
-            cost_incurred=round((project.duration / 60) * 0.006, 4) # Approx $0.006 per minute cost Vertex
+            cost_incurred=round((project.duration / 60) * 0.006, 4)
         )
         db.session.add(usage)
-        db.session.flush() # Get usage ID
+        db.session.flush()
         
-        from services.credit_service import CreditService
         CreditService.deduct_credits(
             user_id=user_id,
             amount=duration_mins,
@@ -122,7 +157,6 @@ def transcribe(project_id):
             description=f"Transcription for project: {project.name}"
         )
         
-        # Notify user about project completion
         from utils.notification_utils import create_notification
         create_notification(
             user_id=user_id,
@@ -136,7 +170,9 @@ def transcribe(project_id):
         return jsonify({
             'message': 'Transcription completed',
             'language': language,
-            'transcript': transcript
+            'transcript': transcript,
+            'segments': segments,
+            'word_segments': word_segments
         })
     except Exception as e:
         print(f"[Captions] Unexpected error: {str(e)}")
@@ -146,26 +182,15 @@ def transcribe(project_id):
 
 
 @captions_bp.route('/<int:project_id>/align', methods=['POST'])
+@jwt_required()
 @limiter.limit("5 per minute")
 def align(project_id):
-    from services.credit_service import CreditService
-    user_id = get_user_from_token()
-    if not user_id:
-        return jsonify({'error': 'Unauthorized'}), 401
+    user_id = get_jwt_identity()
     
-    # Check project and duration
     project = Project.query.filter_by(id=project_id, user_id=user_id).first()
     if not project:
         return jsonify({'error': 'Project not found'}), 404
 
-    import math
-    duration_mins = max(1, math.ceil(project.duration / 60))
-    
-    # Check balance (alignment also requires credits)
-    balance = CreditService.get_balance(user_id)
-    if balance < duration_mins:
-        return jsonify({'error': f'Insufficient credits. This project requires {duration_mins} credits, but you only have {balance:.1f}.'}), 402
-    
     data = request.get_json()
     transcript = data.get('transcript', '')
     
@@ -181,65 +206,69 @@ def align(project_id):
         return jsonify({'error': 'Audio file not found'}), 404
     
     try:
-        vertex = get_vertex_service()
-        result = vertex.align_transcript(filepath, transcript)
-        
-        segments = result.get('segments', [])
-        if not segments:
-            error_msg = result.get('error', 'Alignment failed to generate segments. Please try again or check if the audio is clear.')
-            return jsonify({'error': error_msg}), 500
+        # Removed caching so Auto Sync always forces a fresh re-alignment
 
+        whisperx = get_whisperx_service()
+        from services.whisperx_service import SUPPORTED_ALIGN_LANGS, LANG_MAP
+        lang_code = LANG_MAP.get((project.language or '').lower().strip())
+
+        segments = []
+        word_segments = []
+
+        if transcript and lang_code:
+            wx_result = whisperx.transcribe_with_word_timestamps_native(filepath, language_code=lang_code)
+            wx_words = wx_result.get('words', [])
+            if wx_words:
+                mapping = map_gemini_to_timestamps(transcript, wx_words)
+                segments = mapping.get('segments', [])
+                word_segments = mapping.get('word_segments', [])
+
+        if not segments and transcript:
+            wx_result = whisperx.transcribe_segments_only(filepath)
+            wx_segments = wx_result.get('segments', [])
+            if wx_segments:
+                mapping = map_gemini_to_segments(transcript, wx_segments)
+                segments = mapping.get('segments', [])
+                word_segments = mapping.get('word_segments', [])
+
+        if not segments and transcript:
+            mapping = duration_based_mapping(transcript, filepath)
+            segments = mapping.get('segments', [])
+            word_segments = mapping.get('word_segments', [])
+
+        if not segments:
+            return jsonify({'error': 'Alignment failed to generate segments.'}), 500
+        
         caption = Caption.query.filter_by(project_id=project_id).first()
         if caption:
             caption.transcript = transcript
             caption.segments_json = json.dumps(segments)
+            caption.word_segments_json = json.dumps(word_segments)
         else:
             caption = Caption(
                 project_id=project_id,
                 transcript=transcript,
-                segments_json=json.dumps(segments)
+                segments_json=json.dumps(segments),
+                word_segments_json=json.dumps(word_segments)
             )
             db.session.add(caption)
         
         project.status = 'aligned'
-        
-        # Deduct credits for alignment
-        from models.usage import Usage
-        
-        usage = Usage(
-            user_id=user_id,
-            file_name=f"{project.audio_filename} (align)",
-            duration_minutes=project.duration / 60,
-            credits_used=duration_mins,
-            cost_incurred=round((project.duration / 60) * 0.006, 4)
-        )
-        db.session.add(usage)
-        db.session.flush() # Get usage ID
-        
-        from services.credit_service import CreditService
-        CreditService.deduct_credits(
-            user_id=user_id,
-            amount=duration_mins,
-            source='usage_align',
-            reference_id=str(usage.id),
-            description=f"AI Sync for project: {project.name}"
-        )
-        
         db.session.commit()
         
         return jsonify({
             'message': 'Alignment completed',
-            'segments': result.get('segments', [])
+            'segments': segments,
+            'word_segments': word_segments
         })
     except Exception as e:
         return jsonify({'error': f'Alignment failed: {str(e)}'}), 500
 
 
 @captions_bp.route('/<int:project_id>', methods=['GET'])
+@jwt_required()
 def get_captions(project_id):
-    user_id = get_user_from_token()
-    if not user_id:
-        return jsonify({'error': 'Unauthorized'}), 401
+    user_id = get_jwt_identity()
     project = Project.query.filter_by(id=project_id, user_id=user_id).first()
     
     if not project:
@@ -258,10 +287,9 @@ def get_captions(project_id):
 
 
 @captions_bp.route('/<int:project_id>', methods=['PUT'])
+@jwt_required()
 def update_captions(project_id):
-    user_id = get_user_from_token()
-    if not user_id:
-        return jsonify({'error': 'Unauthorized'}), 401
+    user_id = get_jwt_identity()
     project = Project.query.filter_by(id=project_id, user_id=user_id).first()
     
     if not project:
@@ -296,11 +324,10 @@ def update_captions(project_id):
 
 
 @captions_bp.route('/<int:project_id>/sync', methods=['POST'])
+@jwt_required()
 @limiter.limit("5 per minute")
 def sync_captions(project_id):
-    user_id = get_user_from_token()
-    if not user_id:
-        return jsonify({'error': 'Unauthorized'}), 401
+    user_id = get_jwt_identity()
     project = Project.query.filter_by(id=project_id, user_id=user_id).first()
     
     if not project:
@@ -308,11 +335,6 @@ def sync_captions(project_id):
     
     if not project.audio_filename:
         return jsonify({'error': 'No audio file'}), 400
-    
-    filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], project.audio_filename)
-    
-    if not os.path.exists(filepath):
-        return jsonify({'error': 'Audio file not found'}), 404
     
     # Read segments from request body first, fall back to DB
     data = request.get_json() or {}
@@ -327,41 +349,70 @@ def sync_captions(project_id):
     if not segments:
         return jsonify({'error': 'No segments to sync'}), 400
     
-    # Save segments to DB before syncing
+    # Generate a single transcript from the segments
+    transcript = " ".join(s.get("text", "") for s in segments)
+    filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], project.audio_filename)
+
+    whisperx = get_whisperx_service()
+    from services.whisperx_service import LANG_MAP, map_gemini_to_timestamps, map_gemini_to_segments, duration_based_mapping
+    lang_code = LANG_MAP.get((project.language or '').lower().strip())
+
+    new_segments = []
+    word_segments = []
+
+    if transcript and lang_code:
+        wx_result = whisperx.transcribe_with_word_timestamps_native(filepath, language_code=lang_code)
+        wx_words = wx_result.get('words', [])
+        if wx_words:
+            mapping = map_gemini_to_timestamps(transcript, wx_words)
+            new_segments = mapping.get('segments', [])
+            word_segments = mapping.get('word_segments', [])
+
+    if not new_segments and transcript:
+        wx_result = whisperx.transcribe_segments_only(filepath)
+        wx_segments = wx_result.get('segments', [])
+        if wx_segments:
+            mapping = map_gemini_to_segments(transcript, wx_segments)
+            new_segments = mapping.get('segments', [])
+            word_segments = mapping.get('word_segments', [])
+
+    if not new_segments and transcript:
+        mapping = duration_based_mapping(transcript, filepath)
+        new_segments = mapping.get('segments', [])
+        word_segments = mapping.get('word_segments', [])
+
+    if not new_segments:
+        new_segments = segments
+    
+    # Save segments to DB after alignment
     caption = Caption.query.filter_by(project_id=project_id).first()
     if caption:
-        caption.segments_json = json.dumps(segments)
+        caption.transcript = transcript
+        caption.segments_json = json.dumps(new_segments)
+        if word_segments:
+            caption.word_segments_json = json.dumps(word_segments)
     else:
         caption = Caption(
             project_id=project_id,
-            transcript='',
-            segments_json=json.dumps(segments),
+            transcript=transcript,
+            segments_json=json.dumps(new_segments),
+            word_segments_json=json.dumps(word_segments),
             style_json='{}'
         )
         db.session.add(caption)
     db.session.commit()
     
-    try:
-        vertex = get_vertex_service()
-        result = vertex.sync_segments(filepath, segments)
-        
-        caption.segments_json = json.dumps(result.get('segments', []))
-        db.session.commit()
-        
-        return jsonify({
-            'message': 'Sync completed',
-            'segments': result.get('segments', [])
-        })
-    except Exception as e:
-        return jsonify({'error': f'Sync failed: {str(e)}'}), 500
+    return jsonify({
+        'message': 'Sync completed',
+        'segments': new_segments
+    })
 
 
 @captions_bp.route('/<int:project_id>/export', methods=['GET'])
+@jwt_required()
 def export_srt(project_id):
     print(f"[Captions] Exporting SRT for project {project_id}")
-    user_id = get_user_from_token()
-    if not user_id:
-        return jsonify({'error': 'Unauthorized'}), 401
+    user_id = get_jwt_identity()
     project = Project.query.filter_by(id=project_id, user_id=user_id).first()
     
     if not project:

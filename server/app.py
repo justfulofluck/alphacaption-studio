@@ -1,3 +1,20 @@
+import sys
+import io
+
+# Fix Windows Unicode encoding issue for Hindi/Devanagari characters
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', line_buffering=True)
+
+import os
+from dotenv import load_dotenv
+
+# Load .env BEFORE any other imports so ALL modules get correct env vars
+dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
+load_dotenv(dotenv_path, override=True)
+print(f"[Startup] Loaded {dotenv_path}")
+print(f"[Startup] GEMINI_API_KEY={os.environ.get('GEMINI_API_KEY', 'NOT SET')[:25]}...")
+print(f"[Startup] GEMINI_MODEL={os.environ.get('GEMINI_MODEL', 'NOT SET')}")
+
 from flask import Flask, jsonify
 from flask_cors import CORS
 from config import Config

@@ -74,7 +74,9 @@ class Caption(db.Model):
     project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
     transcript = db.Column(db.Text)
     segments_json = db.Column(db.Text)
+    word_segments_json = db.Column(db.Text)
     style_json = db.Column(db.Text)
+    transcription_mode = db.Column(db.String(30), default='native_language')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -85,7 +87,9 @@ class Caption(db.Model):
             'project_id': self.project_id,
             'transcript': self.transcript,
             'segments': json.loads(self.segments_json) if self.segments_json else [],
+            'word_segments': json.loads(self.word_segments_json) if self.word_segments_json else [],
             'style': json.loads(self.style_json) if self.style_json else {},
+            'transcription_mode': self.transcription_mode,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
