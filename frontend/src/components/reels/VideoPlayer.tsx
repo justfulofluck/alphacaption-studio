@@ -1,0 +1,457 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { RefreshCw, Play, Pause, Volume2, Maximize2, Minimize2, Video, Type } from 'lucide-react';
+import { Panel } from 'react-resizable-panels';
+import { VideoPlayer as LimeplayPlayer } from "@/components/video-player/player";
+import { useTimelineStore } from '@/hooks/limeplay/use-timeline';
+import { usePlaybackStore } from '@/hooks/limeplay/use-playback';
+
+export interface CaptionItem {
+  id: number;
+  start: number;
+  end: number;
+  text: string;
+}
+
+interface CustomPlayerUIProps {
+  captions?: CaptionItem[];
+  fontFamily: string;
+  fontFace: string;
+  hoveredFontFamily?: string | null;
+  hoveredFontFace?: string | null;
+  fontSize: number;
+  styleFlags: { underline: boolean };
+  casing?: 'none' | 'capitalize' | 'uppercase' | 'lowercase';
+  textAlign: 'left' | 'center' | 'right';
+  position: { x: number; y: number };
+  setPosition: React.Dispatch<React.SetStateAction<{ x: number; y: number }>>;
+  colorToggle: string;
+  color: string;
+  gradientStops?: Array<{ id: number; position: number; color: string; opacity?: number }>;
+  gradientAngle?: number;
+  gradientLevel?: 'word' | 'char';
+}
+
+function CustomPlayerUI({ 
+  captions,
+  fontFamily,
+  fontFace,
+  hoveredFontFamily,
+  hoveredFontFace,
+  fontSize,
+  styleFlags,
+  casing,
+  textAlign,
+  position,
+  setPosition,
+  colorToggle,
+  color,
+  gradientStops,
+  gradientAngle,
+  gradientLevel
+}: CustomPlayerUIProps) {
+  const currentTime = useTimelineStore((state) => state.currentTime);
+  const duration = useTimelineStore((state) => state.duration);
+  const paused = usePlaybackStore((state) => state.paused);
+  const togglePaused = usePlaybackStore((state) => state.togglePaused);
+  const seek = useTimelineStore((state) => state.seek);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isSeeking, setIsSeeking] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const [boxWidth, setBoxWidth] = useState(80); // percentage width of caption box
+  const [snappedX, setSnappedX] = useState(false);
+  const [snappedY, setSnappedY] = useState(false);
+  const timelineRef = useRef<HTMLDivElement>(null);
+
+  const activeCaption = captions?.find(
+    (c) => currentTime >= c.start && currentTime < c.end
+  );
+
+  const formatTime = (secs: number) => {
+    if (isNaN(secs)) return "00:00:00";
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = Math.floor(secs % 60);
+    return [
+      h.toString().padStart(2, '0'),
+      m.toString().padStart(2, '0'),
+      s.toString().padStart(2, '0')
+    ].join(':');
+  };
+
+  const handleTimelineSeek = (clientX: number) => {
+    if (duration <= 0 || !timelineRef.current) return;
+    const rect = timelineRef.current.getBoundingClientRect();
+    const clickX = clientX - rect.left;
+    const percentage = Math.max(0, Math.min(1, clickX / rect.width));
+    seek(percentage * duration);
+  };
+
+  const handleTimelineMouseDown = (e: React.MouseEvent) => {
+    setIsSeeking(true);
+    handleTimelineSeek(e.clientX);
+    e.preventDefault();
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setIsEditing(true);
+    e.preventDefault();
+  };
+
+  const handleHandleMouseDown = (e: React.MouseEvent) => {
+    setIsResizing(true);
+    setIsEditing(true);
+    e.stopPropagation();
+    e.preventDefault();
+  };
+
+  // Drag resizing effect
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const playerContainer = document.querySelector('.player-media-container');
+      if (!playerContainer) return;
+      const rect = playerContainer.getBoundingClientRect();
+      
+      const mouseXPercent = ((e.clientX - rect.left) / rect.width) * 100;
+      const distFromCenter = Math.abs(mouseXPercent - position.x);
+      let newWidth = distFromCenter * 2;
+
+      newWidth = Math.max(15, Math.min(95, newWidth));
+      setBoxWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing, position.x]);
+
+  // Drag seek slider effect
+  useEffect(() => {
+    if (!isSeeking) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      handleTimelineSeek(e.clientX);
+    };
+
+    const handleMouseUp = () => {
+      setIsSeeking(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isSeeking, duration]);
+
+  // Drag caption box effect
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const playerContainer = document.querySelector('.player-media-container');
+      if (!playerContainer) return;
+      const rect = playerContainer.getBoundingClientRect();
+      
+      let x = ((e.clientX - rect.left) / rect.width) * 100;
+      let y = ((e.clientY - rect.top) / rect.height) * 100;
+
+      x = Math.max(5, Math.min(95, x));
+      y = Math.max(5, Math.min(95, y));
+
+      const snapThreshold = 1.5;
+      let isSnappedX = Math.abs(x - 50) < snapThreshold;
+      let isSnappedY = Math.abs(y - 50) < snapThreshold;
+      if (isSnappedX) x = 50.0;
+      if (isSnappedY) y = 50.0;
+      setSnappedX(isSnappedX);
+      setSnappedY(isSnappedY);
+      setPosition({ x, y });
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      setSnappedX(false);
+      setSnappedY(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, setPosition]);
+
+  // Click outside to deselect
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.caption-drag-container') && !target.closest('.right-sidebar-panel')) {
+        setIsEditing(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const activeFontFamily = hoveredFontFamily || fontFamily;
+  const activeFontFace = hoveredFontFace || fontFace;
+
+  // Map fontFace select value to CSS weight and style
+  let fontWeight: React.CSSProperties['fontWeight'] = 'bold';
+  let fontStyle: React.CSSProperties['fontStyle'] = 'normal';
+
+  const faceLower = (activeFontFace || '').toLowerCase();
+  
+  if (faceLower.includes('italic')) {
+    fontStyle = 'italic';
+  }
+
+  if (faceLower.includes('thin')) {
+    fontWeight = 100;
+  } else if (faceLower.includes('extra light')) {
+    fontWeight = 200;
+  } else if (faceLower.includes('light')) {
+    fontWeight = 300;
+  } else if (faceLower.includes('regular')) {
+    fontWeight = 400;
+  } else if (faceLower.includes('medium')) {
+    fontWeight = 500;
+  } else if (faceLower.includes('semi bold')) {
+    fontWeight = 600;
+  } else if (faceLower.includes('extra bold')) {
+    fontWeight = 800;
+  } else if (faceLower.includes('black')) {
+    fontWeight = 900;
+  } else if (faceLower.includes('bold')) {
+    fontWeight = 700;
+  }
+
+  const sortedStops = gradientStops ? [...gradientStops].sort((a, b) => a.position - b.position) : [];
+  const gradientString = sortedStops.length > 0 
+    ? `linear-gradient(${gradientAngle || 90}deg, ${sortedStops.map(s => {
+        const opacityVal = s.opacity !== undefined ? s.opacity : 100;
+        const alphaHex = Math.round(opacityVal * 2.55).toString(16).padStart(2, '0');
+        return `${s.color}${alphaHex} ${s.position}%`;
+      }).join(', ')})`
+    : `linear-gradient(${gradientAngle || 90}deg, ${color}, #52c595)`;
+
+  const captionStyle: React.CSSProperties = {
+    fontFamily: activeFontFamily === 'Inter' ? 'Inter, sans-serif' : activeFontFamily === 'Roboto' ? 'Roboto, sans-serif' : activeFontFamily === 'Montserrat' ? 'Montserrat, sans-serif' : 'Poppins, sans-serif',
+    fontSize: `${fontSize}px`,
+    fontStyle: fontStyle,
+    fontWeight: fontWeight,
+    textDecoration: styleFlags.underline ? 'underline' : 'none',
+    textTransform: casing || 'none',
+    textAlign: textAlign,
+    textShadow: colorToggle === 'Gradient' ? 'none' : '0px 2px 4px rgba(0,0,0,0.95), 0px 4px 10px rgba(0,0,0,0.5)',
+  };
+
+  return (
+    <div className="absolute inset-0 flex flex-col justify-between z-20 pointer-events-none select-none">
+      <style>{`
+        .custom-player-wrapper [data-layout-type="controls-container"],
+        .custom-player-wrapper [data-layout-type="controls-overlay-container"],
+        .custom-player-wrapper [data-layout-type="controls-bottom-container"] {
+          display: none !important;
+        }
+      `}</style>
+
+      {/* Editor Guide Grid Lines Overlay */}
+      {isEditing && (
+        <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 pointer-events-none z-10 bg-black/10">
+          {[...Array(9)].map((_, i) => <div key={i} className="border-r border-b border-white/10" />)}
+        </div>
+      )}
+
+      {/* Snap Lines */}
+      {isDragging && snappedX && <div className="absolute top-0 bottom-0 left-1/2 w-[1px] bg-[#00e5ff] z-30 pointer-events-none shadow-[0_0_4px_#00e5ff]" />}
+      {isDragging && snappedY && <div className="absolute left-0 right-0 top-1/2 h-[1px] bg-[#ff7800] z-30 pointer-events-none shadow-[0_0_4px_#ff7800]" />}
+
+      {/* Top Bar Overlay */}
+      <div className="h-14 flex items-center justify-between px-4 bg-[#161618] border-b border-[#2a2a2d] pointer-events-auto">
+        <button className="flex items-center gap-2 text-xs font-semibold bg-[#2a2a2d] hover:bg-[#3a3a3d] text-white px-3 py-1.5 rounded transition-colors border border-white/5">
+          <RefreshCw className="w-3.5 h-3.5 text-[#52c595]" /> Replace
+        </button>
+        
+        {/* Middle icons */}
+        <div className="flex items-center gap-3 bg-[#2a2a2d] px-3 py-1.5 rounded-lg border border-white/5">
+          <button className="text-zinc-400 hover:text-white transition-colors"><Minimize2 className="w-4 h-4" /></button>
+          <button className="text-zinc-400 hover:text-white transition-colors"><Video className="w-4 h-4" /></button>
+          <button className="text-zinc-400 hover:text-white transition-colors"><Type className="w-4 h-4" /></button>
+        </div>
+
+        <div className="flex items-center gap-2 text-[10px] font-bold tracking-wider uppercase bg-[#2a2a2d] text-[#8a8a8e] px-3 py-1.5 rounded border border-white/5">
+          <div className="w-1.5 h-1.5 rounded-full bg-[#f5a623]"></div> Low-res
+        </div>
+      </div>
+
+      {/* Caption Overlay */}
+      {activeCaption ? (
+        <div 
+          className="absolute caption-drag-container pointer-events-auto cursor-move z-20 flex items-center justify-center"
+          style={{ 
+            left: `${position.x}%`, 
+            top: `${position.y}%`, 
+            transform: 'translate(-50%, -50%)',
+            width: `${boxWidth}%`
+          }}
+          onMouseDown={handleMouseDown}
+        >
+          {isEditing && (
+            <>
+              <div className="absolute -inset-2 border border-[#00e5ff] rounded-sm pointer-events-none z-30" />
+              {/* Drag handles at corners and midpoints */}
+              <div onMouseDown={handleHandleMouseDown} className="absolute -top-3.5 -left-3.5 w-3.5 h-3.5 bg-white border border-zinc-900 rounded-full z-30 shadow cursor-nwse-resize" />
+              <div onMouseDown={handleHandleMouseDown} className="absolute -top-3.5 left-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-white border border-zinc-900 rounded-full z-30 shadow cursor-ns-resize" />
+              <div onMouseDown={handleHandleMouseDown} className="absolute -top-3.5 -right-3.5 w-3.5 h-3.5 bg-white border border-zinc-900 rounded-full z-30 shadow cursor-nesw-resize" />
+              <div onMouseDown={handleHandleMouseDown} className="absolute top-1/2 -translate-y-1/2 -left-3.5 w-3.5 h-3.5 bg-white border border-zinc-900 rounded-full z-30 shadow cursor-ew-resize" />
+              <div onMouseDown={handleHandleMouseDown} className="absolute top-1/2 -translate-y-1/2 -right-3.5 w-3.5 h-3.5 bg-white border border-zinc-900 rounded-full z-30 shadow cursor-ew-resize" />
+              <div onMouseDown={handleHandleMouseDown} className="absolute -bottom-3.5 -left-3.5 w-3.5 h-3.5 bg-white border border-zinc-900 rounded-full z-30 shadow cursor-nesw-resize" />
+              <div onMouseDown={handleHandleMouseDown} className="absolute -bottom-3.5 left-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-white border border-zinc-900 rounded-full z-30 shadow cursor-ns-resize" />
+              <div onMouseDown={handleHandleMouseDown} className="absolute -bottom-3.5 -right-3.5 w-3.5 h-3.5 bg-white border border-zinc-900 rounded-full z-30 shadow cursor-nwse-resize" />
+            </>
+          )}
+          {/* Transparent container background */}
+          <div 
+            className={`bg-transparent p-3 flex flex-wrap gap-y-1.5 rounded-xl select-none ${
+              textAlign === 'left' ? 'justify-start text-left' : 
+              textAlign === 'right' ? 'justify-end text-right' : 
+              'justify-center text-center'
+            }`} 
+            style={captionStyle}
+          >
+            {activeCaption.text.split(' ').map((word, wordIndex) => {
+              const isHighlight = wordIndex % 4 === 3;
+              
+              if (colorToggle === 'Gradient') {
+                if (gradientLevel === 'char') {
+                  return (
+                    <span key={wordIndex} className="inline-block mr-1.5 whitespace-nowrap">
+                      {word.split('').map((char, charIndex) => {
+                        const uniqueClass = `char-grad-${wordIndex}-${charIndex}`;
+                        return (
+                          <span key={charIndex} className={`${uniqueClass} inline-block`}>
+                            <style>{`
+                              .${uniqueClass} {
+                                background: ${gradientString} !important;
+                                -webkit-background-clip: text !important;
+                                background-clip: text !important;
+                                -webkit-text-fill-color: transparent !important;
+                                color: transparent !important;
+                                text-shadow: none !important;
+                              }
+                            `}</style>
+                            {char}
+                          </span>
+                        );
+                      })}
+                    </span>
+                  );
+                } else {
+                  const uniqueClass = `word-grad-${wordIndex}`;
+                  return (
+                    <span key={wordIndex} className={`${uniqueClass} inline-block mr-1.5`}>
+                      <style>{`
+                        .${uniqueClass} {
+                          background: ${gradientString} !important;
+                          -webkit-background-clip: text !important;
+                          background-clip: text !important;
+                          -webkit-text-fill-color: transparent !important;
+                          color: transparent !important;
+                          text-shadow: none !important;
+                        }
+                      `}</style>
+                      {word}
+                    </span>
+                  );
+                }
+              } else {
+                const textStyle: React.CSSProperties = { color: isHighlight ? '#52c595' : color };
+                return <span key={wordIndex} style={textStyle} className="drop-shadow-lg mr-1.5">{word}</span>;
+              }
+            })}
+          </div>
+        </div>
+      ) : <div />}
+
+      <div className="flex flex-col bg-[#161618] border-t border-[#2a2a2d] pointer-events-auto">
+        <div ref={timelineRef} className="w-full h-1.5 bg-zinc-800 hover:h-2.5 transition-all cursor-pointer relative group/timeline" onMouseDown={handleTimelineMouseDown}>
+          <div className="absolute top-0 bottom-0 left-0 bg-[#52c595]" style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }} />
+          <div className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full border border-zinc-950 shadow-md opacity-0 group-hover/timeline:opacity-100 transition-opacity" style={{ left: `calc(${duration > 0 ? (currentTime / duration) * 100 : 0}% - 7px)`, opacity: isSeeking ? 1 : undefined }} />
+        </div>
+        <div className="h-14 flex items-center justify-between px-5">
+          <div className="flex items-center gap-4">
+            <button onClick={togglePaused} className="text-[#e0e0e0] hover:text-white transition-colors p-1">{paused ? <Play className="w-4 h-4 fill-current" /> : <Pause className="w-4 h-4 fill-current" />}</button>
+            <button className="text-[#e0e0e0] hover:text-white transition-colors p-1"><Volume2 className="w-4 h-4" /></button>
+            <span className="text-xs font-medium text-zinc-400 font-mono">{formatTime(currentTime)} / {formatTime(duration)}</span>
+          </div>
+          <button className="text-[#e0e0e0] hover:text-white transition-colors p-1"><Maximize2 className="w-4 h-4" /></button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function VideoPlayer({ videoUrl, captions, fontFamily, fontFace, hoveredFontFamily, hoveredFontFace, fontSize, styleFlags, casing, textAlign, position, setPosition, colorToggle, color, gradientStops, gradientAngle, gradientLevel }: any) {
+  return (
+    <Panel defaultSize={40} minSize={20} className="flex flex-col bg-[#0f0f11] relative overflow-hidden rounded-xl border border-[#2a2a2d] custom-player-wrapper">
+      <div className="flex-1 flex items-center justify-center min-h-0 w-full h-full relative">
+        {videoUrl ? (
+          <div className="absolute inset-0 w-full h-full player-media-container">
+            <LimeplayPlayer mediaProps={{ src: videoUrl ?? undefined, className: "relative z-10" }} layout="fill" theme="dark" className="absolute inset-0 w-full h-full">
+              <CustomPlayerUI captions={captions} fontFamily={fontFamily} fontFace={fontFace} hoveredFontFamily={hoveredFontFamily} hoveredFontFace={hoveredFontFace} fontSize={fontSize} styleFlags={styleFlags} casing={casing} textAlign={textAlign} position={position} setPosition={setPosition} colorToggle={colorToggle} color={color} gradientStops={gradientStops} gradientAngle={gradientAngle} gradientLevel={gradientLevel} />
+            </LimeplayPlayer>
+          </div>
+        ) : (
+          <div className="w-full h-full relative bg-[#1a1a1c] flex flex-col justify-between">
+            <div className="h-14 flex items-center justify-between px-4 bg-[#161618] border-b border-[#2a2a2d]">
+              <button className="flex items-center gap-2 text-xs font-semibold bg-[#2a2a2d] text-white px-3 py-1.5 rounded opacity-50 cursor-not-allowed">
+                <RefreshCw className="w-3.5 h-3.5 text-[#52c595]" /> Replace
+              </button>
+              <div className="flex items-center gap-2 text-[10px] font-semibold bg-[#2a2a2d] text-[#8a8a8e] px-3 py-1.5 rounded">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#f5a623]"></div> Low-res
+              </div>
+            </div>
+
+            {/* Mock Video Image */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none py-14">
+              <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=800" alt="Video Preview" className="max-h-full max-w-full object-contain opacity-40" />
+            </div>
+
+            {/* Mock Bottom Bar */}
+            <div className="h-14 flex items-center justify-between px-5 bg-[#161618] border-t border-[#2a2a2d] z-10">
+              <div className="flex items-center gap-4">
+                <button className="text-zinc-500 p-1 cursor-not-allowed">
+                  <Play className="w-4 h-4 fill-current" />
+                </button>
+                <button className="text-zinc-500 p-1 cursor-not-allowed">
+                  <Volume2 className="w-4 h-4" />
+                </button>
+                <span className="text-xs font-medium text-zinc-600 font-mono">
+                  00:00:00 / 00:00:00
+                </span>
+              </div>
+              <button className="text-zinc-500 p-1 cursor-not-allowed">
+                <Maximize2 className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </Panel>
+  );
+}

@@ -51,6 +51,14 @@ with app.app_context():
     for col_name, col_type in payment_columns_to_add:
         add_column_if_not_exists('payments', col_name, col_type)
 
+    print("Checking for missing columns in 'projects' table...")
+    project_columns_to_add = [
+        ('video_filename', 'VARCHAR(255)'),
+        ('video_url', 'VARCHAR(500)')
+    ]
+    for col_name, col_type in project_columns_to_add:
+        add_column_if_not_exists('projects', col_name, col_type)
+
     # Update admin user if exists
     try:
         admin_email = 'bhavanbadhe@gmail.com'

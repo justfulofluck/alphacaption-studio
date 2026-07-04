@@ -76,7 +76,7 @@ export function SiteHeader({ user }: { user?: { name: string; avatar?: string; e
     if (pathnames.length === 0) return "Studio Workspace";
     const lastPath = pathnames[pathnames.length - 1];
     switch (lastPath) {
-      case "dashboard": return "User Dashboard";
+      case "dashboard": return "Home";
       case "admin": return "Super Admin Console";
       case "settings": return "Account Settings";
       default: return lastPath.replace(/-/g, ' ');

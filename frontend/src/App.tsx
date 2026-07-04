@@ -69,6 +69,8 @@ import SignupPage from './components/SignupPage';
 import LoginPage from './components/LoginPage';
 import ResetPasswordPage from './components/ResetPasswordPage';
 import PricingPage from './components/PricingPage';
+import { TTSDashboard } from './components/tts/TTSDashboard';
+import { ReelEditor } from './components/reels/ReelEditor';
 import { cn } from './lib/utils';
 import { AudioProvider, useAudio } from './lib/AudioContext';
 import axios from 'axios';
@@ -96,6 +98,7 @@ const MODELS = [
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { StudioSidebar } from "@/components/StudioSidebar"
 import { SiteHeader } from "@/components/site-header"
+import { OnboardingFlow } from './components/OnboardingFlow';
 
 interface CaptionSegment {
   id: string;
@@ -126,6 +129,8 @@ export default function App() {
           <Route path="/dashboard" element={<UserDashboard />} />
           <Route path="/settings" element={<ProfileSettings />} />
           <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/tts" element={<TTSDashboard />} />
+          <Route path="/reels" element={<ReelEditor />} />
         </Route>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
@@ -194,6 +199,8 @@ function Layout() {
     );
   }
 
+  const isFullPageLayout = location.pathname === '/reels';
+
   return (
     <SidebarProvider
       style={{
@@ -201,18 +208,24 @@ function Layout() {
         "--header-height": "64px",
       } as React.CSSProperties}
     >
-      <StudioSidebar user={{
-        name: user?.name || "User",
-        email: user?.email || "",
-        role: "user",
-        plan: user?.plan || "Free"
-      }} />
+      {user && user.has_completed_onboarding === false && (
+        <OnboardingFlow onComplete={() => setUser({ ...user, has_completed_onboarding: true })} />
+      )}
+      {!isFullPageLayout && (
+        <StudioSidebar user={{
+          name: user?.name || "User",
+          email: user?.email || "",
+          role: "user",
+          plan: user?.plan || "Free"
+        }} />
+      )}
       <AudioProvider>
-        <SidebarInset>
-          <SiteHeader user={{ name: user?.name || "User", avatar: user?.avatar }} />
+        <SidebarInset className={isFullPageLayout ? "m-0 p-0" : ""}>
+          {!isFullPageLayout && <SiteHeader user={{ name: user?.name || "User", avatar: user?.avatar }} />}
           <main className={cn(
             "flex-1 overflow-auto transition-colors duration-500",
-            location.pathname === "/" ? "bg-[#050505]" : "bg-background"
+            location.pathname === "/" ? "bg-[#050505]" : "bg-background",
+            isFullPageLayout ? "h-screen" : ""
           )}>
             <Outlet context={{ isLoggedIn, setIsLoggedIn }} />
           </main>

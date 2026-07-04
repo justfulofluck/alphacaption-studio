@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Montserrat:wght@400;500;700&family=Playfair+Display:wght@400;700&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&family=Cormorant+Garamond:wght@400;700&family=Open+Sans:wght@400;600;700&family=Lato:wght@400;700&family=Oswald:wght@400;700&family=Source+Sans+Pro:wght@400;700&family=Raleway:wght@400;700&family=PT+Sans:wght@400;700&family=Merriweather:wght@400;700&family=Noto+Sans:wght@400;700&family=Nunito:wght@400;700&family=Ubuntu:wght@400;700&family=Poppins:wght@400;600;700&family=Quicksand:wght@400;700&family=Arvo:wght@400;700&family=Pacifico&family=Kanit:wght@400;700&family=Crimson+Text:wght@400;700&family=Exo+2:wght@400;700&family=Lobster&family=Comfortaa:wght@400;700&family=Karla:wght@400;700&family=Heebo:wght@400;700&family=Varela+Round&family=Rubik:wght@400;700&family=Cairo:wght@400;700&family=Work+Sans:wght@400;700&family=DM+Sans:wght@400;700&family=Outfit:wght@400;700&family=Syne:wght@400;700&family=Bungee&family=Righteous&family=Fredoka+One&family=Concert+One&family=Patua+One&family=Creepster&family=Luckiest+Guy&family=Permanent+Marker&family=Shadows+Into+Light&family=Amatic+SC:wght@400;700&family=Caveat:wght@400;700&family=Indie+Flower&family=Dancing+Script:wght@400;700&family=Satisfy&family=Courgette&family=Great+Vibes&family=Sacramento&family=Yellowtail&family=Cookie&family=Kaushan+Script&family=Allura&family=Alex+Brush&family=Tangerine&family=Abel&family=Signika:wght@400;700&family=Archivo+Narrow:wght@400;700&family=Mukta:wght@400;700&family=Nanum+Gothic:wght@400;700&family=Maven+Pro:wght@400;700&family=Asap:wght@400;700&family=Catamaran:wght@400;700&family=Questrial&family=Zilla+Slab:wght@400;700&family=Exo:wght@400;700&family=Overpass:wght@400;700&family=Josefin+Sans:wght@400;700&family=Josefin+Slab:wght@400;700&family=Merriweather+Sans:wght@400;700&family=Spectral:wght@400;700&family=Tinos:wght@400;700&family=Domine:wght@400;700&family=Vollkorn:wght@400;700&family=Libre+Franklin:wght@400;700&family=Cardo:wght@400;700&family=Crimson+Pro:wght@400;700&family=Bitter:wght@400;700&family=Cabin:wght@400;700&family=Fira+Sans:wght@400;700&family=Libre+Baskerville:wght@400;700&family=Anton&family=Hind:wght@400;700&family=Titillium+Web:wght@400;700&family=Dosis:wght@400;700&family=Inconsolata:wght@400;700&family=Oxygen:wght@400;700&family=Arimo:wght@400;700&family=Lora:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100..900;1,100..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Poppins:ital,wght@0,100..900;1,100..900&family=Playfair+Display:wght@400;700&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&family=Cormorant+Garamond:wght@400;700&family=Open+Sans:wght@400;600;700&family=Lato:wght@400;700&family=Oswald:wght@400;700&family=Source+Sans+Pro:wght@400;700&family=Raleway:wght@400;700&family=PT+Sans:wght@400;700&family=Merriweather:wght@400;700&family=Noto+Sans:wght@400;700&family=Nunito:wght@400;700&family=Ubuntu:wght@400;700&family=Quicksand:wght@400;700&family=Arvo:wght@400;700&family=Pacifico&family=Kanit:wght@400;700&family=Crimson+Text:wght@400;700&family=Exo+2:wght@400;700&family=Lobster&family=Comfortaa:wght@400;700&family=Karla:wght@400;700&family=Heebo:wght@400;700&family=Varela+Round&family=Rubik:wght@400;700&family=Cairo:wght@400;700&family=Work+Sans:wght@400;700&family=DM+Sans:wght@400;700&family=Outfit:wght@400;700&family=Syne:wght@400;700&family=Bungee&family=Righteous&family=Fredoka+One&family=Concert+One&family=Patua+One&family=Creepster&family=Luckiest+Guy&family=Permanent+Marker&family=Shadows+Into+Light&family=Amatic+SC:wght@400;700&family=Caveat:wght@400;700&family=Indie+Flower&family=Dancing+Script:wght@400;700&family=Satisfy&family=Courgette&family=Great+Vibes&family=Sacramento&family=Yellowtail&family=Cookie&family=Kaushan+Script&family=Allura&family=Alex+Brush&family=Tangerine&family=Abel&family=Signika:wght@400;700&family=Archivo+Narrow:wght@400;700&family=Mukta:wght@400;700&family=Nanum+Gothic:wght@400;700&family=Maven+Pro:wght@400;700&family=Asap:wght@400;700&family=Catamaran:wght@400;700&family=Questrial&family=Zilla+Slab:wght@400;700&family=Exo:wght@400;700&family=Overpass:wght@400;700&family=Josefin+Sans:wght@400;700&family=Josefin+Slab:wght@400;700&family=Merriweather+Sans:wght@400;700&family=Spectral:wght@400;700&family=Tinos:wght@400;700&family=Domine:wght@400;700&family=Vollkorn:wght@400;700&family=Libre+Franklin:wght@400;700&family=Cardo:wght@400;700&family=Crimson+Pro:wght@400;700&family=Bitter:wght@400;700&family=Cabin:wght@400;700&family=Fira+Sans:wght@400;700&family=Libre+Baskerville:wght@400;700&family=Anton&family=Hind:wght@400;700&family=Titillium+Web:wght@400;700&family=Dosis:wght@400;700&family=Inconsolata:wght@400;700&family=Oxygen:wght@400;700&family=Arimo:wght@400;700&family=Lora:wght@400;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -79,6 +79,12 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  --lp-timeline-track-height: 4px;
+  --lp-timeline-track-height-active: 7px;
+  --color-lp-timeline-buffered-color: var(--lp-timeline-buffered-color);
+  --color-lp-primary-foreground: var(--lp-primary-foreground);
+  --color-lp-primary: var(--lp-primary);
+  --color-lp-accent: var(--lp-accent);
 }
 
 :root {
@@ -114,6 +120,10 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.7 0.2 45);
+  --lp-accent: oklch(0.269 0 0);
+  --lp-primary: oklch(0.205 0 0);
+  --lp-primary-foreground: oklch(0.985 0 0);
+  --lp-timeline-buffered-color: oklch(0.985 0 0 / 0.4);
 }
 
 @layer base {
@@ -240,4 +250,144 @@
 #waveform-container [part="cursor"]::after:active {
   cursor: grabbing;
   transform: translateX(-50%) scale(1.1);
+}
+
+.dark {
+  --lp-accent: oklch(0.97 0 0);
+  --lp-primary: oklch(0.205 0 0);
+  --lp-primary-foreground: oklch(0.985 0 0);
+  --lp-timeline-buffered-color: oklch(0.985 0 0 / 0.4);
+}
+
+@utility hit-area-debug {
+    position: relative;
+  &::before {
+    content: "";
+    position: absolute;
+    top: var(--hit-area-t, 0px);
+    right: var(--hit-area-r, 0px);
+    bottom: var(--hit-area-b, 0px);
+    left: var(--hit-area-l, 0px);
+    pointer-events: inherit;
+    @apply border border-dashed border-blue-500 bg-blue-500/10;
+  }
+  &:hover::before {
+    @apply border border-dashed border-green-500 bg-green-500/10;
+  }
+}
+
+@utility hit-area {
+    position: relative;
+  &::before {
+    content: "";
+    position: absolute;
+    top: var(--hit-area-t, 0px);
+    right: var(--hit-area-r, 0px);
+    bottom: var(--hit-area-b, 0px);
+    left: var(--hit-area-l, 0px);
+    pointer-events: inherit;
+  }
+}
+
+@utility hit-area-* {
+    position: relative;
+    --hit-area-t: --spacing(--value(number) * -1); --hit-area-t: calc(--value([*]) * -1);
+    --hit-area-b: --spacing(--value(number) * -1); --hit-area-b: calc(--value([*]) * -1);
+    --hit-area-l: --spacing(--value(number) * -1); --hit-area-l: calc(--value([*]) * -1);
+    --hit-area-r: --spacing(--value(number) * -1); --hit-area-r: calc(--value([*]) * -1);
+  &::before {
+    content: "";
+    position: absolute;
+    top: var(--hit-area-t, 0px);
+    right: var(--hit-area-r, 0px);
+    bottom: var(--hit-area-b, 0px);
+    left: var(--hit-area-l, 0px);
+    pointer-events: inherit;
+  }
+}
+
+@utility hit-area-l-* {
+    position: relative;
+    --hit-area-l: --spacing(--value(number) * -1); --hit-area-l: calc(--value([*]) * -1);
+  &::before {
+    content: "";
+    position: absolute;
+    top: var(--hit-area-t, 0px);
+    right: var(--hit-area-r, 0px);
+    bottom: var(--hit-area-b, 0px);
+    left: var(--hit-area-l, 0px);
+    pointer-events: inherit;
+  }
+}
+
+@utility hit-area-r-* {
+    position: relative;
+    --hit-area-r: --spacing(--value(number) * -1); --hit-area-r: calc(--value([*]) * -1);
+  &::before {
+    content: "";
+    position: absolute;
+    top: var(--hit-area-t, 0px);
+    right: var(--hit-area-r, 0px);
+    bottom: var(--hit-area-b, 0px);
+    left: var(--hit-area-l, 0px);
+    pointer-events: inherit;
+  }
+}
+
+@utility hit-area-t-* {
+    position: relative;
+    --hit-area-t: --spacing(--value(number) * -1); --hit-area-t: calc(--value([*]) * -1);
+  &::before {
+    content: "";
+    position: absolute;
+    top: var(--hit-area-t, 0px);
+    right: var(--hit-area-r, 0px);
+    bottom: var(--hit-area-b, 0px);
+    left: var(--hit-area-l, 0px);
+    pointer-events: inherit;
+  }
+}
+
+@utility hit-area-b-* {
+    position: relative;
+    --hit-area-b: --spacing(--value(number) * -1); --hit-area-b: calc(--value([*]) * -1);
+  &::before {
+    content: "";
+    position: absolute;
+    top: var(--hit-area-t, 0px);
+    right: var(--hit-area-r, 0px);
+    bottom: var(--hit-area-b, 0px);
+    left: var(--hit-area-l, 0px);
+    pointer-events: inherit;
+  }
+}
+
+@utility hit-area-x-* {
+    position: relative;
+    --hit-area-l: --spacing(--value(number) * -1); --hit-area-l: calc(--value([*]) * -1);
+    --hit-area-r: --spacing(--value(number) * -1); --hit-area-r: calc(--value([*]) * -1);
+  &::before {
+    content: "";
+    position: absolute;
+    top: var(--hit-area-t, 0px);
+    right: var(--hit-area-r, 0px);
+    bottom: var(--hit-area-b, 0px);
+    left: var(--hit-area-l, 0px);
+    pointer-events: inherit;
+  }
+}
+
+@utility hit-area-y-* {
+    position: relative;
+    --hit-area-t: --spacing(--value(number) * -1); --hit-area-t: calc(--value([*]) * -1);
+    --hit-area-b: --spacing(--value(number) * -1); --hit-area-b: calc(--value([*]) * -1);
+  &::before {
+    content: "";
+    position: absolute;
+    top: var(--hit-area-t, 0px);
+    right: var(--hit-area-r, 0px);
+    bottom: var(--hit-area-b, 0px);
+    left: var(--hit-area-l, 0px);
+    pointer-events: inherit;
+  }
 }

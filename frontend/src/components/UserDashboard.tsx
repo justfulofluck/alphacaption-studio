@@ -172,7 +172,7 @@ export default function UserDashboard() {
     <div className="flex flex-1 flex-col gap-6 md:gap-10 p-4 md:p-8 pt-4 md:pt-6 max-w-[1600px] mx-auto w-full">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div>
-          <h2 className="text-3xl md:text-4xl font-black tracking-tight text-white">Studio Dashboard</h2>
+          <h2 className="text-3xl md:text-4xl font-black tracking-tight text-white">Home</h2>
           <p className="text-[#A1A1A1] font-medium mt-1">Welcome back, {user?.name.split(' ')[0]}!</p>
         </div>
         <div className="flex items-center gap-3 w-full md:w-auto">

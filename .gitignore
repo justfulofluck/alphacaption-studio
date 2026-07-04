@@ -1,1 +1,23 @@
-Nothing should be ignored based on the provided file changes, as they only include source/config files (.md files) without any build artifacts, dependencies, or temporary files.
+# Environments
+.env
+.env.prod
+server/.env
+server/credentials/
+server/server.log
+
+# Node & Frontend Build
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.cache/
+
+# Python Cache & Uploads
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+server/uploads/
+
+# Temporary files
+temp_output.txt
+temp_output2.txt

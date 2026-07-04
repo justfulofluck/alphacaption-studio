@@ -16,6 +16,11 @@ def get_audio_url(filename):
         return f"{current_app.config['BASE_URL']}/api/projects/audio/{filename}"
     return None
 
+def get_video_url(user_id, filename):
+    if filename:
+        return f"{current_app.config['BASE_URL']}/api/projects/video/{user_id}/{filename}"
+    return None
+
 
 @projects_bp.route('', methods=['GET'])
 @jwt_required()
@@ -85,6 +90,52 @@ def create_project():
         'status': project.status,
         'created_at': project.created_at.isoformat()
     }), 201
+
+
+@projects_bp.route('/upload-video', methods=['POST'])
+@jwt_required()
+@limiter.limit("10 per minute")
+def upload_video():
+    user_id = get_jwt_identity()
+    
+    if 'video' not in request.files:
+        return jsonify({'error': 'No video file provided'}), 400
+        
+    file = request.files['video']
+    
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+        
+    if not allowed_file(file.filename):
+        return jsonify({'error': 'Invalid file type. Allowed: mp4, webm'}), 400
+        
+    user_video_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], f"user_{user_id}", "videos")
+    os.makedirs(user_video_dir, exist_ok=True)
+    
+    name = request.form.get('name', '').strip()
+    if not name:
+        name = os.path.splitext(secure_filename(file.filename))[0]
+        
+    filename = f"{int(os.path.getmtime(os.path.expanduser('~')))}_{secure_filename(file.filename)}"
+    filepath = os.path.join(user_video_dir, filename)
+    file.save(filepath)
+    
+    from utils.media_info import get_audio_duration
+    duration = get_audio_duration(filepath)
+    
+    project = Project(
+        user_id=user_id,
+        name=name,
+        video_filename=filename,
+        video_url=get_video_url(user_id, filename),
+        duration=duration,
+        status='uploaded'
+    )
+    
+    db.session.add(project)
+    db.session.commit()
+    
+    return jsonify(project.to_dict()), 201
 
 
 @projects_bp.route('/<int:project_id>', methods=['GET'])
@@ -158,3 +209,16 @@ def delete_project(project_id):
 @projects_bp.route('/audio/<filename>', methods=['GET'])
 def get_audio(filename):
     return send_from_directory(current_app.config['UPLOAD_FOLDER'], filename)
+
+
+@projects_bp.route('/video/<int:user_id>/<filename>', methods=['GET'])
+def get_video(user_id, filename):
+    user_video_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], f"user_{user_id}", "videos")
+    
+    mimetype = None
+    if filename.lower().endswith('.mp4'):
+        mimetype = 'video/mp4'
+    elif filename.lower().endswith('.webm'):
+        mimetype = 'video/webm'
+        
+    return send_from_directory(user_video_dir, filename, mimetype=mimetype)

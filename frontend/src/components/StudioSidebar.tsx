@@ -17,7 +17,8 @@ import {
   Users as UsersIcon,
   Settings2 as Settings2Icon,
   LayoutDashboard as LayoutDashboardIcon,
-  AudioLines as AudioLinesIcon
+  AudioLines as AudioLinesIcon,
+  Mic as MicIcon
 } from "lucide-react"
 import { Link } from "react-router-dom"
 
@@ -57,13 +58,23 @@ export function StudioSidebar({ user, ...props }: StudioSidebarProps) {
       }
     ] : [
       {
-        title: "Studio Project",
+        title: "Home",
+        url: "/dashboard",
+        icon: <LayoutDashboardIcon />,
+      },
+      {
+        title: "Caption Studio",
         url: "/",
         icon: <AudioLinesIcon />,
       },
       {
-        title: "Dashboard",
-        url: "/dashboard",
+        title: "Text-to-Speech",
+        url: "/tts",
+        icon: <MicIcon />,
+      },
+      {
+        title: "Reels",
+        url: "/reels",
         icon: <LayoutDashboardIcon />,
       },
       {

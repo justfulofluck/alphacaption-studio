@@ -18,6 +18,8 @@ class User(db.Model):
     locked_until = db.Column(db.DateTime, nullable=True)
     password_changed_at = db.Column(db.DateTime, nullable=True)
     current_jti = db.Column(db.String(36), nullable=True)
+    has_completed_onboarding = db.Column(db.Boolean, default=False)
+    onboarding_data = db.Column(db.Text, nullable=True)
     
     projects = db.relationship('Project', backref='user', lazy=True, cascade='all, delete-orphan')
     
@@ -30,6 +32,7 @@ class User(db.Model):
             'phone': self.phone,
             'plan': self.plan,
             'role': self.role,
+            'has_completed_onboarding': self.has_completed_onboarding,
             'credits': CreditService.get_balance(self.id) if self.id else 0,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'last_login_at': self.last_login_at.isoformat() if self.last_login_at else None
@@ -44,6 +47,8 @@ class Project(db.Model):
     name = db.Column(db.String(200), nullable=False)
     audio_filename = db.Column(db.String(255))
     audio_url = db.Column(db.String(500))
+    video_filename = db.Column(db.String(255))
+    video_url = db.Column(db.String(500))
     duration = db.Column(db.Float, default=0)
     language = db.Column(db.String(50))
     status = db.Column(db.String(20), default='uploaded')
@@ -59,6 +64,8 @@ class Project(db.Model):
             'name': self.name,
             'audio_filename': self.audio_filename,
             'audio_url': self.audio_url,
+            'video_filename': self.video_filename,
+            'video_url': self.video_url,
             'duration': self.duration,
             'language': self.language,
             'status': self.status,

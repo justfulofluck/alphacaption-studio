@@ -286,6 +286,31 @@ def admin_login():
         'token': token
     })
 
+@auth_bp.route('/complete-onboarding', methods=['POST'])
+@jwt_required()
+def complete_onboarding():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+        
+    data = request.get_json() or {}
+    import json
+    
+    user.has_completed_onboarding = True
+    user.onboarding_data = json.dumps(data)
+    
+    db.session.commit()
+    
+    from services.credit_service import CreditService
+    user_data = user.to_dict()
+    user_data['credits'] = CreditService.get_balance(user.id)
+    
+    return jsonify({
+        'message': 'Onboarding completed successfully',
+        'user': user_data
+    })
+
 @auth_bp.route('/me', methods=['GET'])
 @jwt_required()
 def get_current_user():
