@@ -529,6 +529,13 @@ export function ReelEditor() {
   const [letterSpacing, setLetterSpacing] = useState(0);
   const [lineSpacing, setLineSpacing] = useState(1.2);
 
+  // Upload and transcription states
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [transcribing, setTranscribing] = useState(false);
+  const [uploadStage, setUploadStage] = useState<'idle' | 'upload' | 'processing' | 'transcribing' | 'success' | 'error'>('idle');
+  const [processingError, setProcessingError] = useState<string | null>(null);
+
   const shadowColorRef = useRef<HTMLDivElement>(null);
   const strokeColorRef = useRef<HTMLDivElement>(null);
   const bgColorRef = useRef<HTMLDivElement>(null);
@@ -592,8 +599,20 @@ export function ReelEditor() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setProcessingError(null);
+    setUploadProgress(0);
+
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (ext !== 'mp4' && ext !== 'webm') {
+      setProcessingError('Format not supported. Only MP4 and WebM video formats are allowed.');
+      setUploadStage('error');
+      e.target.value = '';
+      return;
+    }
+
     if (file.size > 100 * 1024 * 1024) {
-      alert("File size exceeds 100MB limit. Please choose a smaller video.");
+      setProcessingError('File size exceeds 100MB limit. Please choose a smaller video file.');
+      setUploadStage('error');
       e.target.value = '';
       return;
     }
@@ -602,36 +621,206 @@ export function ReelEditor() {
     formData.append('video', file);
     formData.append('name', file.name);
 
-    try {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${API_BASE_URL}/api/projects/upload-video`, {
-        method: 'POST',
-        headers: {
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: formData,
-      });
-      
-      if (!response.ok) {
-        throw new Error('Upload failed');
-      }
-      
-      const data = await response.json();
-      console.log('Video uploaded successfully:', data);
-      if (data.video_url) {
-        setVideoUrl(data.video_url);
-      }
-      alert('Video uploaded successfully!');
-    } catch (error) {
-      console.error('Error uploading video:', error);
-      alert('Error uploading video. Please try again.');
-    } finally {
-      e.target.value = '';
+    setIsUploading(true);
+    setUploadProgress(0);
+    setTranscribing(false);
+    setUploadStage('upload');
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_BASE_URL}/api/projects/upload-video`);
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
     }
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const percent = Math.round((event.loaded / event.total) * 100);
+        setUploadProgress(percent);
+        if (percent === 100) {
+          setUploadStage('processing');
+        }
+      }
+    };
+
+    xhr.onload = async () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          console.log('Video uploaded successfully:', data);
+          
+          if (data.video_url) {
+            const pathOnly = data.video_url.replace(/^https?:\/\/[^\/]+/, '');
+            setVideoUrl(`${API_BASE_URL}${pathOnly}`);
+          }
+          
+          // Now trigger transcription automatically
+          setTranscribing(true);
+          setUploadStage('transcribing');
+          const transcribeResponse = await fetch(`${API_BASE_URL}/api/captions/${data.id}/transcribe`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            },
+            body: JSON.stringify({ mode: 'native_language' })
+          });
+          
+          if (!transcribeResponse.ok) {
+            throw new Error('Transcription failed');
+          }
+          
+          const transcribeData = await transcribeResponse.json();
+          console.log('Transcription successful:', transcribeData);
+          
+          // Sync new captions with editor
+          if (transcribeData.segments) {
+            setCaptions(transcribeData.segments);
+          }
+          
+          setUploadStage('success');
+        } catch (err: any) {
+          console.error('Processing error:', err);
+          setProcessingError(err?.message || 'Failed to process and transcribe video.');
+          setUploadStage('error');
+        } finally {
+          setIsUploading(false);
+          setTranscribing(false);
+          e.target.value = '';
+        }
+      } else {
+        setProcessingError('Upload failed. Please check your network connection and try again.');
+        setUploadStage('error');
+        setIsUploading(false);
+        e.target.value = '';
+      }
+    };
+
+    xhr.onerror = () => {
+      setProcessingError('Network error occurred during file upload.');
+      setUploadStage('error');
+      setIsUploading(false);
+      e.target.value = '';
+    };
+
+    xhr.send(formData);
   };
 
   return (
-    <div className="flex h-full w-full bg-[#000000] text-[#e0e0e0] font-sans overflow-hidden">
+    <div className="relative flex h-full w-full bg-[#000000] text-[#e0e0e0] font-sans overflow-hidden">
+      
+      {/* Upload and Transcription Progress Overlay */}
+      {uploadStage !== 'idle' && (
+        <div className="absolute inset-0 bg-[#0f0f11]/95 z-50 flex flex-col items-center justify-center backdrop-blur-sm">
+          <div className="w-[360px] bg-[#161618] border border-[#2a2a2d] rounded-2xl p-6 flex flex-col gap-6 shadow-2xl">
+            {uploadStage === 'success' ? (
+              <div className="flex flex-col items-center gap-4 py-4 text-center">
+                <div className="w-12 h-12 rounded-full bg-[#52c595]/15 flex items-center justify-center text-[#52c595] text-xl font-bold">
+                  ✓
+                </div>
+                <div className="flex flex-col gap-1">
+                  <h3 className="font-bold text-white text-lg">Process Complete</h3>
+                  <p className="text-xs text-[#8a8a8e]">Your video has been successfully transcribed!</p>
+                </div>
+                <button
+                  onClick={() => setUploadStage('idle')}
+                  className="mt-2 w-full py-2 bg-[#52c595] hover:bg-[#43b384] text-black font-semibold text-xs rounded-lg transition-colors focus:outline-none"
+                >
+                  Okay
+                </button>
+              </div>
+            ) : uploadStage === 'error' ? (
+              <div className="flex flex-col items-center gap-4 py-4 text-center">
+                <div className="w-12 h-12 rounded-full bg-red-500/15 flex items-center justify-center text-red-500 text-xl font-bold">
+                  !
+                </div>
+                <div className="flex flex-col gap-1">
+                  <h3 className="font-bold text-white text-lg">Processing Failed</h3>
+                  <p className="text-xs text-red-400 px-4 leading-relaxed">{processingError || 'Something went wrong. Please try again.'}</p>
+                </div>
+                <button
+                  onClick={() => setUploadStage('idle')}
+                  className="mt-2 w-full py-2 bg-[#2a2a2d] hover:bg-[#3a3a3d] text-white font-semibold text-xs rounded-lg transition-colors focus:outline-none border border-white/5"
+                >
+                  Close
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="flex flex-col items-center gap-2">
+                  <h3 className="font-bold text-white text-lg">Processing Video</h3>
+                  <p className="text-xs text-[#8a8a8e]">Please keep this window open</p>
+                </div>
+                
+                <div className="flex flex-col gap-4 border-t border-[#2a2a2d] pt-4">
+                  {/* Step 1: Uploading */}
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-3">
+                      <div className="w-5 h-5 flex items-center justify-center">
+                        {uploadStage === 'upload' ? (
+                          <div className="w-3.5 h-3.5 border-2 border-t-transparent border-[#52c595] rounded-full animate-spin" />
+                        ) : (
+                          <span className="text-[#52c595] font-bold text-sm">✓</span>
+                        )}
+                      </div>
+                      <span className={uploadStage === 'upload' ? 'text-white font-medium' : 'text-[#8a8a8e]'}>
+                        Uploading Video File
+                      </span>
+                    </div>
+                    {uploadStage === 'upload' && (
+                      <span className="text-[#52c595] font-mono font-semibold">{uploadProgress}%</span>
+                    )}
+                  </div>
+
+                  {/* Progress bar only visible during upload */}
+                  {uploadStage === 'upload' && (
+                    <div className="w-full bg-[#2a2a2d] h-1.5 rounded-full overflow-hidden">
+                      <div 
+                        className="bg-[#52c595] h-full rounded-full transition-all duration-300" 
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Step 2: Audio Extraction & Conversion */}
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-3">
+                      <div className="w-5 h-5 flex items-center justify-center">
+                        {uploadStage === 'upload' ? (
+                          <div className="w-1.5 h-1.5 rounded-full bg-[#2a2a2d]" />
+                        ) : uploadStage === 'processing' ? (
+                          <div className="w-3.5 h-3.5 border-2 border-t-transparent border-[#52c595] rounded-full animate-spin" />
+                        ) : (
+                          <span className="text-[#52c595] font-bold text-sm">✓</span>
+                        )}
+                      </div>
+                      <span className={uploadStage === 'processing' ? 'text-white font-medium' : 'text-[#8a8a8e]'}>
+                        Extracting Audio & Processing Video
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Step 3: Transcription */}
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-3">
+                      <div className="w-5 h-5 flex items-center justify-center">
+                        {uploadStage === 'transcribing' ? (
+                          <div className="w-3.5 h-3.5 border-2 border-t-transparent border-[#52c595] rounded-full animate-spin" />
+                        ) : (
+                          <div className="w-1.5 h-1.5 rounded-full bg-[#2a2a2d]" />
+                        )}
+                      </div>
+                      <span className={uploadStage === 'transcribing' ? 'text-white font-medium' : 'text-[#8a8a8e]'}>
+                        AI Transcription & Timing Sync
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
       
       {/* Vertical Menu (Fixed Leftmost Bar) */}
       <div className="w-[72px] flex flex-col items-center py-6 gap-8 border-r border-[#2a2a2d] bg-[#161618] h-full shrink-0 z-20">

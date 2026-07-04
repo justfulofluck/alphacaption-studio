@@ -122,12 +122,29 @@ def upload_video():
     
     from utils.media_info import get_audio_duration
     duration = get_audio_duration(filepath)
+
+    # Extract audio using FFmpeg subprocess
+    audio_filename = f"extracted_{user_id}_{int(os.path.getmtime(os.path.expanduser('~')))}.wav"
+    audio_filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], audio_filename)
+    
+    import subprocess
+    try:
+        cmd = ['ffmpeg', '-y', '-i', filepath, '-vn', '-acodec', 'pcm_s16le', '-ar', '16000', '-ac', '1', audio_filepath]
+        print(f"[FFmpeg] Running command: {' '.join(cmd)}")
+        subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        print(f"[FFmpeg] Audio extracted successfully to {audio_filepath}")
+        has_audio = True
+    except Exception as e:
+        print(f"[FFmpeg] Failed to extract audio: {str(e)}")
+        has_audio = False
     
     project = Project(
         user_id=user_id,
         name=name,
         video_filename=filename,
         video_url=get_video_url(user_id, filename),
+        audio_filename=audio_filename if has_audio else None,
+        audio_url=get_audio_url(audio_filename) if has_audio else None,
         duration=duration,
         status='uploaded'
     )
