@@ -29,6 +29,28 @@ interface CustomPlayerUIProps {
   gradientStops?: Array<{ id: number; position: number; color: string; opacity?: number }>;
   gradientAngle?: number;
   gradientLevel?: 'word' | 'char';
+  // EFFECTS props
+  shadowEnabled?: boolean;
+  shadowColor?: string;
+  shadowOpacity?: number;
+  shadowX?: number;
+  shadowY?: number;
+  shadowBlur?: number;
+  strokeEnabled?: boolean;
+  strokeColor?: string;
+  strokeOpacity?: number;
+  strokeWidth?: number;
+  bgEnabled?: boolean;
+  bgColor?: string;
+  bgOpacity?: number;
+  bgRadius?: number;
+  bgWidth?: number;
+  bgHeight?: number;
+  bgShadowEnabled?: boolean;
+  bgOutlineEnabled?: boolean;
+  // SPACING props
+  letterSpacing?: number;
+  lineSpacing?: number;
 }
 
 function CustomPlayerUI({ 
@@ -47,7 +69,27 @@ function CustomPlayerUI({
   color,
   gradientStops,
   gradientAngle,
-  gradientLevel
+  gradientLevel,
+  shadowEnabled,
+  shadowColor,
+  shadowOpacity,
+  shadowX,
+  shadowY,
+  shadowBlur,
+  strokeEnabled,
+  strokeColor,
+  strokeOpacity,
+  strokeWidth,
+  bgEnabled,
+  bgColor,
+  bgOpacity,
+  bgRadius,
+  bgWidth,
+  bgHeight,
+  bgShadowEnabled,
+  bgOutlineEnabled,
+  letterSpacing = 0,
+  lineSpacing = 1.2
 }: CustomPlayerUIProps) {
   const currentTime = useTimelineStore((state) => state.currentTime);
   const duration = useTimelineStore((state) => state.duration);
@@ -249,6 +291,31 @@ function CustomPlayerUI({
       }).join(', ')})`
     : `linear-gradient(${gradientAngle || 90}deg, ${color}, #52c595)`;
 
+  const getRGBA = (hexColor: string, opacityPercent: number) => {
+    const cleanHex = (hexColor || '#000000').replace('#', '');
+    const r = parseInt(cleanHex.substring(0, 2), 16) || 0;
+    const g = parseInt(cleanHex.substring(2, 4), 16) || 0;
+    const b = parseInt(cleanHex.substring(4, 6), 16) || 0;
+    const op = opacityPercent !== undefined ? opacityPercent : 100;
+    return `rgba(${r}, ${g}, ${b}, ${op / 100})`;
+  };
+
+  const shadowCSS = shadowEnabled 
+    ? `${shadowX || 0}px ${shadowY || 0}px ${shadowBlur || 0}px ${getRGBA(shadowColor || '#000000', shadowOpacity !== undefined ? shadowOpacity : 63)}`
+    : 'none';
+
+  const strokeCSS = strokeEnabled
+    ? `${strokeWidth || 1}px ${getRGBA(strokeColor || '#000000', strokeOpacity !== undefined ? strokeOpacity : 100)}`
+    : 'none';
+
+  const bgStyle: React.CSSProperties = bgEnabled ? {
+    backgroundColor: getRGBA(bgColor || '#000000', bgOpacity !== undefined ? bgOpacity : 100),
+    borderRadius: `${bgRadius !== undefined ? bgRadius : 24}px`,
+    padding: `${bgHeight !== undefined ? bgHeight : 24}px ${bgWidth !== undefined ? bgWidth : 48}px`,
+    boxShadow: bgShadowEnabled ? '0px 10px 25px -5px rgba(0, 0, 0, 0.3), 0px 8px 10px -6px rgba(0, 0, 0, 0.3)' : 'none',
+    border: bgOutlineEnabled ? '1.5px solid rgba(255, 255, 255, 0.2)' : 'none',
+  } : {};
+
   const captionStyle: React.CSSProperties = {
     fontFamily: activeFontFamily === 'Inter' ? 'Inter, sans-serif' : activeFontFamily === 'Roboto' ? 'Roboto, sans-serif' : activeFontFamily === 'Montserrat' ? 'Montserrat, sans-serif' : 'Poppins, sans-serif',
     fontSize: `${fontSize}px`,
@@ -257,7 +324,9 @@ function CustomPlayerUI({
     textDecoration: styleFlags.underline ? 'underline' : 'none',
     textTransform: casing || 'none',
     textAlign: textAlign,
-    textShadow: colorToggle === 'Gradient' ? 'none' : '0px 2px 4px rgba(0,0,0,0.95), 0px 4px 10px rgba(0,0,0,0.5)',
+    textShadow: shadowEnabled ? shadowCSS : (colorToggle === 'Gradient' ? 'none' : '0px 2px 4px rgba(0,0,0,0.95), 0px 4px 10px rgba(0,0,0,0.5)'),
+    letterSpacing: `${letterSpacing}px`,
+    lineHeight: lineSpacing,
   };
 
   return (
@@ -327,12 +396,12 @@ function CustomPlayerUI({
           )}
           {/* Transparent container background */}
           <div 
-            className={`bg-transparent p-3 flex flex-wrap gap-y-1.5 rounded-xl select-none ${
+            className={`p-3 flex flex-wrap gap-y-1.5 rounded-xl select-none ${
               textAlign === 'left' ? 'justify-start text-left' : 
               textAlign === 'right' ? 'justify-end text-right' : 
               'justify-center text-center'
             }`} 
-            style={captionStyle}
+            style={{ ...captionStyle, ...bgStyle }}
           >
             {activeCaption.text.split(' ').map((word, wordIndex) => {
               const isHighlight = wordIndex % 4 === 3;
@@ -352,7 +421,8 @@ function CustomPlayerUI({
                                 background-clip: text !important;
                                 -webkit-text-fill-color: transparent !important;
                                 color: transparent !important;
-                                text-shadow: none !important;
+                                text-shadow: ${shadowEnabled ? shadowCSS : 'none'} !important;
+                                -webkit-text-stroke: ${strokeEnabled ? strokeCSS : 'none'} !important;
                               }
                             `}</style>
                             {char}
@@ -372,7 +442,8 @@ function CustomPlayerUI({
                           background-clip: text !important;
                           -webkit-text-fill-color: transparent !important;
                           color: transparent !important;
-                          text-shadow: none !important;
+                          text-shadow: ${shadowEnabled ? shadowCSS : 'none'} !important;
+                          -webkit-text-stroke: ${strokeEnabled ? strokeCSS : 'none'} !important;
                         }
                       `}</style>
                       {word}
@@ -380,8 +451,19 @@ function CustomPlayerUI({
                   );
                 }
               } else {
-                const textStyle: React.CSSProperties = { color: isHighlight ? '#52c595' : color };
-                return <span key={wordIndex} style={textStyle} className="drop-shadow-lg mr-1.5">{word}</span>;
+                const uniqueClass = `word-solid-${wordIndex}`;
+                return (
+                  <span key={wordIndex} className={`${uniqueClass} inline-block mr-1.5`}>
+                    <style>{`
+                      .${uniqueClass} {
+                        color: ${isHighlight ? '#52c595' : color} !important;
+                        text-shadow: ${shadowEnabled ? shadowCSS : '0px 2px 4px rgba(0,0,0,0.95), 0px 4px 10px rgba(0,0,0,0.5)'} !important;
+                        -webkit-text-stroke: ${strokeEnabled ? strokeCSS : 'none'} !important;
+                      }
+                    `}</style>
+                    {word}
+                  </span>
+                );
               }
             })}
           </div>
@@ -406,14 +488,90 @@ function CustomPlayerUI({
   );
 }
 
-export function VideoPlayer({ videoUrl, captions, fontFamily, fontFace, hoveredFontFamily, hoveredFontFace, fontSize, styleFlags, casing, textAlign, position, setPosition, colorToggle, color, gradientStops, gradientAngle, gradientLevel }: any) {
+export function VideoPlayer({ 
+  videoUrl, 
+  captions, 
+  fontFamily, 
+  fontFace, 
+  hoveredFontFamily, 
+  hoveredFontFace, 
+  fontSize, 
+  styleFlags, 
+  casing, 
+  textAlign, 
+  position, 
+  setPosition, 
+  colorToggle, 
+  color, 
+  gradientStops, 
+  gradientAngle, 
+  gradientLevel,
+  // EFFECTS props
+  shadowEnabled,
+  shadowColor,
+  shadowOpacity,
+  shadowX,
+  shadowY,
+  shadowBlur,
+  strokeEnabled,
+  strokeColor,
+  strokeOpacity,
+  strokeWidth,
+  bgEnabled,
+  bgColor,
+  bgOpacity,
+  bgRadius,
+  bgWidth,
+  bgHeight,
+  bgShadowEnabled,
+  bgOutlineEnabled,
+  letterSpacing,
+  lineSpacing
+}: any) {
   return (
     <Panel defaultSize={40} minSize={20} className="flex flex-col bg-[#0f0f11] relative overflow-hidden rounded-xl border border-[#2a2a2d] custom-player-wrapper">
       <div className="flex-1 flex items-center justify-center min-h-0 w-full h-full relative">
         {videoUrl ? (
           <div className="absolute inset-0 w-full h-full player-media-container">
             <LimeplayPlayer mediaProps={{ src: videoUrl ?? undefined, className: "relative z-10" }} layout="fill" theme="dark" className="absolute inset-0 w-full h-full">
-              <CustomPlayerUI captions={captions} fontFamily={fontFamily} fontFace={fontFace} hoveredFontFamily={hoveredFontFamily} hoveredFontFace={hoveredFontFace} fontSize={fontSize} styleFlags={styleFlags} casing={casing} textAlign={textAlign} position={position} setPosition={setPosition} colorToggle={colorToggle} color={color} gradientStops={gradientStops} gradientAngle={gradientAngle} gradientLevel={gradientLevel} />
+              <CustomPlayerUI 
+                captions={captions} 
+                fontFamily={fontFamily} 
+                fontFace={fontFace} 
+                hoveredFontFamily={hoveredFontFamily} 
+                hoveredFontFace={hoveredFontFace} 
+                fontSize={fontSize} 
+                styleFlags={styleFlags} 
+                casing={casing} 
+                textAlign={textAlign} 
+                position={position} 
+                setPosition={setPosition} 
+                colorToggle={colorToggle} 
+                color={color} 
+                gradientStops={gradientStops} 
+                gradientAngle={gradientAngle} 
+                gradientLevel={gradientLevel}
+                shadowEnabled={shadowEnabled}
+                shadowColor={shadowColor}
+                shadowOpacity={shadowOpacity}
+                shadowX={shadowX}
+                shadowY={shadowY}
+                shadowBlur={shadowBlur}
+                strokeEnabled={strokeEnabled}
+                strokeColor={strokeColor}
+                strokeOpacity={strokeOpacity}
+                strokeWidth={strokeWidth}
+                bgEnabled={bgEnabled}
+                bgColor={bgColor}
+                bgOpacity={bgOpacity}
+                bgRadius={bgRadius}
+                bgWidth={bgWidth}
+                bgHeight={bgHeight}
+                bgShadowEnabled={bgShadowEnabled}
+                bgOutlineEnabled={bgOutlineEnabled}
+                letterSpacing={letterSpacing}
+                lineSpacing={lineSpacing}
+              />
             </LimeplayPlayer>
           </div>
         ) : (

@@ -495,6 +495,60 @@ export function ReelEditor() {
   const [gradientLevel, setGradientLevel] = useState<'word' | 'char'>('word');
   const [inputAngle, setInputAngle] = useState('90');
 
+  // EFFECTS section states
+  // Drop Shadow
+  const [shadowEnabled, setShadowEnabled] = useState(false);
+  const [shadowColor, setShadowColor] = useState('#000000');
+  const [shadowOpacity, setShadowOpacity] = useState(63);
+  const [shadowX, setShadowX] = useState(0);
+  const [shadowY, setShadowY] = useState(0);
+  const [shadowBlur, setShadowBlur] = useState(13);
+  
+  // Text Stroke
+  const [strokeEnabled, setStrokeEnabled] = useState(false);
+  const [strokeColor, setStrokeColor] = useState('#000000');
+  const [strokeOpacity, setStrokeOpacity] = useState(100);
+  const [strokeWidth, setStrokeWidth] = useState(1);
+
+  // Background
+  const [bgEnabled, setBgEnabled] = useState(false);
+  const [bgColor, setBgColor] = useState('#000000');
+  const [bgOpacity, setBgOpacity] = useState(100);
+  const [bgRadius, setBgRadius] = useState(24);
+  const [bgWidth, setBgWidth] = useState(48);
+  const [bgHeight, setBgHeight] = useState(24);
+  const [bgShadowEnabled, setBgShadowEnabled] = useState(false);
+  const [bgOutlineEnabled, setBgOutlineEnabled] = useState(false);
+
+  // Custom Color Picker popups toggles inside effects
+  const [showShadowColorPicker, setShowShadowColorPicker] = useState(false);
+  const [showStrokeColorPicker, setShowStrokeColorPicker] = useState(false);
+  const [showBgColorPicker, setShowBgColorPicker] = useState(false);
+
+  // SPACING section states
+  const [letterSpacing, setLetterSpacing] = useState(0);
+  const [lineSpacing, setLineSpacing] = useState(1.2);
+
+  const shadowColorRef = useRef<HTMLDivElement>(null);
+  const strokeColorRef = useRef<HTMLDivElement>(null);
+  const bgColorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (shadowColorRef.current && !shadowColorRef.current.contains(e.target as Node)) {
+        setShowShadowColorPicker(false);
+      }
+      if (strokeColorRef.current && !strokeColorRef.current.contains(e.target as Node)) {
+        setShowStrokeColorPicker(false);
+      }
+      if (bgColorRef.current && !bgColorRef.current.contains(e.target as Node)) {
+        setShowBgColorPicker(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
   useEffect(() => {
     setInputAngle(gradientAngle.toString());
   }, [gradientAngle]);
@@ -789,6 +843,28 @@ export function ReelEditor() {
             gradientStops={gradientStops}
             gradientAngle={gradientAngle}
             gradientLevel={gradientLevel}
+            // EFFECTS props
+            shadowEnabled={shadowEnabled}
+            shadowColor={shadowColor}
+            shadowOpacity={shadowOpacity}
+            shadowX={shadowX}
+            shadowY={shadowY}
+            shadowBlur={shadowBlur}
+            strokeEnabled={strokeEnabled}
+            strokeColor={strokeColor}
+            strokeOpacity={strokeOpacity}
+            strokeWidth={strokeWidth}
+            bgEnabled={bgEnabled}
+            bgColor={bgColor}
+            bgOpacity={bgOpacity}
+            bgRadius={bgRadius}
+            bgWidth={bgWidth}
+            bgHeight={bgHeight}
+            bgShadowEnabled={bgShadowEnabled}
+            bgOutlineEnabled={bgOutlineEnabled}
+            // SPACING props
+            letterSpacing={letterSpacing}
+            lineSpacing={lineSpacing}
           />
 
           <PanelResizeHandle className="w-2 bg-transparent cursor-col-resize relative z-10 hover:bg-[#2a2a2d] transition-colors rounded-full mx-0.5 my-2" />
@@ -1368,7 +1444,360 @@ export function ReelEditor() {
                         </button>
                         {openAccordions[key] && (
                           <div className="pl-4 py-2 text-xs text-[#8a8a8e]">
-                            Adjust {title.toLowerCase()} configurations here.
+                            {key === 'spacing' ? (
+                              <div className="flex flex-col gap-4 mr-2">
+                                {/* Letter Spacing */}
+                                <div className="flex items-center justify-between gap-3">
+                                  <span className="text-xs text-[#8a8a8e] w-24">Letter Spacing</span>
+                                  <div className="flex-1 flex items-center gap-3">
+                                    <input 
+                                      type="range" 
+                                      min="-5" 
+                                      max="20" 
+                                      value={letterSpacing} 
+                                      onChange={(e) => setLetterSpacing(Number(e.target.value))}
+                                      className="flex-1 accent-[#52c595] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
+                                    />
+                                    <div className="w-12 h-7 bg-[#1a1a1c] border border-[#2a2a2d] rounded-md flex items-center justify-center text-xs text-white">
+                                      {letterSpacing}
+                                    </div>
+                                    <button 
+                                      onClick={() => setLetterSpacing(0)}
+                                      className="w-8 h-7 rounded-md bg-[#1a1a1c] border border-[#2a2a2d] flex items-center justify-center text-[#8a8a8e] hover:text-white"
+                                    >
+                                      <RotateCcw className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {/* Line Spacing */}
+                                <div className="flex items-center justify-between gap-3">
+                                  <span className="text-xs text-[#8a8a8e] w-24">Line Spacing</span>
+                                  <div className="flex-1 flex items-center gap-3">
+                                    <input 
+                                      type="range" 
+                                      min="0.8" 
+                                      max="3.0" 
+                                      step="0.1"
+                                      value={lineSpacing} 
+                                      onChange={(e) => setLineSpacing(Number(e.target.value))}
+                                      className="flex-1 accent-[#52c595] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
+                                    />
+                                    <div className="w-12 h-7 bg-[#1a1a1c] border border-[#2a2a2d] rounded-md flex items-center justify-center text-xs text-white">
+                                      {lineSpacing.toFixed(1)}
+                                    </div>
+                                    <button 
+                                      onClick={() => setLineSpacing(1.2)}
+                                      className="w-8 h-7 rounded-md bg-[#1a1a1c] border border-[#2a2a2d] flex items-center justify-center text-[#8a8a8e] hover:text-white"
+                                    >
+                                      <RotateCcw className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : key === 'effects' ? (
+                              <div className="flex flex-col gap-4 mr-2">
+                                {/* Drop Shadow Toggle Block */}
+                                <div className="flex flex-col gap-4">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-sm font-semibold text-white">Drop Shadow</span>
+                                    <button 
+                                      onClick={() => setShadowEnabled(!shadowEnabled)}
+                                      className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 focus:outline-none ${shadowEnabled ? 'bg-[#52c595]' : 'bg-[#2a2a2d]'}`}
+                                    >
+                                      <div className={`bg-black w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${shadowEnabled ? 'translate-x-5' : ''}`} />
+                                    </button>
+                                  </div>
+
+                                  {shadowEnabled && (
+                                    <div className="flex flex-col gap-4 pl-2">
+                                      <div className="flex items-center justify-between gap-2">
+                                        <span className="text-xs text-[#8a8a8e]">Color</span>
+                                        <div className="flex items-center gap-2 shrink-0">
+                                          <div className="relative flex items-center gap-2 bg-[#1a1a1c] border border-[#2a2a2d] rounded-md px-2 py-1.5 h-9 w-[104px] shrink-0" ref={shadowColorRef}>
+                                            <button 
+                                              onClick={() => setShowShadowColorPicker(!showShadowColorPicker)}
+                                              className="w-6 h-6 rounded border border-[#2a2a2d] bg-transparent overflow-hidden p-0 relative focus:outline-none shrink-0"
+                                            >
+                                              <div className="w-full h-full rounded" style={{ backgroundColor: shadowColor }} />
+                                            </button>
+                                            <input 
+                                              type="text" 
+                                              value={shadowColor.toUpperCase()}
+                                              onChange={(e) => setShadowColor(e.target.value)}
+                                              className="bg-transparent text-[11px] font-mono text-white outline-none w-14 border-none p-0 select-text"
+                                            />
+                                            {showShadowColorPicker && (
+                                              <div className="absolute right-0 bottom-full mb-2 z-50">
+                                                <CustomColorPicker color={shadowColor} onChange={setShadowColor} />
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <div className="flex items-center justify-between gap-3">
+                                        <span className="text-xs text-[#8a8a8e] w-16">Position X</span>
+                                        <div className="flex-1 flex items-center gap-3">
+                                          <input 
+                                            type="range" 
+                                            min="-20" 
+                                            max="20" 
+                                            value={shadowX} 
+                                            onChange={(e) => setShadowX(Number(e.target.value))}
+                                            className="flex-1 accent-[#52c595] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
+                                          />
+                                          <div className="w-12 h-7 bg-[#1a1a1c] border border-[#2a2a2d] rounded-md flex items-center justify-center text-xs text-white">
+                                            {shadowX}
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <div className="flex items-center justify-between gap-3">
+                                        <span className="text-xs text-[#8a8a8e] w-16">Position Y</span>
+                                        <div className="flex-1 flex items-center gap-3">
+                                          <input 
+                                            type="range" 
+                                            min="-20" 
+                                            max="20" 
+                                            value={shadowY} 
+                                            onChange={(e) => setShadowY(Number(e.target.value))}
+                                            className="flex-1 accent-[#52c595] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
+                                          />
+                                          <div className="w-12 h-7 bg-[#1a1a1c] border border-[#2a2a2d] rounded-md flex items-center justify-center text-xs text-white">
+                                            {shadowY}
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <div className="flex items-center justify-between gap-3">
+                                        <span className="text-xs text-[#8a8a8e] w-16">Blur</span>
+                                        <div className="flex-1 flex items-center gap-3">
+                                          <input 
+                                            type="range" 
+                                            min="0" 
+                                            max="30" 
+                                            value={shadowBlur} 
+                                            onChange={(e) => setShadowBlur(Number(e.target.value))}
+                                            className="flex-1 accent-[#52c595] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
+                                          />
+                                          <div className="w-12 h-7 bg-[#1a1a1c] border border-[#2a2a2d] rounded-md flex items-center justify-center text-xs text-white">
+                                            {shadowBlur}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Text Stroke Toggle Block */}
+                                <div className="flex flex-col gap-4 mt-2">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-sm font-semibold text-white">Text Stroke</span>
+                                    <button 
+                                      onClick={() => setStrokeEnabled(!strokeEnabled)}
+                                      className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 focus:outline-none ${strokeEnabled ? 'bg-[#52c595]' : 'bg-[#2a2a2d]'}`}
+                                    >
+                                      <div className={`bg-black w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${strokeEnabled ? 'translate-x-5' : ''}`} />
+                                    </button>
+                                  </div>
+
+                                  {strokeEnabled && (
+                                    <div className="flex flex-col gap-4 pl-2">
+                                      <div className="flex items-center justify-between gap-2">
+                                        <span className="text-xs text-[#8a8a8e]">Color</span>
+                                        <div className="flex items-center gap-2 shrink-0">
+                                          <div className="relative flex items-center gap-2 bg-[#1a1a1c] border border-[#2a2a2d] rounded-md px-2 py-1.5 h-9 w-[104px] shrink-0" ref={strokeColorRef}>
+                                            <button 
+                                              onClick={() => setShowStrokeColorPicker(!showStrokeColorPicker)}
+                                              className="w-6 h-6 rounded border border-[#2a2a2d] bg-transparent overflow-hidden p-0 relative focus:outline-none shrink-0"
+                                            >
+                                              <div className="w-full h-full rounded" style={{ backgroundColor: strokeColor }} />
+                                            </button>
+                                            <input 
+                                              type="text" 
+                                              value={strokeColor.toUpperCase()}
+                                              onChange={(e) => setStrokeColor(e.target.value)}
+                                              className="bg-transparent text-[11px] font-mono text-white outline-none w-14 border-none p-0 select-text"
+                                            />
+                                            {showStrokeColorPicker && (
+                                              <div className="absolute right-0 bottom-full mb-2 z-50">
+                                                <CustomColorPicker color={strokeColor} onChange={setStrokeColor} />
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <div className="flex items-center justify-between gap-3">
+                                        <span className="text-xs text-[#8a8a8e] w-16">Width</span>
+                                        <div className="flex-1 flex items-center gap-3">
+                                          <input 
+                                            type="range" 
+                                            min="0" 
+                                            max="10" 
+                                            value={strokeWidth} 
+                                            onChange={(e) => setStrokeWidth(Number(e.target.value))}
+                                            className="flex-1 accent-[#52c595] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
+                                          />
+                                          <div className="w-12 h-7 bg-[#1a1a1c] border border-[#2a2a2d] rounded-md flex items-center justify-center text-xs text-white">
+                                            {strokeWidth}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Background Toggle Block */}
+                                <div className="flex flex-col gap-4 mt-2">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-sm font-semibold text-white">Background</span>
+                                    <button 
+                                      onClick={() => setBgEnabled(!bgEnabled)}
+                                      className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 focus:outline-none ${bgEnabled ? 'bg-[#52c595]' : 'bg-[#2a2a2d]'}`}
+                                    >
+                                      <div className={`bg-black w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${bgEnabled ? 'translate-x-5' : ''}`} />
+                                    </button>
+                                  </div>
+
+                                  {bgEnabled && (
+                                    <div className="flex flex-col gap-4 pl-2">
+                                      <div className="flex items-center justify-between gap-2">
+                                        <span className="text-xs text-[#8a8a8e]">Color</span>
+                                        <div className="flex items-center gap-2 shrink-0">
+                                          <div className="relative flex items-center gap-2 bg-[#1a1a1c] border border-[#2a2a2d] rounded-md px-2 py-1.5 h-9 w-[104px] shrink-0" ref={bgColorRef}>
+                                            <button 
+                                              onClick={() => setShowBgColorPicker(!showBgColorPicker)}
+                                              className="w-6 h-6 rounded border border-[#2a2a2d] bg-transparent overflow-hidden p-0 relative focus:outline-none shrink-0"
+                                            >
+                                              <div className="w-full h-full rounded" style={{ backgroundColor: bgColor }} />
+                                            </button>
+                                            <input 
+                                              type="text" 
+                                              value={bgColor.toUpperCase()}
+                                              onChange={(e) => setBgColor(e.target.value)}
+                                              className="bg-transparent text-[11px] font-mono text-white outline-none w-14 border-none p-0 select-text"
+                                            />
+                                            {showBgColorPicker && (
+                                              <div className="absolute right-0 bottom-full mb-2 z-50">
+                                                <CustomColorPicker color={bgColor} onChange={setBgColor} />
+                                              </div>
+                                            )}
+                                          </div>
+                                          <button 
+                                            onClick={() => {
+                                              setBgColor('#000000');
+                                              setBgOpacity(100);
+                                            }}
+                                            className="w-8 h-8 rounded-md bg-[#1a1a1c] border border-[#2a2a2d] flex items-center justify-center text-[#8a8a8e] hover:text-white"
+                                          >
+                                            <RotateCcw className="w-3.5 h-3.5" />
+                                          </button>
+                                        </div>
+                                      </div>
+
+                                      <div className="flex items-center justify-between text-xs text-[#8a8a8e]">
+                                        <span>Border Radius</span>
+                                        <span className="text-[10px] bg-[#1a1a1c] border border-[#2a2a2d] px-2 py-0.5 rounded text-white font-mono">Linked</span>
+                                      </div>
+                                      <div className="flex items-center justify-between gap-3">
+                                        <span className="text-xs text-[#8a8a8e] w-16">Radius</span>
+                                        <div className="flex-1 flex items-center gap-3">
+                                          <input 
+                                            type="range" 
+                                            min="0" 
+                                            max="50" 
+                                            value={bgRadius} 
+                                            onChange={(e) => setBgRadius(Number(e.target.value))}
+                                            className="flex-1 accent-[#52c595] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
+                                          />
+                                          <div className="w-12 h-7 bg-[#1a1a1c] border border-[#2a2a2d] rounded-md flex items-center justify-center text-xs text-white">
+                                            {bgRadius}
+                                          </div>
+                                          <button 
+                                            onClick={() => setBgRadius(24)}
+                                            className="w-8 h-7 rounded-md bg-[#1a1a1c] border border-[#2a2a2d] flex items-center justify-center text-[#8a8a8e] hover:text-white"
+                                          >
+                                            <RotateCcw className="w-3" />
+                                          </button>
+                                        </div>
+                                      </div>
+
+                                      <div className="text-xs text-[#8a8a8e] mt-1 font-semibold">Background Size</div>
+
+                                      <div className="flex items-center justify-between gap-3">
+                                        <span className="text-xs text-[#8a8a8e] w-16">Width</span>
+                                        <div className="flex-1 flex items-center gap-3">
+                                          <input 
+                                            type="range" 
+                                            min="0" 
+                                            max="100" 
+                                            value={bgWidth} 
+                                            onChange={(e) => setBgWidth(Number(e.target.value))}
+                                            className="flex-1 accent-[#52c595] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
+                                          />
+                                          <div className="w-12 h-7 bg-[#1a1a1c] border border-[#2a2a2d] rounded-md flex items-center justify-center text-xs text-white">
+                                            {bgWidth}
+                                          </div>
+                                          <button 
+                                            onClick={() => setBgWidth(48)}
+                                            className="w-8 h-7 rounded-md bg-[#1a1a1c] border border-[#2a2a2d] flex items-center justify-center text-[#8a8a8e] hover:text-white"
+                                          >
+                                            <RotateCcw className="w-3" />
+                                          </button>
+                                        </div>
+                                      </div>
+
+                                      <div className="flex items-center justify-between gap-3">
+                                        <span className="text-xs text-[#8a8a8e] w-16">Height</span>
+                                        <div className="flex-1 flex items-center gap-3">
+                                          <input 
+                                            type="range" 
+                                            min="0" 
+                                            max="100" 
+                                            value={bgHeight} 
+                                            onChange={(e) => setBgHeight(Number(e.target.value))}
+                                            className="flex-1 accent-[#52c595] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
+                                          />
+                                          <div className="w-12 h-7 bg-[#1a1a1c] border border-[#2a2a2d] rounded-md flex items-center justify-center text-xs text-white">
+                                            {bgHeight}
+                                          </div>
+                                          <button 
+                                            onClick={() => setBgHeight(24)}
+                                            className="w-8 h-7 rounded-md bg-[#1a1a1c] border border-[#2a2a2d] flex items-center justify-center text-[#8a8a8e] hover:text-white"
+                                          >
+                                            <RotateCcw className="w-3" />
+                                          </button>
+                                        </div>
+                                      </div>
+
+                                      <div className="flex items-center justify-between mt-2">
+                                        <span className="text-xs text-[#8a8a8e]">Drop Shadow</span>
+                                        <button 
+                                          onClick={() => setBgShadowEnabled(!bgShadowEnabled)}
+                                          className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors duration-200 focus:outline-none ${bgShadowEnabled ? 'bg-[#52c595]' : 'bg-[#2a2a2d]'}`}
+                                        >
+                                          <div className={`bg-black w-3.5 h-3.5 rounded-full shadow-md transform transition-transform duration-200 ${bgShadowEnabled ? 'translate-x-4' : ''}`} />
+                                        </button>
+                                      </div>
+
+                                      <div className="flex items-center justify-between mt-1">
+                                        <span className="text-xs text-[#8a8a8e]">Outline</span>
+                                        <button 
+                                          onClick={() => setBgOutlineEnabled(!bgOutlineEnabled)}
+                                          className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors duration-200 focus:outline-none ${bgOutlineEnabled ? 'bg-[#52c595]' : 'bg-[#2a2a2d]'}`}
+                                        >
+                                          <div className={`bg-black w-3.5 h-3.5 rounded-full shadow-md transform transition-transform duration-200 ${bgOutlineEnabled ? 'translate-x-4' : ''}`} />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              <>Adjust {title.toLowerCase()} configurations here.</>
+                            )}
                           </div>
                         )}
                         <div className="h-[1px] w-full bg-[#2a2a2d] my-4"></div>
