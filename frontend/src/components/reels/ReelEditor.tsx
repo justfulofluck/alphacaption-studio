@@ -1,14 +1,17 @@
 import React, { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Type, Music, Play, Search, RotateCcw, Home, Upload,
   Volume2, Maximize, Settings, AlignLeft, AlignCenter, AlignRight, AlignJustify,
-  Undo2, Redo2, Scissors, ChevronLeft, ChevronRight, Trash2, ZoomIn, SplitSquareHorizontal, RefreshCw, TypeOutline
+  Undo2, Redo2, Scissors, ChevronLeft, ChevronRight, Trash2, ZoomIn, SplitSquareHorizontal, RefreshCw, TypeOutline,
+  X, ChevronUp, ChevronDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
 import { Link } from 'react-router-dom';
 import { VideoPlayer } from './VideoPlayer';
 import { API_BASE_URL } from '@/api/config';
+import { useTimelineStore } from '@/hooks/limeplay/use-timeline';
 
 // HSV to HEX conversion helper
 function hsvToHex(h: number, s: number, v: number): string {
@@ -536,6 +539,33 @@ export function ReelEditor() {
   const [uploadStage, setUploadStage] = useState<'idle' | 'upload' | 'processing' | 'transcribing' | 'success' | 'error'>('idle');
   const [processingError, setProcessingError] = useState<string | null>(null);
 
+  // Timeline & active word selection states
+  const [activeCaptionId, setActiveCaptionId] = useState<number | null>(null);
+  const seekRef = useRef<(time: number) => void>(null);
+  const [wordMenu, setWordMenu] = useState<{
+    captionId: number;
+    wordIndex: number;
+    word: string;
+    x: number;
+    y: number;
+    openUpwards?: boolean;
+  } | null>(null);
+  const [editingCaptionId, setEditingCaptionId] = useState<number | null>(null);
+  const [editingWord, setEditingWord] = useState<{
+    captionId: number;
+    wordIndex: number;
+    text: string;
+  } | null>(null);
+
+  const [showSearchReplace, setShowSearchReplace] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [replaceQuery, setReplaceQuery] = useState('');
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+
+  useEffect(() => {
+    setCurrentMatchIndex(0);
+  }, [searchQuery]);
+
   const shadowColorRef = useRef<HTMLDivElement>(null);
   const strokeColorRef = useRef<HTMLDivElement>(null);
   const bgColorRef = useRef<HTMLDivElement>(null);
@@ -550,6 +580,11 @@ export function ReelEditor() {
       }
       if (bgColorRef.current && !bgColorRef.current.contains(e.target as Node)) {
         setShowBgColorPicker(false);
+      }
+      // Close word context menu on any outside click
+      const menuEl = document.getElementById('word-context-menu');
+      if (menuEl && !menuEl.contains(e.target as Node)) {
+        setWordMenu(null);
       }
     };
     document.addEventListener('mousedown', handleOutsideClick);
@@ -591,6 +626,111 @@ export function ReelEditor() {
 
   const handleCaptionChange = (id: number, newText: string) => {
     setCaptions(captions.map(c => c.id === id ? { ...c, text: newText } : c));
+  };
+
+  const allMatches = React.useMemo(() => {
+    if (!searchQuery) return [];
+    const matches: { captionId: number, matchStringIndex: number, matchLength: number, wordIndices: number[] }[] = [];
+    try {
+      const escapedQuery = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(escapedQuery, 'gi');
+      
+      captions.forEach((caption) => {
+        const found = [...caption.text.matchAll(regex)];
+        
+        const words = caption.text.split(/\s+/);
+        const wordBounds: {start: number, end: number}[] = [];
+        let currentIndex = 0;
+        words.forEach(w => {
+           const start = caption.text.indexOf(w, currentIndex);
+           const end = start + w.length;
+           wordBounds.push({ start, end });
+           currentIndex = end;
+        });
+
+        found.forEach((m) => {
+          const matchStart = m.index || 0;
+          const matchEnd = matchStart + m[0].length;
+          
+          const overlappingWords: number[] = [];
+          wordBounds.forEach((bound, wIdx) => {
+            if (bound.end > matchStart && bound.start < matchEnd) {
+              overlappingWords.push(wIdx);
+            }
+          });
+          
+          matches.push({
+             captionId: caption.id,
+             matchStringIndex: matchStart,
+             matchLength: m[0].length,
+             wordIndices: overlappingWords
+          });
+        });
+      });
+    } catch {}
+    return matches;
+  }, [captions, searchQuery]);
+
+  useEffect(() => {
+    if (allMatches.length > 0 && currentMatchIndex < allMatches.length) {
+      const match = allMatches[currentMatchIndex];
+      if (match.wordIndices.length > 0) {
+        const firstWordIdx = match.wordIndices[0];
+        const el = document.getElementById(`word-${match.captionId}-${firstWordIdx}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    }
+  }, [currentMatchIndex, allMatches]);
+
+  const handlePrevMatch = () => {
+    setCurrentMatchIndex(prev => (prev > 0 ? prev - 1 : Math.max(0, allMatches.length - 1)));
+  };
+
+  const handleNextMatch = () => {
+    setCurrentMatchIndex(prev => (prev < allMatches.length - 1 ? prev + 1 : 0));
+  };
+
+  const handleReplace = () => {
+    if (!searchQuery || allMatches.length === 0) return;
+    const match = allMatches[currentMatchIndex];
+    if (!match) return;
+
+    const captionIndex = captions.findIndex(c => c.id === match.captionId);
+    if (captionIndex !== -1) {
+      const targetCaption = captions[captionIndex];
+      const newText = 
+        targetCaption.text.substring(0, match.matchStringIndex) + 
+        replaceQuery + 
+        targetCaption.text.substring(match.matchStringIndex + match.matchLength);
+        
+      const newCaptions = [...captions];
+      newCaptions[captionIndex] = {
+        ...targetCaption,
+        text: newText
+      };
+      setCaptions(newCaptions);
+      
+      if (currentMatchIndex >= allMatches.length - 1) {
+        setCurrentMatchIndex(Math.max(0, currentMatchIndex - 1));
+      }
+    }
+  };
+
+  const handleReplaceAll = () => {
+    if (!searchQuery) return;
+    try {
+      const escapedQuery = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(escapedQuery, 'gi');
+      const newCaptions = captions.map(c => ({
+        ...c,
+        text: c.text.replace(regex, replaceQuery)
+      }));
+      setCaptions(newCaptions);
+    } catch (e) {
+      console.error("Invalid search query", e);
+    }
   };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -822,63 +962,6 @@ export function ReelEditor() {
         </div>
       )}
       
-      {/* Vertical Menu (Fixed Leftmost Bar) */}
-      <div className="w-[72px] flex flex-col items-center py-6 gap-8 border-r border-[#2a2a2d] bg-[#161618] h-full shrink-0 z-20">
-        <Link 
-          to="/dashboard"
-          className="flex flex-col items-center gap-1.5 transition-colors text-[#8a8a8e] hover:text-[#e0e0e0]"
-        >
-          <div className="p-2 rounded-lg hover:bg-[#2a2a2d]">
-            <Home className="w-5 h-5" />
-          </div>
-          <span className="text-[10px] font-medium">Home</span>
-        </Link>
-        <button 
-          onClick={() => fileInputRef.current?.click()}
-          className={`flex flex-col items-center gap-1.5 transition-colors text-[#8a8a8e] hover:text-[#e0e0e0]`}
-        >
-          <div className="p-2 rounded-lg hover:bg-[#2a2a2d]">
-            <Upload className="w-5 h-5" />
-          </div>
-          <span className="text-[10px] font-medium">Upload</span>
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            className="hidden" 
-            accept="video/mp4,video/webm" 
-            onChange={handleVideoUpload} 
-          />
-        </button>
-        <button 
-          onClick={() => setActiveTabLeft('captions')}
-          className={`flex flex-col items-center gap-1.5 transition-colors ${activeTabLeft === 'captions' ? 'text-[#52c595]' : 'text-[#8a8a8e] hover:text-[#e0e0e0]'}`}
-        >
-          <div className={`p-2 rounded-lg ${activeTabLeft === 'captions' ? 'bg-[#52c595]/10' : ''}`}>
-            <SplitSquareHorizontal className="w-5 h-5" />
-          </div>
-          <span className="text-[10px] font-medium">Captions</span>
-        </button>
-        <button 
-          onClick={() => setActiveTabLeft('fonts')}
-          className={`flex flex-col items-center gap-1.5 transition-colors ${activeTabLeft === 'fonts' ? 'text-[#52c595]' : 'text-[#8a8a8e] hover:text-[#e0e0e0]'}`}
-        >
-          <div className={`p-2 rounded-lg ${activeTabLeft === 'fonts' ? 'bg-[#52c595]/10' : ''}`}>
-            <Type className="w-5 h-5" />
-          </div>
-          <span className="text-[10px] font-medium text-center leading-tight">Custom<br/>Fonts</span>
-        </button>
-        <button 
-          onClick={() => setActiveTabLeft('audio')}
-          className={`flex flex-col items-center gap-1.5 transition-colors relative ${activeTabLeft === 'audio' ? 'text-[#52c595]' : 'text-[#8a8a8e] hover:text-[#e0e0e0]'}`}
-        >
-          <span className="absolute -top-3 text-[8px] bg-[#2a2a2d] px-1 rounded text-[#8a8a8e]">Soon</span>
-          <div className={`p-2 rounded-lg ${activeTabLeft === 'audio' ? 'bg-[#52c595]/10' : ''}`}>
-            <Music className="w-5 h-5" />
-          </div>
-          <span className="text-[10px] font-medium">Audio</span>
-        </button>
-      </div>
-
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 h-full p-2">
         <PanelGroup orientation="horizontal">
@@ -888,13 +971,76 @@ export function ReelEditor() {
             <PanelGroup orientation="vertical">
               
               {/* TOP: Captions List */}
-              <Panel defaultSize={80} minSize={30} className="flex flex-col overflow-hidden relative rounded-xl border border-[#2a2a2d] bg-[#1a1a1c]">
-                {/* Header */}
-                <div className="h-[60px] px-5 flex justify-between items-center border-b border-[#2a2a2d]">
-                  <h2 className="font-bold text-lg text-white">Captions</h2>
+              <Panel defaultSize={80} minSize={30} className="flex flex-row overflow-hidden relative rounded-xl border border-[#2a2a2d] bg-[#1a1a1c]">
+                
+                {/* Vertical Menu (Moved inside) */}
+                <div className="w-[72px] flex flex-col items-center py-6 gap-8 border-r border-[#2a2a2d] bg-[#161618] h-full shrink-0 z-20">
+                  <Link 
+                    to="/dashboard"
+                    className="flex flex-col items-center gap-1.5 transition-colors text-[#8a8a8e] hover:text-[#e0e0e0]"
+                  >
+                    <div className="p-2 rounded-lg hover:bg-[#2a2a2d]">
+                      <Home className="w-5 h-5" />
+                    </div>
+                    <span className="text-[10px] font-medium">Home</span>
+                  </Link>
+                  <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`flex flex-col items-center gap-1.5 transition-colors text-[#8a8a8e] hover:text-[#e0e0e0]`}
+                  >
+                    <div className="p-2 rounded-lg hover:bg-[#2a2a2d]">
+                      <Upload className="w-5 h-5" />
+                    </div>
+                    <span className="text-[10px] font-medium">Upload</span>
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      className="hidden" 
+                      accept="video/mp4,video/webm" 
+                      onChange={handleVideoUpload} 
+                    />
+                  </button>
+                  <button 
+                    onClick={() => setActiveTabLeft('captions')}
+                    className={`flex flex-col items-center gap-1.5 transition-colors ${activeTabLeft === 'captions' ? 'text-[#52c595]' : 'text-[#8a8a8e] hover:text-[#e0e0e0]'}`}
+                  >
+                    <div className={`p-2 rounded-lg ${activeTabLeft === 'captions' ? 'bg-[#52c595]/10' : ''}`}>
+                      <SplitSquareHorizontal className="w-5 h-5" />
+                    </div>
+                    <span className="text-[10px] font-medium text-center leading-none">Captions</span>
+                  </button>
+                  <button 
+                    onClick={() => setActiveTabLeft('fonts')}
+                    className={`flex flex-col items-center gap-1.5 transition-colors ${activeTabLeft === 'fonts' ? 'text-[#52c595]' : 'text-[#8a8a8e] hover:text-[#e0e0e0]'}`}
+                  >
+                    <div className={`p-2 rounded-lg ${activeTabLeft === 'fonts' ? 'bg-[#52c595]/10' : ''}`}>
+                      <Type className="w-5 h-5" />
+                    </div>
+                    <span className="text-[10px] font-medium text-center leading-tight">Custom<br/>Fonts</span>
+                  </button>
+                  <button 
+                    onClick={() => setActiveTabLeft('audio')}
+                    className={`flex flex-col items-center gap-1.5 transition-colors relative ${activeTabLeft === 'audio' ? 'text-[#52c595]' : 'text-[#8a8a8e] hover:text-[#e0e0e0]'}`}
+                  >
+                    <span className="absolute -top-3 text-[8px] bg-[#2a2a2d] px-1 rounded text-[#8a8a8e]">Soon</span>
+                    <div className={`p-2 rounded-lg ${activeTabLeft === 'audio' ? 'bg-[#52c595]/10' : ''}`}>
+                      <Music className="w-5 h-5" />
+                    </div>
+                    <span className="text-[10px] font-medium text-center leading-none">Audio</span>
+                  </button>
+                </div>
+
+                {/* Sub-container holding the actual captions content */}
+                <div className="flex-1 flex flex-col h-full overflow-hidden">
+                  {/* Header */}
+                  <div className="h-[60px] px-5 flex justify-between items-center border-b border-[#2a2a2d]">
+                    <h2 className="font-bold text-lg text-white">Captions</h2>
                   <div className="flex items-center gap-3">
-                    <button className="w-8 h-8 rounded-full bg-[#2a2a2d] hover:bg-[#3a3a3d] flex items-center justify-center transition-colors">
-                      <Search className="w-4 h-4 text-[#8a8a8e]" />
+                    <button 
+                      onClick={() => setShowSearchReplace(!showSearchReplace)}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${showSearchReplace ? 'bg-[#52c595] text-[#111111]' : 'bg-[#2a2a2d] hover:bg-[#3a3a3d] text-[#8a8a8e]'}`}
+                    >
+                      <Search className="w-4 h-4" />
                     </button>
                     <button className="h-8 px-3 rounded-md bg-[#2a2a2d] hover:bg-[#3a3a3d] flex items-center gap-2 text-[#52c595] text-xs font-semibold transition-colors border border-[#52c595]/20">
                       <Settings className="w-3.5 h-3.5" /> Caption Tools 
@@ -902,25 +1048,468 @@ export function ReelEditor() {
                   </div>
                 </div>
 
-                {/* List */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar">
-                  {captions.map((caption, i) => (
-                    <div key={caption.id} className="flex items-start gap-4 px-5 py-4 border-b border-[#2a2a2d] hover:bg-[#222225] transition-colors group">
-                      <span className="text-xs font-medium text-[#8a8a8e] mt-1 w-4 select-none">{i + 1}</span>
-                      <textarea
-                        value={caption.text}
-                        onChange={(e) => handleCaptionChange(caption.id, e.target.value)}
-                        className="text-[13px] font-medium leading-relaxed text-[#e0e0e0] flex-1 bg-transparent border-none outline-none resize-none focus:ring-0 p-0 m-0 min-h-[20px]"
-                        rows={Math.max(1, Math.ceil(caption.text.length / 40))}
-                        style={{ overflow: 'hidden' }}
-                      />
-                      <button className="opacity-0 group-hover:opacity-100 p-1 text-[#8a8a8e] hover:text-white transition-opacity">
-                        <SplitSquareHorizontal className="w-4 h-4" />
+                {/* Search & Replace Panel */}
+                {showSearchReplace && (
+                  <div className="m-4 bg-[#111111] border border-[#2a2a2d] rounded-xl p-4 flex flex-col gap-4">
+                    <div className="flex justify-between items-center text-[#8a8a8e] text-xs font-semibold">
+                      <div className="flex items-center gap-2">
+                        <Search className="w-3.5 h-3.5" />
+                        FIND & REPLACE
+                      </div>
+                      <button onClick={() => setShowSearchReplace(false)} className="hover:text-white transition-colors">
+                        <X className="w-4 h-4" />
                       </button>
                     </div>
-                  ))}
+
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[10px] font-bold text-[#8a8a8e] uppercase tracking-wider">Find</span>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          placeholder="Search captions..."
+                          className="w-full bg-transparent border border-[#52c595] rounded-lg pl-3 pr-24 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#52c595]"
+                        />
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-3 text-xs text-[#8a8a8e]">
+                          <span>Aa</span>
+                          <span>{allMatches.length > 0 ? `${currentMatchIndex + 1}/${allMatches.length}` : '0/0'}</span>
+                          <div className="flex gap-1">
+                            <ChevronUp onClick={handlePrevMatch} className="w-3.5 h-3.5 cursor-pointer hover:text-white transition-colors" />
+                            <ChevronDown onClick={handleNextMatch} className="w-3.5 h-3.5 cursor-pointer hover:text-white transition-colors" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[10px] font-bold text-[#8a8a8e] uppercase tracking-wider">Replace With</span>
+                      <input
+                        type="text"
+                        value={replaceQuery}
+                        onChange={(e) => setReplaceQuery(e.target.value)}
+                        placeholder="Type replacement..."
+                        className="w-full bg-[#1a1a1c] border border-[#2a2a2d] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#52c595] transition-colors"
+                      />
+                    </div>
+
+                    <div className="flex justify-between items-center mt-2">
+                      {searchQuery && allMatches.length > 0 ? (
+                        <div className="flex items-center gap-1.5 text-xs text-[#52c595] font-semibold">
+                           <div className="w-1.5 h-1.5 rounded-full bg-[#52c595]" /> {allMatches.length} matches available
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-[#8a8a8e] italic">Enter text to search</span>
+                      )}
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={handleReplaceAll}
+                          disabled={!searchQuery || allMatches.length === 0}
+                          className="px-4 py-1.5 rounded-md border border-[#2a2a2d] text-white text-xs font-semibold hover:bg-[#2a2a2d] transition-colors disabled:opacity-50 flex items-center gap-1"
+                        >
+                          Replace All <span className="text-[10px] text-[#8a8a8e]">⌘↵</span>
+                        </button>
+                        <button 
+                          onClick={handleReplace}
+                          disabled={!searchQuery || allMatches.length === 0}
+                          className="px-6 py-1.5 rounded-md bg-[#52c595] hover:bg-[#43b384] text-[#111111] text-xs font-bold transition-colors disabled:opacity-50 flex items-center gap-1"
+                        >
+                          Replace <span>↵</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* List */}
+                <div className="flex-1 overflow-y-auto custom-scrollbar relative">
+                  {captions.map((caption, i) => {
+                    const isActive = caption.id === activeCaptionId;
+                    return (
+                      <div 
+                        key={caption.id} 
+                        onClick={() => seekRef.current?.(caption.start)}
+                        className={`flex items-start gap-4 px-5 py-4 border-b border-[#2a2a2d] hover:bg-[#222225] transition-colors group cursor-pointer ${
+                          isActive ? 'bg-[#222225]/45' : ''
+                        }`}
+                      >
+                        <div className="flex items-center justify-center shrink-0 mt-1 w-6 h-6 select-none">
+                          {isActive ? (
+                            <span className="text-xs font-bold w-6 h-6 rounded-full bg-[#52c595] text-[#161618] flex items-center justify-center">
+                              {i + 1}
+                            </span>
+                          ) : (
+                            <span className="text-xs font-medium text-[#8a8a8e]">
+                              {i + 1}
+                            </span>
+                          )}
+                        </div>
+
+                        {editingCaptionId === caption.id ? (
+                          <textarea
+                            value={caption.text}
+                            onChange={(e) => handleCaptionChange(caption.id, e.target.value)}
+                            onBlur={() => setEditingCaptionId(null)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                setEditingCaptionId(null);
+                              }
+                            }}
+                            autoFocus
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-[15px] font-medium leading-relaxed text-[#e0e0e0] flex-1 bg-transparent border-none outline-none resize-none focus:ring-0 p-0 m-0 min-h-[20px]"
+                            rows={Math.max(1, Math.ceil(caption.text.length / 40))}
+                            style={{ overflow: 'hidden' }}
+                          />
+                        ) : (
+                          <div className="flex flex-wrap gap-y-1 text-[15px] font-medium leading-relaxed text-[#e0e0e0] flex-1">
+                            {caption.text.split(/\s+/).map((word, wordIndex) => {
+                              const isWordEditing = editingWord && editingWord.captionId === caption.id && editingWord.wordIndex === wordIndex;
+                              if (isWordEditing) {
+                                return (
+                                  <div 
+                                    key={wordIndex}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="inline-flex items-center gap-1.5 px-2 py-0.5 border border-[#52c595]/50 bg-[#161618] rounded-md"
+                                  >
+                                    <input 
+                                      type="text"
+                                      value={editingWord.text}
+                                      onChange={(e) => setEditingWord(prev => prev ? { ...prev, text: e.target.value } : null)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          const targetCaption = captions.find(c => c.id === editingWord.captionId);
+                                          if (targetCaption) {
+                                            const wordsList = targetCaption.text.split(/\s+/);
+                                            wordsList[editingWord.wordIndex] = editingWord.text;
+                                            handleCaptionChange(editingWord.captionId, wordsList.join(' '));
+                                          }
+                                          setEditingWord(null);
+                                        } else if (e.key === 'Escape') {
+                                          setEditingWord(null);
+                                        }
+                                      }}
+                                      autoFocus
+                                      className="bg-transparent text-white outline-none w-20 text-[15px] font-medium p-0 border-none focus:ring-0"
+                                    />
+                                    <button 
+                                      onClick={() => {
+                                        const targetCaption = captions.find(c => c.id === editingWord.captionId);
+                                        if (targetCaption) {
+                                          const wordsList = targetCaption.text.split(/\s+/);
+                                          wordsList[editingWord.wordIndex] = editingWord.text;
+                                          handleCaptionChange(editingWord.captionId, wordsList.join(' '));
+                                        }
+                                        setEditingWord(null);
+                                      }}
+                                      className="text-[#52c595] hover:text-white font-bold text-xs"
+                                    >
+                                      ✓
+                                    </button>
+                                    <button 
+                                      onClick={() => setEditingWord(null)}
+                                      className="text-red-500 hover:text-white font-bold text-xs ml-1"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                );
+                              }
+                              const isPartOfAnyMatch = allMatches.some(m => m.captionId === caption.id && m.wordIndices.includes(wordIndex));
+                              const isPartOfActiveMatch = allMatches.length > 0 && currentMatchIndex < allMatches.length && 
+                                                          allMatches[currentMatchIndex].captionId === caption.id && 
+                                                          allMatches[currentMatchIndex].wordIndices.includes(wordIndex);
+
+                              const matchStyle = isPartOfActiveMatch 
+                                 ? 'bg-[#52c595] text-[#111111] font-bold' 
+                                 : isPartOfAnyMatch 
+                                    ? 'bg-[#52c595]/30 text-[#52c595]' 
+                                    : 'hover:bg-white/10 hover:text-[#52c595] text-[#e0e0e0]';
+
+                              return (
+                                <span
+                                  key={wordIndex}
+                                  id={`word-${caption.id}-${wordIndex}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    const menuHeight = 340; // rough height of the context menu
+                                    const spaceBelow = window.innerHeight - rect.bottom;
+                                    const openUpwards = spaceBelow < menuHeight;
+                                    
+                                    setWordMenu({
+                                      captionId: caption.id,
+                                      wordIndex,
+                                      word,
+                                      x: rect.left,
+                                      y: openUpwards ? rect.top - 5 : rect.bottom + 5,
+                                      openUpwards
+                                    });
+                                  }}
+                                  className={`px-1 py-[2px] rounded transition-all cursor-pointer ${matchStyle}`}
+                                >
+                                  {word}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingCaptionId(caption.id);
+                          }}
+                          className="opacity-0 group-hover:opacity-100 p-1 text-[#8a8a8e] hover:text-white transition-opacity shrink-0"
+                        >
+                          <SplitSquareHorizontal className="w-4 h-4" />
+                        </button>
+                      </div>
+                    );
+                  })}
+
+                  {/* Word Context Menu Dropdown */}
+                  {wordMenu && createPortal(
+                    <div 
+                      id="word-context-menu"
+                      className="fixed z-[9999] w-56 bg-[#1a1a1c] border border-[#2a2a2d] rounded-xl shadow-2xl p-1.5 flex flex-col gap-0.5 text-xs text-[#e0e0e0] pointer-events-auto"
+                      style={{ 
+                        left: `${wordMenu.x}px`, 
+                        ...(wordMenu.openUpwards 
+                             ? { bottom: `${window.innerHeight - wordMenu.y}px` } 
+                             : { top: `${wordMenu.y}px` }) 
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button 
+                        onClick={() => {
+                          setWordMenu(null);
+                        }}
+                        className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-[#222225] hover:text-[#52c595] text-left transition-all"
+                      >
+                        <span className="text-[#8a8a8e] font-semibold text-sm">⚡</span>
+                        <div>
+                          <p className="font-semibold text-[11px]">Emphasize</p>
+                          <p className="text-[9px] text-[#8a8a8e]">Make this word stand out</p>
+                        </div>
+                      </button>
+                      
+                      <button 
+                        onClick={() => {
+                          setWordMenu(null);
+                        }}
+                        className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-[#222225] hover:text-[#52c595] text-left transition-all"
+                      >
+                        <span className="text-[#8a8a8e] font-semibold text-sm">🔍</span>
+                        <div>
+                          <p className="font-semibold text-[11px]">Spotlight</p>
+                          <p className="text-[9px] text-[#8a8a8e]">Feature for maximum impact</p>
+                        </div>
+                      </button>
+
+                      <div className="h-[1px] bg-[#2a2a2d] my-0.5" />
+
+                      <button 
+                        onClick={() => {
+                          setEditingWord({
+                            captionId: wordMenu.captionId,
+                            wordIndex: wordMenu.wordIndex,
+                            text: wordMenu.word
+                          });
+                          setWordMenu(null);
+                        }}
+                        className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-[#222225] hover:text-white text-left transition-all"
+                      >
+                        <span className="text-[#8a8a8e] text-sm">✏️</span>
+                        <div>
+                          <p className="font-semibold text-[11px]">Edit</p>
+                          <p className="text-[9px] text-[#8a8a8e]">Modify the text</p>
+                        </div>
+                      </button>
+
+                      <button 
+                        onClick={() => {
+                          // Clean punctuation from word for better search experience
+                          const cleanWord = wordMenu.word.replace(/[.,!?]+$/, '');
+                          setSearchQuery(cleanWord);
+                          setShowSearchReplace(true);
+                          setWordMenu(null);
+                        }}
+                        className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-[#222225] hover:text-white text-left transition-all"
+                      >
+                        <span className="text-[#8a8a8e] text-sm">🔍</span>
+                        <div>
+                          <p className="font-semibold text-[11px]">Search & Replace</p>
+                          <p className="text-[9px] text-[#8a8a8e]">Find all occurrences</p>
+                        </div>
+                      </button>
+
+                      <div className="h-[1px] bg-[#2a2a2d] my-0.5" />
+
+                      <button 
+                        onClick={() => {
+                          const targetCaptionIndex = captions.findIndex(c => c.id === wordMenu.captionId);
+                          if (targetCaptionIndex !== -1) {
+                            const targetCaption = captions[targetCaptionIndex];
+                            const words = targetCaption.text.split(/\s+/);
+                            const j = wordMenu.wordIndex;
+                            
+                            const duration = targetCaption.end - targetCaption.start;
+                            const timePerWord = duration / Math.max(1, words.length);
+                            
+                            const newCaptions = [];
+                            
+                            // Before word
+                            if (j > 0) {
+                              newCaptions.push({
+                                id: Date.now() + 1,
+                                start: targetCaption.start,
+                                end: targetCaption.start + j * timePerWord,
+                                text: words.slice(0, j).join(' ')
+                              });
+                            }
+                            
+                            // The word itself
+                            newCaptions.push({
+                              id: Date.now() + 2,
+                              start: targetCaption.start + j * timePerWord,
+                              end: targetCaption.start + (j + 1) * timePerWord,
+                              text: words[j]
+                            });
+                            
+                            // After word
+                            if (j < words.length - 1) {
+                              newCaptions.push({
+                                id: Date.now() + 3,
+                                start: targetCaption.start + (j + 1) * timePerWord,
+                                end: targetCaption.end,
+                                text: words.slice(j + 1).join(' ')
+                              });
+                            }
+                            
+                            const newCaptionsList = [...captions];
+                            newCaptionsList.splice(targetCaptionIndex, 1, ...newCaptions);
+                            setCaptions(newCaptionsList);
+                          }
+                          setWordMenu(null);
+                        }}
+                        className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-[#222225] hover:text-white text-left transition-all"
+                      >
+                        <span className="text-[#8a8a8e] text-sm">🥞</span>
+                        <div>
+                          <p className="font-semibold text-[11px]">Split</p>
+                          <p className="text-[9px] text-[#8a8a8e]">Split caption here</p>
+                        </div>
+                      </button>
+
+                      <button 
+                        onClick={() => {
+                          const targetCaptionIndex = captions.findIndex(c => c.id === wordMenu.captionId);
+                          if (targetCaptionIndex > 0) {
+                            const targetCaption = captions[targetCaptionIndex];
+                            const prevCaption = captions[targetCaptionIndex - 1];
+                            
+                            const targetWords = targetCaption.text.split(/\s+/);
+                            const wordToMove = targetWords.splice(wordMenu.wordIndex, 1)[0];
+                            
+                            const timePerWord = (targetCaption.end - targetCaption.start) / Math.max(1, targetWords.length + 1);
+                            
+                            const newCaptionsList = [...captions];
+                            newCaptionsList[targetCaptionIndex - 1] = {
+                              ...prevCaption,
+                              text: prevCaption.text + ' ' + wordToMove,
+                              end: prevCaption.end + timePerWord
+                            };
+                            newCaptionsList[targetCaptionIndex] = {
+                              ...targetCaption,
+                              text: targetWords.join(' '),
+                              start: targetCaption.start + timePerWord
+                            };
+                            
+                            if (targetWords.length === 0) {
+                              newCaptionsList.splice(targetCaptionIndex, 1);
+                            }
+                            
+                            setCaptions(newCaptionsList);
+                          }
+                          setWordMenu(null);
+                        }}
+                        className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-[#222225] hover:text-white text-left transition-all"
+                      >
+                        <span className="text-[#8a8a8e] text-sm">⬅️</span>
+                        <div>
+                          <p className="font-semibold text-[11px]">Previous Line</p>
+                          <p className="text-[9px] text-[#8a8a8e]">Move word to previous line</p>
+                        </div>
+                      </button>
+
+                      <button 
+                        onClick={() => {
+                          const targetCaptionIndex = captions.findIndex(c => c.id === wordMenu.captionId);
+                          if (targetCaptionIndex !== -1 && targetCaptionIndex < captions.length - 1) {
+                            const targetCaption = captions[targetCaptionIndex];
+                            const nextCaption = captions[targetCaptionIndex + 1];
+                            
+                            const targetWords = targetCaption.text.split(/\s+/);
+                            const wordToMove = targetWords.splice(wordMenu.wordIndex, 1)[0];
+                            
+                            const timePerWord = (targetCaption.end - targetCaption.start) / Math.max(1, targetWords.length + 1);
+                            
+                            const newCaptionsList = [...captions];
+                            newCaptionsList[targetCaptionIndex] = {
+                              ...targetCaption,
+                              text: targetWords.join(' '),
+                              end: targetCaption.end - timePerWord
+                            };
+                            newCaptionsList[targetCaptionIndex + 1] = {
+                              ...nextCaption,
+                              text: wordToMove + ' ' + nextCaption.text,
+                              start: nextCaption.start - timePerWord
+                            };
+                            
+                            if (targetWords.length === 0) {
+                              newCaptionsList.splice(targetCaptionIndex, 1);
+                            }
+                            
+                            setCaptions(newCaptionsList);
+                          }
+                          setWordMenu(null);
+                        }}
+                        className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-[#222225] hover:text-white text-left transition-all"
+                      >
+                        <span className="text-[#8a8a8e] text-sm">➡️</span>
+                        <div>
+                          <p className="font-semibold text-[11px]">Next Line</p>
+                          <p className="text-[9px] text-[#8a8a8e]">Move word to next line</p>
+                        </div>
+                      </button>
+
+                      <div className="h-[1px] bg-[#2a2a2d] my-0.5" />
+
+                      <button 
+                        onClick={() => {
+                          const targetCaption = captions.find(c => c.id === wordMenu.captionId);
+                          if (targetCaption) {
+                            const wordsList = targetCaption.text.split(/\s+/);
+                            wordsList.splice(wordMenu.wordIndex, 1);
+                            handleCaptionChange(wordMenu.captionId, wordsList.join(' '));
+                          }
+                          setWordMenu(null);
+                        }}
+                        className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-red-500/10 hover:text-red-500 text-left transition-all"
+                      >
+                        <span className="text-red-500 text-sm">🗑️</span>
+                        <div>
+                          <p className="font-semibold text-[11px] text-red-500">Delete</p>
+                          <p className="text-[9px] text-red-500/80">Remove this word</p>
+                        </div>
+                      </button>
+                    </div>,
+                    document.body
+                  )}
                 </div>
-              </Panel>
+              </div>
+            </Panel>
 
               <PanelResizeHandle className="h-2 bg-transparent cursor-row-resize relative z-10 hover:bg-[#2a2a2d] transition-colors rounded-full my-0.5 mx-2" />
 
@@ -1054,6 +1643,10 @@ export function ReelEditor() {
             // SPACING props
             letterSpacing={letterSpacing}
             lineSpacing={lineSpacing}
+            // Timeline synchronization props
+            activeCaptionId={activeCaptionId}
+            setActiveCaptionId={setActiveCaptionId}
+            seekRef={seekRef}
           />
 
           <PanelResizeHandle className="w-2 bg-transparent cursor-col-resize relative z-10 hover:bg-[#2a2a2d] transition-colors rounded-full mx-0.5 my-2" />

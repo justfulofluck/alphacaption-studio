@@ -51,6 +51,10 @@ interface CustomPlayerUIProps {
   // SPACING props
   letterSpacing?: number;
   lineSpacing?: number;
+  // Timeline synchronization props
+  activeCaptionId?: number | null;
+  setActiveCaptionId?: (id: number | null) => void;
+  seekRef?: React.RefObject<((time: number) => void) | null>;
 }
 
 function CustomPlayerUI({ 
@@ -89,13 +93,34 @@ function CustomPlayerUI({
   bgShadowEnabled,
   bgOutlineEnabled,
   letterSpacing = 0,
-  lineSpacing = 1.2
+  lineSpacing = 1.2,
+  activeCaptionId,
+  setActiveCaptionId,
+  seekRef
 }: CustomPlayerUIProps) {
   const currentTime = useTimelineStore((state) => state.currentTime);
   const duration = useTimelineStore((state) => state.duration);
   const paused = usePlaybackStore((state) => state.paused);
   const togglePaused = usePlaybackStore((state) => state.togglePaused);
   const seek = useTimelineStore((state) => state.seek);
+
+  // Sync seek function reference to parent
+  useEffect(() => {
+    if (seekRef) {
+      (seekRef as any).current = seek;
+    }
+  }, [seek, seekRef]);
+
+  // Sync active caption ID to parent state
+  const activeCaption = captions?.find(
+    (c) => currentTime >= c.start && currentTime < c.end
+  );
+
+  useEffect(() => {
+    if (setActiveCaptionId) {
+      setActiveCaptionId(activeCaption ? activeCaption.id : null);
+    }
+  }, [activeCaption?.id, setActiveCaptionId]);
 
   const [isEditing, setIsEditing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -105,10 +130,6 @@ function CustomPlayerUI({
   const [snappedX, setSnappedX] = useState(false);
   const [snappedY, setSnappedY] = useState(false);
   const timelineRef = useRef<HTMLDivElement>(null);
-
-  const activeCaption = captions?.find(
-    (c) => currentTime >= c.start && currentTime < c.end
-  );
 
   const formatTime = (secs: number) => {
     if (isNaN(secs)) return "00:00:00";
@@ -526,7 +547,10 @@ export function VideoPlayer({
   bgShadowEnabled,
   bgOutlineEnabled,
   letterSpacing,
-  lineSpacing
+  lineSpacing,
+  activeCaptionId,
+  setActiveCaptionId,
+  seekRef
 }: any) {
   return (
     <Panel defaultSize={40} minSize={20} className="flex flex-col bg-[#0f0f11] relative overflow-hidden rounded-xl border border-[#2a2a2d] custom-player-wrapper">
@@ -571,6 +595,9 @@ export function VideoPlayer({
                 bgOutlineEnabled={bgOutlineEnabled}
                 letterSpacing={letterSpacing}
                 lineSpacing={lineSpacing}
+                activeCaptionId={activeCaptionId}
+                setActiveCaptionId={setActiveCaptionId}
+                seekRef={seekRef}
               />
             </LimeplayPlayer>
           </div>
