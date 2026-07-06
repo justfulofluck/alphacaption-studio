@@ -1,9 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { 
+import {
   Type, Music, Play, Search, RotateCcw, Home, Upload,
   Volume2, Maximize, Settings, AlignLeft, AlignCenter, AlignRight, AlignJustify,
-  Undo2, Redo2, Scissors, ChevronLeft, ChevronRight, Trash2, ZoomIn, SplitSquareHorizontal, RefreshCw, TypeOutline,
+  Undo2, Redo2, Scissors, ChevronLeft, ChevronRight, Trash2, ZoomIn, ZoomOut, SplitSquareHorizontal, RefreshCw, TypeOutline,
   X, ChevronUp, ChevronDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,7 @@ function hsvToHex(h: number, s: number, v: number): string {
   const p = v * (1 - s);
   const q = v * (1 - f * s);
   const t = v * (1 - (1 - f) * s);
-  
+
   let r = 0, g = 0, b = 0;
   switch (i) {
     case 0: r = v; g = t; b = p; break;
@@ -32,7 +32,7 @@ function hsvToHex(h: number, s: number, v: number): string {
     case 4: r = t; g = p; b = v; break;
     case 5: r = v; g = p; b = q; break;
   }
-  
+
   const toHex = (x: number) => {
     const hex = Math.round(x * 255).toString(16);
     return hex.length === 1 ? '0' + hex : hex;
@@ -54,15 +54,15 @@ function hexToHsv(hexStr: string): { h: number; s: number; v: number } {
     g = parseInt(hex.substring(3, 5), 16) / 255;
     b = parseInt(hex.substring(5, 7), 16) / 255;
   }
-  
+
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
   const d = max - min;
-  
+
   let h = 0;
   const s = max === 0 ? 0 : (d / max) * 100;
   const v = max * 100;
-  
+
   if (max !== min) {
     switch (max) {
       case r: h = (g - b) / d + (g < b ? 6 : 0); break;
@@ -71,7 +71,7 @@ function hexToHsv(hexStr: string): { h: number; s: number; v: number } {
     }
     h /= 6;
   }
-  
+
   return { h: Math.round(h * 360), s: Math.round(s), v: Math.round(v) };
 }
 
@@ -150,7 +150,7 @@ const CustomColorPicker: React.FC<CustomColorPickerProps> = ({ color, onChange }
   return (
     <div className="w-[180px] bg-[#161618] border border-[#2a2a2d] rounded-lg p-2 flex flex-col gap-2 select-none shadow-2xl relative z-50">
       {/* Saturation-Value Canvas */}
-      <div 
+      <div
         onMouseDown={handleSvMouseDown}
         className="w-full h-[110px] rounded relative cursor-crosshair overflow-hidden border border-[#2a2a2d]"
         style={{ backgroundColor: `hsl(${hue}, 100%, 50%)` }}
@@ -158,9 +158,9 @@ const CustomColorPicker: React.FC<CustomColorPickerProps> = ({ color, onChange }
         {/* Gradients */}
         <div className="absolute inset-0 bg-gradient-to-r from-white to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent" />
-        
+
         {/* SV Drag Marker */}
-        <div 
+        <div
           className="absolute w-3 h-3 border border-white rounded-full -translate-x-1/2 -translate-y-1/2 shadow-[0_0_2px_rgba(0,0,0,0.8)] pointer-events-none"
           style={{
             left: `${sat}%`,
@@ -170,7 +170,7 @@ const CustomColorPicker: React.FC<CustomColorPickerProps> = ({ color, onChange }
       </div>
 
       {/* Hue Slider */}
-      <div 
+      <div
         onMouseDown={handleHueMouseDown}
         className="w-full h-2.5 rounded-full relative cursor-ew-resize overflow-hidden border border-[#2a2a2d]"
         style={{
@@ -178,7 +178,7 @@ const CustomColorPicker: React.FC<CustomColorPickerProps> = ({ color, onChange }
         }}
       >
         {/* Hue Drag Marker */}
-        <div 
+        <div
           className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white border border-zinc-950 rounded-full shadow cursor-pointer"
           style={{ left: `calc(${(hue / 360) * 100}% + 6px - (${hue / 360} * 12px))` }}
         />
@@ -287,7 +287,7 @@ const StopColorPicker: React.FC<StopColorPickerProps> = ({
   return (
     <div className="w-[180px] bg-[#161618] border border-[#2a2a2d] rounded-lg p-2.5 flex flex-col gap-2 select-none shadow-2xl relative z-50">
       {/* Saturation-Value Canvas */}
-      <div 
+      <div
         onMouseDown={handleSvMouseDown}
         className="w-full h-[110px] rounded relative cursor-crosshair overflow-hidden border border-[#2a2a2d]"
         style={{ backgroundColor: `hsl(${hue}, 100%, 50%)` }}
@@ -295,9 +295,9 @@ const StopColorPicker: React.FC<StopColorPickerProps> = ({
         {/* Gradients */}
         <div className="absolute inset-0 bg-gradient-to-r from-white to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent" />
-        
+
         {/* SV Drag Marker */}
-        <div 
+        <div
           className="absolute w-3 h-3 border border-white rounded-full -translate-x-1/2 -translate-y-1/2 shadow-[0_0_2px_rgba(0,0,0,0.8)] pointer-events-none"
           style={{
             left: `${sat}%`,
@@ -307,7 +307,7 @@ const StopColorPicker: React.FC<StopColorPickerProps> = ({
       </div>
 
       {/* Hue Slider */}
-      <div 
+      <div
         onMouseDown={handleHueMouseDown}
         className="w-full h-2.5 rounded-full relative cursor-ew-resize overflow-hidden border border-[#2a2a2d]"
         style={{
@@ -315,7 +315,7 @@ const StopColorPicker: React.FC<StopColorPickerProps> = ({
         }}
       >
         {/* Hue Drag Marker */}
-        <div 
+        <div
           className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white border border-zinc-950 rounded-full shadow cursor-pointer"
           style={{ left: `calc(${(hue / 360) * 100}% + 6px - (${hue / 360} * 12px))` }}
         />
@@ -327,7 +327,7 @@ const StopColorPicker: React.FC<StopColorPickerProps> = ({
           <span>Opacity</span>
           <span>{opacity}%</span>
         </div>
-        <input 
+        <input
           type="range"
           min="0"
           max="100"
@@ -341,7 +341,7 @@ const StopColorPicker: React.FC<StopColorPickerProps> = ({
       <div className="flex items-center justify-between text-[10px] text-[#8a8a8e] mt-1.5">
         <span>Position</span>
         <div className="bg-[#1a1a1c] border border-[#2a2a2d] rounded px-1.5 py-0.5 w-16 text-center font-mono text-white text-[10px]">
-          <input 
+          <input
             type="text"
             value={posInput}
             onChange={(e) => {
@@ -360,7 +360,7 @@ const StopColorPicker: React.FC<StopColorPickerProps> = ({
 
       {/* Remove stop button */}
       {canRemove && (
-        <button 
+        <button
           onClick={onRemove}
           className="w-full flex items-center justify-center gap-1.5 text-[10px] text-red-500 hover:text-red-400 hover:bg-red-500/10 py-1 mt-2 border border-red-500/20 rounded transition-colors"
         >
@@ -376,9 +376,10 @@ interface CustomSelectProps {
   options: string[];
   onChange: (val: string) => void;
   onHoverChange?: (val: string | null) => void;
+  icon?: React.ReactNode;
 }
 
-const CustomSelect: React.FC<CustomSelectProps> = ({ value, options, onChange, onHoverChange }) => {
+const CustomSelect: React.FC<CustomSelectProps> = ({ value, options, onChange, onHoverChange, icon }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -398,14 +399,17 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, options, onChange, o
         onClick={() => setIsOpen(!isOpen)}
         className="w-full bg-[#1a1a1c] border border-[#2a2a2d] rounded-md px-3 py-1.5 text-xs font-medium text-white flex items-center justify-between outline-none focus:border-[#52c595] text-left min-h-[32px] select-none"
       >
-        <span>{value}</span>
+        <div className="flex items-center gap-2">
+          {icon && <span className="text-[#8a8a8e]">{icon}</span>}
+          <span>{value}</span>
+        </div>
         {/* Simple inline CSS up/down arrow matching screenshot 2 */}
         <div className="flex flex-col text-[8px] text-zinc-500 leading-[6px]">
           <span>▲</span>
           <span>▼</span>
         </div>
       </button>
-      
+
       {isOpen && (
         <div className="absolute left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-[#161618] border border-[#2a2a2d] rounded-md shadow-2xl z-50 py-1 scrollbar-thin">
           {options.map((option) => (
@@ -429,10 +433,15 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, options, onChange, o
   );
 };
 
-import { useEffect } from 'react';
-
 export function ReelEditor() {
   const [activeTabLeft, setActiveTabLeft] = useState('captions');
+  const [seekTo, setSeekTo] = useState<number>(0);
+  const [zoomLevel, setZoomLevel] = useState<number>(1);
+  const zoomLevelRef = useRef(zoomLevel);
+  useEffect(() => {
+    zoomLevelRef.current = zoomLevel;
+  }, [zoomLevel]);
+
   const [activeTabRight, setActiveTabRight] = useState('text');
   const [wordLineToggle, setWordLineToggle] = useState('WORD');
   const [colorToggle, setColorToggle] = useState('Solid');
@@ -506,7 +515,7 @@ export function ReelEditor() {
   const [shadowX, setShadowX] = useState(0);
   const [shadowY, setShadowY] = useState(0);
   const [shadowBlur, setShadowBlur] = useState(13);
-  
+
   // Text Stroke
   const [strokeEnabled, setStrokeEnabled] = useState(false);
   const [strokeColor, setStrokeColor] = useState('#000000');
@@ -541,7 +550,371 @@ export function ReelEditor() {
 
   // Timeline & active word selection states
   const [activeCaptionId, setActiveCaptionId] = useState<number | null>(null);
-  const seekRef = useRef<(time: number) => void>(null);
+  const seekRef = useRef<((time: number) => void) | null>(null);
+  const currentTimeRef = useRef(0);
+  const durationRef = useRef(0);
+  const playheadRef = useRef<HTMLDivElement>(null);
+  const timelineScrollRef = useRef<HTMLDivElement>(null);
+  const isDraggingTimelineRef = useRef(false);
+
+  // Dragging and resizing state for timeline blocks
+  const [draggingBlock, setDraggingBlock] = useState<{
+    id: string | number;
+    type: 'word' | 'line';
+    action: 'move' | 'resize-left' | 'resize-right';
+    startX: number;
+    initialStart: number;
+    initialEnd: number;
+    minStart: number;
+    maxEnd: number;
+  } | null>(null);
+  const [selectedBlockId, setSelectedBlockId] = useState<string | number | null>(null);
+  const [optimisticTimings, setOptimisticTimings] = useState<Record<string, {start: number, end: number}>>({});
+  const optimisticTimingsRef = useRef(optimisticTimings);
+  useEffect(() => {
+    optimisticTimingsRef.current = optimisticTimings;
+  }, [optimisticTimings]);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!draggingBlock) return;
+      const pxPerSec = 200 * zoomLevelRef.current;
+      const deltaX = e.clientX - draggingBlock.startX;
+      const deltaTime = deltaX / pxPerSec;
+      
+      setOptimisticTimings(prev => {
+        let newStart = draggingBlock.initialStart;
+        let newEnd = draggingBlock.initialEnd;
+        
+        if (draggingBlock.action === 'move') {
+          const duration = draggingBlock.initialEnd - draggingBlock.initialStart;
+          newStart = Math.max(draggingBlock.minStart, Math.min(draggingBlock.initialStart + deltaTime, draggingBlock.maxEnd - duration));
+          newEnd = newStart + duration;
+        } else if (draggingBlock.action === 'resize-left') {
+          newStart = Math.max(draggingBlock.minStart, Math.min(draggingBlock.initialStart + deltaTime, newEnd - 0.1));
+        } else if (draggingBlock.action === 'resize-right') {
+          newEnd = Math.max(newStart + 0.1, Math.min(draggingBlock.initialEnd + deltaTime, draggingBlock.maxEnd));
+        }
+        
+        return { ...prev, [draggingBlock.id]: { start: newStart, end: newEnd } };
+      });
+    };
+
+    const handleMouseUp = () => {
+      if (!draggingBlock) return;
+      
+      setCaptions(prev => {
+        const result = [...prev];
+        const updated = optimisticTimingsRef.current[draggingBlock.id];
+        if (!updated) return result;
+        
+        if (draggingBlock.type === 'line') {
+          const idx = result.findIndex(c => c.id === draggingBlock.id);
+          if (idx !== -1) {
+            result[idx] = { ...result[idx], start: updated.start, end: updated.end };
+          }
+        } else {
+          // Update a word inside a chunk
+          for (let i = 0; i < result.length; i++) {
+            if (result[i].words) {
+              const wIdx = result[i].words.findIndex((w: any) => w.id === draggingBlock.id);
+              if (wIdx !== -1) {
+                const newWords = [...result[i].words];
+                newWords[wIdx] = { ...newWords[wIdx], start: updated.start, end: updated.end };
+                result[i] = { ...result[i], words: newWords };
+                break;
+              }
+            }
+          }
+        }
+        return result;
+      });
+      
+      setDraggingBlock(null);
+    };
+
+    if (draggingBlock) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [draggingBlock]);
+
+  // Global mouse handlers for playhead scrubbing
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDraggingTimelineRef.current) return;
+      if (timelineScrollRef.current) {
+         const innerDiv = timelineScrollRef.current.firstChild as HTMLDivElement;
+         if (innerDiv) {
+            const rect = innerDiv.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const pxPerSec = 200 * zoomLevelRef.current;
+            const time = Math.max(0, x / pxPerSec);
+            if (seekRef.current) seekRef.current(time);
+         }
+      }
+    };
+    const handleMouseUp = () => {
+      isDraggingTimelineRef.current = false;
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
+
+  useEffect(() => {
+    let animationFrameId: number;
+    const updatePlayhead = () => {
+      const pxPerSec = 200 * zoomLevelRef.current;
+      if (playheadRef.current) {
+        const x = currentTimeRef.current * pxPerSec;
+        playheadRef.current.style.transform = `translateX(${x}px)`;
+        
+        // Auto-scroll logic if playhead goes out of view
+        if (timelineScrollRef.current) {
+          const scrollLeft = timelineScrollRef.current.scrollLeft;
+          const clientWidth = timelineScrollRef.current.clientWidth;
+          
+          // Don't auto-scroll if the user is currently dragging/scrubbing
+          if (!isDraggingTimelineRef.current) {
+            if (x > scrollLeft + clientWidth - 100) {
+              timelineScrollRef.current.scrollLeft = x - clientWidth + 100;
+            } else if (x < scrollLeft + 50) {
+              timelineScrollRef.current.scrollLeft = Math.max(0, x - 50);
+            }
+          }
+        }
+      }
+      animationFrameId = requestAnimationFrame(updatePlayhead);
+    };
+    animationFrameId = requestAnimationFrame(updatePlayhead);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, []);
+
+  const seekFromMouseEvent = (e: React.MouseEvent<HTMLDivElement> | MouseEvent) => {
+    if (!seekRef.current) return;
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const pxPerSec = 200 * zoomLevelRef.current;
+    const time = Math.max(0, x / pxPerSec);
+    seekRef.current(time);
+  };
+
+  const handleTimelineMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    setSelectedBlockId(null);
+    // Logic removed to allow separate playhead dragging
+  };
+
+  const handleTimelineSplit = () => {
+    if (!selectedBlockId) return;
+    if (wordLineToggle === 'WORD') {
+      let targetCaptionIndex = -1;
+      let wordIndex = -1;
+      for (let i = 0; i < captions.length; i++) {
+        if (captions[i].words) {
+          const wIdx = captions[i].words.findIndex((w: any) => w.id === selectedBlockId);
+          if (wIdx !== -1) {
+            targetCaptionIndex = i;
+            wordIndex = wIdx;
+            break;
+          }
+        }
+      }
+      
+      if (targetCaptionIndex !== -1 && wordIndex !== -1) {
+          const targetCaption = captions[targetCaptionIndex];
+          const words = targetCaption.text.split(/\s+/);
+          const j = wordIndex;
+          const duration = targetCaption.end - targetCaption.start;
+          const timePerWord = duration / Math.max(1, words.length);
+          const newCaptions = [];
+          
+          if (j > 0) {
+            newCaptions.push({ id: Date.now() + 1, start: targetCaption.start, end: targetCaption.start + j * timePerWord, text: words.slice(0, j).join(' ') });
+          }
+          newCaptions.push({ id: Date.now() + 2, start: targetCaption.start + j * timePerWord, end: targetCaption.start + (j + 1) * timePerWord, text: words[j] });
+          if (j < words.length - 1) {
+            newCaptions.push({ id: Date.now() + 3, start: targetCaption.start + (j + 1) * timePerWord, end: targetCaption.end, text: words.slice(j + 1).join(' ') });
+          }
+          
+          const newCaptionsList = [...captions];
+          newCaptionsList.splice(targetCaptionIndex, 1, ...newCaptions);
+          setCaptions(newCaptionsList);
+      }
+    }
+  };
+
+  const handleTimelineMergeLeft = () => {
+    if (!selectedBlockId) return;
+    if (wordLineToggle === 'WORD') {
+      let targetCaptionIndex = -1;
+      let wordIndex = -1;
+      for (let i = 0; i < captions.length; i++) {
+        if (captions[i].words) {
+          const wIdx = captions[i].words.findIndex((w: any) => w.id === selectedBlockId);
+          if (wIdx !== -1) {
+            targetCaptionIndex = i;
+            wordIndex = wIdx;
+            break;
+          }
+        }
+      }
+      
+      if (targetCaptionIndex > 0 && wordIndex === 0) {
+          const targetCaption = captions[targetCaptionIndex];
+          const prevCaption = captions[targetCaptionIndex - 1];
+          const targetWords = targetCaption.text.split(/\s+/);
+          const wordToMove = targetWords.splice(wordIndex, 1)[0];
+          const timePerWord = (targetCaption.end - targetCaption.start) / Math.max(1, targetWords.length + 1);
+
+          const newCaptionsList = [...captions];
+          newCaptionsList[targetCaptionIndex - 1] = {
+            ...prevCaption,
+            text: prevCaption.text + ' ' + wordToMove,
+            end: prevCaption.end + timePerWord
+          };
+          newCaptionsList[targetCaptionIndex] = {
+            ...targetCaption,
+            text: targetWords.join(' '),
+            start: targetCaption.start + timePerWord
+          };
+          if (targetWords.length === 0) {
+            newCaptionsList.splice(targetCaptionIndex, 1);
+          }
+          setCaptions(newCaptionsList);
+      }
+    } else {
+        const targetCaptionIndex = captions.findIndex(c => c.id === selectedBlockId);
+        if (targetCaptionIndex > 0) {
+            const targetCaption = captions[targetCaptionIndex];
+            const prevCaption = captions[targetCaptionIndex - 1];
+            const newCaptionsList = [...captions];
+            newCaptionsList[targetCaptionIndex - 1] = {
+                ...prevCaption,
+                text: prevCaption.text + ' ' + targetCaption.text,
+                end: targetCaption.end
+            };
+            newCaptionsList.splice(targetCaptionIndex, 1);
+            setCaptions(newCaptionsList);
+        }
+    }
+  };
+
+  const handleTimelineMergeRight = () => {
+    if (!selectedBlockId) return;
+    if (wordLineToggle === 'WORD') {
+      let targetCaptionIndex = -1;
+      let wordIndex = -1;
+      for (let i = 0; i < captions.length; i++) {
+        if (captions[i].words) {
+          const wIdx = captions[i].words.findIndex((w: any) => w.id === selectedBlockId);
+          if (wIdx !== -1) {
+            targetCaptionIndex = i;
+            wordIndex = wIdx;
+            break;
+          }
+        }
+      }
+
+      if (targetCaptionIndex !== -1 && targetCaptionIndex < captions.length - 1) {
+          const targetCaption = captions[targetCaptionIndex];
+          const nextCaption = captions[targetCaptionIndex + 1];
+          const targetWords = targetCaption.text.split(/\s+/);
+          if (wordIndex === targetWords.length - 1) {
+              const wordToMove = targetWords.splice(wordIndex, 1)[0];
+              const timePerWord = (targetCaption.end - targetCaption.start) / Math.max(1, targetWords.length + 1);
+              
+              const newCaptionsList = [...captions];
+              newCaptionsList[targetCaptionIndex] = {
+                ...targetCaption,
+                text: targetWords.join(' '),
+                end: targetCaption.end - timePerWord
+              };
+              newCaptionsList[targetCaptionIndex + 1] = {
+                ...nextCaption,
+                text: wordToMove + ' ' + nextCaption.text,
+                start: nextCaption.start - timePerWord
+              };
+              if (targetWords.length === 0) {
+                newCaptionsList.splice(targetCaptionIndex, 1);
+              }
+              setCaptions(newCaptionsList);
+          }
+      }
+    } else {
+        const targetCaptionIndex = captions.findIndex(c => c.id === selectedBlockId);
+        if (targetCaptionIndex !== -1 && targetCaptionIndex < captions.length - 1) {
+            const targetCaption = captions[targetCaptionIndex];
+            const nextCaption = captions[targetCaptionIndex + 1];
+            const newCaptionsList = [...captions];
+            newCaptionsList[targetCaptionIndex] = {
+                ...targetCaption,
+                text: targetCaption.text + ' ' + nextCaption.text,
+                end: nextCaption.end
+            };
+            newCaptionsList.splice(targetCaptionIndex + 1, 1);
+            setCaptions(newCaptionsList);
+        }
+    }
+  };
+
+  const handleTimelineDelete = () => {
+    if (!selectedBlockId) return;
+    if (wordLineToggle === 'WORD') {
+      let targetCaptionIndex = -1;
+      let wordIndex = -1;
+      for (let i = 0; i < captions.length; i++) {
+        if (captions[i].words) {
+          const wIdx = captions[i].words.findIndex((w: any) => w.id === selectedBlockId);
+          if (wIdx !== -1) {
+            targetCaptionIndex = i;
+            wordIndex = wIdx;
+            break;
+          }
+        }
+      }
+
+      if (targetCaptionIndex !== -1 && wordIndex !== -1) {
+        const targetCaption = captions[targetCaptionIndex];
+        const wordsList = targetCaption.text.split(/\s+/);
+        wordsList.splice(wordIndex, 1);
+        handleCaptionChange(targetCaption.id, wordsList.join(' '));
+      }
+    } else {
+        const newCaptionsList = captions.filter(c => c.id !== selectedBlockId);
+        setCaptions(newCaptionsList);
+    }
+  };
+
+  const renderWaveform = () => {
+    const maxTime = Math.max(durationRef.current || 0, displayCaptions.length > 0 ? Math.max(...displayCaptions.map(c => c.end)) : 5);
+    const pxPerSec = 200 * zoomLevel;
+    const totalWidth = Math.max(1200, (maxTime + 2) * pxPerSec);
+    
+    let path = "";
+    for (let x = 0; x < totalWidth; x += 5) {
+      const t = x / pxPerSec;
+      const isActive = displayCaptions.some(c => t >= c.start && t <= c.end);
+      const maxAmp = isActive ? 18 : 3;
+      const minAmp = isActive ? 6 : 1;
+      const amp = Math.random() * (maxAmp - minAmp) + minAmp;
+      path += `M ${x} ${28 - amp} L ${x} ${28 + amp} `;
+    }
+    
+    return (
+      <svg width={totalWidth} height="56" className="text-[#52c595]/60">
+        <path d={path} stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+        <line x1="0" y1="28" x2={totalWidth} y2="28" stroke="currentColor" strokeWidth="1" opacity="0.3" />
+      </svg>
+    );
+  };
   const [wordMenu, setWordMenu] = useState<{
     captionId: number;
     wordIndex: number;
@@ -561,6 +934,16 @@ export function ReelEditor() {
   const [searchQuery, setSearchQuery] = useState('');
   const [replaceQuery, setReplaceQuery] = useState('');
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+
+  const [showCaptionTools, setShowCaptionTools] = useState(false);
+  const [wordsMode, setWordsMode] = useState('Default');
+  const [maxChars, setMaxChars] = useState(24);
+  const [linesMode, setLinesMode] = useState('1 Line');
+  const [removePunctuation, setRemovePunctuation] = useState(false);
+  const [removeEmphasis, setRemoveEmphasis] = useState(false);
+  const [removeGaps, setRemoveGaps] = useState(false);
+  const [removeEmojis, setRemoveEmojis] = useState(false);
+  const [captionDelay, setCaptionDelay] = useState(0);
 
   useEffect(() => {
     setCurrentMatchIndex(0);
@@ -613,6 +996,25 @@ export function ReelEditor() {
     setOpenAccordions(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const generateWordsForChunk = (c: any) => {
+    if (c.words && c.words.length > 0) return c;
+    const wordsList = c.text.split(/\s+/).filter((w: string) => w.trim().length > 0);
+    const duration = c.end - c.start;
+    const timePerWord = duration / Math.max(1, wordsList.length);
+    const words = wordsList.map((w: string, i: number) => {
+      const hasPunctuation = /[.,!?]/.test(w);
+      const gapRatio = hasPunctuation ? 0.4 : 0.15;
+      const gapTime = timePerWord * gapRatio;
+      return {
+        id: `w-${c.id || Date.now()}-${i}-${Math.random().toString(36).substr(2, 5)}`,
+        text: w,
+        start: c.start + i * timePerWord,
+        end: c.start + (i + 1) * timePerWord - gapTime
+      };
+    });
+    return { ...c, words };
+  };
+
   const [captions, setCaptions] = useState([
     { id: 1, start: 0.0, end: 2.5, text: "Hello and welcome to Kalakaar. As" },
     { id: 2, start: 2.5, end: 4.8, text: "you can see, we have captions on" },
@@ -622,10 +1024,193 @@ export function ReelEditor() {
     { id: 6, start: 12.0, end: 14.5, text: "language from the left side on the" },
     { id: 7, start: 14.5, end: 17.0, text: "screen and you'd be able to see those" },
     { id: 8, start: 17.0, end: 20.0, text: "subtitles." }
-  ]);
+  ].map(generateWordsForChunk));
+
+  const [history, setHistory] = useState<any[][]>([captions]);
+  const [historyIndex, setHistoryIndex] = useState(0);
+  const isUndoRedoRef = useRef(false);
+
+  useEffect(() => {
+    if (isUndoRedoRef.current) {
+      isUndoRedoRef.current = false;
+      return;
+    }
+    setHistory(prev => {
+      const newHistory = prev.slice(0, historyIndex + 1);
+      newHistory.push(captions);
+      return newHistory;
+    });
+    setHistoryIndex(prev => prev + 1);
+  }, [captions]);
+
+  const handleTimelineUndo = React.useCallback(() => {
+    setHistoryIndex(prev => {
+      if (prev > 0) {
+        isUndoRedoRef.current = true;
+        setCaptions(history[prev - 1]);
+        return prev - 1;
+      }
+      return prev;
+    });
+  }, [history]);
+
+  const handleTimelineRedo = React.useCallback(() => {
+    setHistoryIndex(prev => {
+      if (prev < history.length - 1) {
+        isUndoRedoRef.current = true;
+        setCaptions(history[prev + 1]);
+        return prev + 1;
+      }
+      return prev;
+    });
+  }, [history]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        if (e.shiftKey) {
+          handleTimelineRedo();
+        } else {
+          handleTimelineUndo();
+        }
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+        handleTimelineRedo();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleTimelineUndo, handleTimelineRedo]);
 
   const handleCaptionChange = (id: number, newText: string) => {
     setCaptions(captions.map(c => c.id === id ? { ...c, text: newText } : c));
+  };
+
+  const displayCaptions = React.useMemo(() => {
+    let result = captions.map(c => ({ 
+      ...c, 
+      words: c.words ? c.words.map((w: any) => ({ ...w })) : [] 
+    }));
+    
+    if (removePunctuation) {
+      result.forEach(c => {
+        c.text = c.text.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "");
+        if (c.words) c.words.forEach((w: any) => w.text = w.text.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, ""));
+      });
+    }
+    if (removeEmphasis) {
+      result.forEach(c => {
+        c.text = c.text.replace(/[*_~]/g, "");
+        if (c.words) c.words.forEach((w: any) => w.text = w.text.replace(/[*_~]/g, ""));
+      });
+    }
+    if (removeEmojis) {
+      result.forEach(c => {
+        c.text = c.text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, "");
+        if (c.words) c.words.forEach((w: any) => w.text = w.text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, ""));
+      });
+    }
+    if (removeGaps) {
+      for (let i = 0; i < result.length - 1; i++) {
+        if (result[i].end < result[i+1].start) {
+          result[i].end = result[i+1].start;
+        }
+      }
+    }
+    return result;
+  }, [captions, removePunctuation, removeEmphasis, removeEmojis, removeGaps]);
+
+  useEffect(() => {
+    if (wordsMode === 'Default') return;
+    const wordsPerCaption = parseInt(wordsMode.split(' ')[0]);
+    if (isNaN(wordsPerCaption)) return;
+
+    setCaptions(prev => {
+      const allWords: any[] = [];
+      prev.forEach(c => {
+        if (c.words && c.words.length > 0) {
+          allWords.push(...c.words);
+        } else {
+          allWords.push(...generateWordsForChunk(c).words);
+        }
+      });
+
+      const newCaptions = [];
+      for (let i = 0; i < allWords.length; i += wordsPerCaption) {
+        const chunk = allWords.slice(i, i + wordsPerCaption);
+        if (chunk.length > 0) {
+          newCaptions.push({
+            id: Date.now() + i,
+            start: chunk[0].start,
+            end: chunk[chunk.length - 1].end,
+            text: chunk.map(w => w.text).join(' '),
+            words: chunk
+          });
+        }
+      }
+      return newCaptions;
+    });
+  }, [wordsMode]);
+
+  const applyMaxChars = (charLimit: number, linesOpt?: string) => {
+    if (charLimit <= 0) return;
+    const currentLinesMode = linesOpt || linesMode;
+    const numLines = parseInt(currentLinesMode.split(' ')[0]) || 1;
+    const limit = charLimit * numLines;
+
+    setCaptions(prev => {
+      const allWords: any[] = [];
+      prev.forEach(c => {
+        if (c.words && c.words.length > 0) {
+          allWords.push(...c.words);
+        } else {
+          allWords.push(...generateWordsForChunk(c).words);
+        }
+      });
+
+      const newCaptions = [];
+      let currentChunk: any[] = [];
+      let currentLength = 0;
+      
+      allWords.forEach(w => {
+        if (currentLength + w.text.length + (currentChunk.length > 0 ? 1 : 0) > limit && currentChunk.length > 0) {
+          newCaptions.push({
+            id: Date.now() + Math.random(),
+            start: currentChunk[0].start,
+            end: currentChunk[currentChunk.length - 1].end,
+            text: currentChunk.map(cw => cw.text).join(' '),
+            words: currentChunk
+          });
+          currentChunk = [w];
+          currentLength = w.text.length;
+        } else {
+          currentChunk.push(w);
+          currentLength += w.text.length + (currentChunk.length > 1 ? 1 : 0);
+        }
+      });
+      
+      if (currentChunk.length > 0) {
+        newCaptions.push({
+          id: Date.now() + Math.random(),
+          start: currentChunk[0].start,
+          end: currentChunk[currentChunk.length - 1].end,
+          text: currentChunk.map(cw => cw.text).join(' '),
+          words: currentChunk
+        });
+      }
+      return newCaptions;
+    });
+  };
+
+  const applyCaptionDelay = () => {
+    if (captionDelay !== 0) {
+      setCaptions(prev => prev.map(c => ({
+        ...c,
+        start: Math.max(0, c.start + captionDelay),
+        end: Math.max(0, c.end + captionDelay)
+      })));
+      setCaptionDelay(0);
+    }
   };
 
   const allMatches = React.useMemo(() => {
@@ -634,42 +1219,42 @@ export function ReelEditor() {
     try {
       const escapedQuery = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const regex = new RegExp(escapedQuery, 'gi');
-      
-      captions.forEach((caption) => {
+
+      displayCaptions.forEach((caption) => {
         const found = [...caption.text.matchAll(regex)];
-        
+
         const words = caption.text.split(/\s+/);
-        const wordBounds: {start: number, end: number}[] = [];
+        const wordBounds: { start: number, end: number }[] = [];
         let currentIndex = 0;
         words.forEach(w => {
-           const start = caption.text.indexOf(w, currentIndex);
-           const end = start + w.length;
-           wordBounds.push({ start, end });
-           currentIndex = end;
+          const start = caption.text.indexOf(w, currentIndex);
+          const end = start + w.length;
+          wordBounds.push({ start, end });
+          currentIndex = end;
         });
 
         found.forEach((m) => {
           const matchStart = m.index || 0;
           const matchEnd = matchStart + m[0].length;
-          
+
           const overlappingWords: number[] = [];
           wordBounds.forEach((bound, wIdx) => {
             if (bound.end > matchStart && bound.start < matchEnd) {
               overlappingWords.push(wIdx);
             }
           });
-          
+
           matches.push({
-             captionId: caption.id,
-             matchStringIndex: matchStart,
-             matchLength: m[0].length,
-             wordIndices: overlappingWords
+            captionId: caption.id,
+            matchStringIndex: matchStart,
+            matchLength: m[0].length,
+            wordIndices: overlappingWords
           });
         });
       });
-    } catch {}
+    } catch { }
     return matches;
-  }, [captions, searchQuery]);
+  }, [displayCaptions, searchQuery]);
 
   useEffect(() => {
     if (allMatches.length > 0 && currentMatchIndex < allMatches.length) {
@@ -700,18 +1285,16 @@ export function ReelEditor() {
     const captionIndex = captions.findIndex(c => c.id === match.captionId);
     if (captionIndex !== -1) {
       const targetCaption = captions[captionIndex];
-      const newText = 
-        targetCaption.text.substring(0, match.matchStringIndex) + 
-        replaceQuery + 
-        targetCaption.text.substring(match.matchStringIndex + match.matchLength);
-        
+      const regex = new RegExp(searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      const newText = targetCaption.text.replace(regex, replaceQuery);
+
       const newCaptions = [...captions];
       newCaptions[captionIndex] = {
         ...targetCaption,
         text: newText
       };
       setCaptions(newCaptions);
-      
+
       if (currentMatchIndex >= allMatches.length - 1) {
         setCurrentMatchIndex(Math.max(0, currentMatchIndex - 1));
       }
@@ -788,36 +1371,40 @@ export function ReelEditor() {
         try {
           const data = JSON.parse(xhr.responseText);
           console.log('Video uploaded successfully:', data);
-          
+
           if (data.video_url) {
             const pathOnly = data.video_url.replace(/^https?:\/\/[^\/]+/, '');
             setVideoUrl(`${API_BASE_URL}${pathOnly}`);
           }
-          
-          // Now trigger transcription automatically
-          setTranscribing(true);
-          setUploadStage('transcribing');
-          const transcribeResponse = await fetch(`${API_BASE_URL}/api/captions/${data.id}/transcribe`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-            },
-            body: JSON.stringify({ mode: 'native_language' })
-          });
-          
-          if (!transcribeResponse.ok) {
-            throw new Error('Transcription failed');
+
+          // Now trigger transcription automatically if there's audio
+          if (data.audio_filename) {
+            setTranscribing(true);
+            setUploadStage('transcribing');
+            const transcribeResponse = await fetch(`${API_BASE_URL}/api/captions/${data.id}/transcribe`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+              },
+              body: JSON.stringify({ mode: 'native_language' })
+            });
+
+            if (!transcribeResponse.ok) {
+              throw new Error('Transcription failed');
+            }
+
+            const transcribeData = await transcribeResponse.json();
+            console.log('Transcription successful:', transcribeData);
+
+            // Sync new captions with editor
+            if (transcribeData.segments) {
+              setCaptions(transcribeData.segments);
+            }
+          } else {
+            console.log('No audio stream detected. Skipping transcription.');
           }
-          
-          const transcribeData = await transcribeResponse.json();
-          console.log('Transcription successful:', transcribeData);
-          
-          // Sync new captions with editor
-          if (transcribeData.segments) {
-            setCaptions(transcribeData.segments);
-          }
-          
+
           setUploadStage('success');
         } catch (err: any) {
           console.error('Processing error:', err);
@@ -848,7 +1435,7 @@ export function ReelEditor() {
 
   return (
     <div className="relative flex h-full w-full bg-[#000000] text-[#e0e0e0] font-sans overflow-hidden">
-      
+
       {/* Upload and Transcription Progress Overlay */}
       {uploadStage !== 'idle' && (
         <div className="absolute inset-0 bg-[#0f0f11]/95 z-50 flex flex-col items-center justify-center backdrop-blur-sm">
@@ -891,7 +1478,7 @@ export function ReelEditor() {
                   <h3 className="font-bold text-white text-lg">Processing Video</h3>
                   <p className="text-xs text-[#8a8a8e]">Please keep this window open</p>
                 </div>
-                
+
                 <div className="flex flex-col gap-4 border-t border-[#2a2a2d] pt-4">
                   {/* Step 1: Uploading */}
                   <div className="flex items-center justify-between text-xs">
@@ -915,8 +1502,8 @@ export function ReelEditor() {
                   {/* Progress bar only visible during upload */}
                   {uploadStage === 'upload' && (
                     <div className="w-full bg-[#2a2a2d] h-1.5 rounded-full overflow-hidden">
-                      <div 
-                        className="bg-[#52c595] h-full rounded-full transition-all duration-300" 
+                      <div
+                        className="bg-[#52c595] h-full rounded-full transition-all duration-300"
                         style={{ width: `${uploadProgress}%` }}
                       />
                     </div>
@@ -961,21 +1548,21 @@ export function ReelEditor() {
           </div>
         </div>
       )}
-      
+
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 h-full p-2">
         <PanelGroup orientation="horizontal">
-          
+
           {/* LEFT COLUMN: Captions + Timeline */}
           <Panel defaultSize={35} minSize={20} className="flex flex-col">
             <PanelGroup orientation="vertical">
-              
+
               {/* TOP: Captions List */}
               <Panel defaultSize={80} minSize={30} className="flex flex-row overflow-hidden relative rounded-xl border border-[#2a2a2d] bg-[#1a1a1c]">
-                
+
                 {/* Vertical Menu (Moved inside) */}
                 <div className="w-[72px] flex flex-col items-center py-6 gap-8 border-r border-[#2a2a2d] bg-[#161618] h-full shrink-0 z-20">
-                  <Link 
+                  <Link
                     to="/dashboard"
                     className="flex flex-col items-center gap-1.5 transition-colors text-[#8a8a8e] hover:text-[#e0e0e0]"
                   >
@@ -984,7 +1571,7 @@ export function ReelEditor() {
                     </div>
                     <span className="text-[10px] font-medium">Home</span>
                   </Link>
-                  <button 
+                  <button
                     onClick={() => fileInputRef.current?.click()}
                     className={`flex flex-col items-center gap-1.5 transition-colors text-[#8a8a8e] hover:text-[#e0e0e0]`}
                   >
@@ -992,15 +1579,15 @@ export function ReelEditor() {
                       <Upload className="w-5 h-5" />
                     </div>
                     <span className="text-[10px] font-medium">Upload</span>
-                    <input 
-                      type="file" 
-                      ref={fileInputRef} 
-                      className="hidden" 
-                      accept="video/mp4,video/webm" 
-                      onChange={handleVideoUpload} 
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      className="hidden"
+                      accept="video/mp4,video/webm"
+                      onChange={handleVideoUpload}
                     />
                   </button>
-                  <button 
+                  <button
                     onClick={() => setActiveTabLeft('captions')}
                     className={`flex flex-col items-center gap-1.5 transition-colors ${activeTabLeft === 'captions' ? 'text-[#52c595]' : 'text-[#8a8a8e] hover:text-[#e0e0e0]'}`}
                   >
@@ -1009,16 +1596,16 @@ export function ReelEditor() {
                     </div>
                     <span className="text-[10px] font-medium text-center leading-none">Captions</span>
                   </button>
-                  <button 
+                  <button
                     onClick={() => setActiveTabLeft('fonts')}
                     className={`flex flex-col items-center gap-1.5 transition-colors ${activeTabLeft === 'fonts' ? 'text-[#52c595]' : 'text-[#8a8a8e] hover:text-[#e0e0e0]'}`}
                   >
                     <div className={`p-2 rounded-lg ${activeTabLeft === 'fonts' ? 'bg-[#52c595]/10' : ''}`}>
                       <Type className="w-5 h-5" />
                     </div>
-                    <span className="text-[10px] font-medium text-center leading-tight">Custom<br/>Fonts</span>
+                    <span className="text-[10px] font-medium text-center leading-tight">Custom<br />Fonts</span>
                   </button>
-                  <button 
+                  <button
                     onClick={() => setActiveTabLeft('audio')}
                     className={`flex flex-col items-center gap-1.5 transition-colors relative ${activeTabLeft === 'audio' ? 'text-[#52c595]' : 'text-[#8a8a8e] hover:text-[#e0e0e0]'}`}
                   >
@@ -1035,149 +1622,365 @@ export function ReelEditor() {
                   {/* Header */}
                   <div className="h-[60px] px-5 flex justify-between items-center border-b border-[#2a2a2d]">
                     <h2 className="font-bold text-lg text-white">Captions</h2>
-                  <div className="flex items-center gap-3">
-                    <button 
-                      onClick={() => setShowSearchReplace(!showSearchReplace)}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${showSearchReplace ? 'bg-[#52c595] text-[#111111]' : 'bg-[#2a2a2d] hover:bg-[#3a3a3d] text-[#8a8a8e]'}`}
-                    >
-                      <Search className="w-4 h-4" />
-                    </button>
-                    <button className="h-8 px-3 rounded-md bg-[#2a2a2d] hover:bg-[#3a3a3d] flex items-center gap-2 text-[#52c595] text-xs font-semibold transition-colors border border-[#52c595]/20">
-                      <Settings className="w-3.5 h-3.5" /> Caption Tools 
-                    </button>
-                  </div>
-                </div>
-
-                {/* Search & Replace Panel */}
-                {showSearchReplace && (
-                  <div className="m-4 bg-[#111111] border border-[#2a2a2d] rounded-xl p-4 flex flex-col gap-4">
-                    <div className="flex justify-between items-center text-[#8a8a8e] text-xs font-semibold">
-                      <div className="flex items-center gap-2">
-                        <Search className="w-3.5 h-3.5" />
-                        FIND & REPLACE
-                      </div>
-                      <button onClick={() => setShowSearchReplace(false)} className="hover:text-white transition-colors">
-                        <X className="w-4 h-4" />
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => setShowSearchReplace(!showSearchReplace)}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${showSearchReplace ? 'bg-[#52c595] text-[#111111]' : 'bg-[#2a2a2d] hover:bg-[#3a3a3d] text-[#8a8a8e]'}`}
+                      >
+                        <Search className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setShowCaptionTools(!showCaptionTools)}
+                        className={`h-8 px-3 rounded-md flex items-center gap-2 text-xs font-semibold transition-colors border border-[#52c595]/20 ${showCaptionTools ? 'bg-[#222225] text-[#52c595]' : 'bg-[#2a2a2d] hover:bg-[#3a3a3d] text-[#52c595]'}`}
+                      >
+                        <Settings className="w-3.5 h-3.5" /> Caption Tools {showCaptionTools && <ChevronUp className="w-3.5 h-3.5" />}
                       </button>
                     </div>
+                  </div>
 
-                    <div className="flex flex-col gap-1.5">
-                      <span className="text-[10px] font-bold text-[#8a8a8e] uppercase tracking-wider">Find</span>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          placeholder="Search captions..."
-                          className="w-full bg-transparent border border-[#52c595] rounded-lg pl-3 pr-24 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#52c595]"
-                        />
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-3 text-xs text-[#8a8a8e]">
-                          <span>Aa</span>
-                          <span>{allMatches.length > 0 ? `${currentMatchIndex + 1}/${allMatches.length}` : '0/0'}</span>
-                          <div className="flex gap-1">
-                            <ChevronUp onClick={handlePrevMatch} className="w-3.5 h-3.5 cursor-pointer hover:text-white transition-colors" />
-                            <ChevronDown onClick={handleNextMatch} className="w-3.5 h-3.5 cursor-pointer hover:text-white transition-colors" />
+                {/* Caption Tools Panel */}
+                {showCaptionTools && (
+                  <div className="bg-[#111111] border-b border-[#2a2a2d] p-6 flex flex-col gap-6 overflow-y-auto custom-scrollbar max-h-[70vh]">
+                    
+                    {/* DISPLAY SETTINGS */}
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center gap-2 text-[#8a8a8e] text-[10px] font-bold uppercase tracking-wider before:h-px before:flex-1 before:bg-[#2a2a2d] after:h-px after:flex-1 after:bg-[#2a2a2d]">
+                        DISPLAY SETTINGS
+                      </div>
+                      
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[10px] text-[#8a8a8e]">Words</label>
+                          <CustomSelect 
+                            value={wordsMode}
+                            onChange={setWordsMode}
+                            options={['Default', '1 Word', '2 Words', '3 Words', '4 Words', '5 Words']}
+                            icon={<Type className="w-3.5 h-3.5" />}
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-1.5 relative">
+                          <label className="text-[10px] text-[#8a8a8e]">Max Chars</label>
+                          <div className="flex bg-[#1a1a1c] border border-[#2a2a2d] rounded-md overflow-hidden focus-within:border-[#52c595] min-h-[32px]">
+                            <div className="flex items-center justify-center pl-3 pr-2 text-[#8a8a8e]">
+                              <Type className="w-3.5 h-3.5" />
+                            </div>
+                            <input
+                              type="number"
+                              value={maxChars}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value) || 0;
+                                setMaxChars(val);
+                                if (val > 0) applyMaxChars(val);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && maxChars > 0) {
+                                  applyMaxChars(maxChars);
+                                }
+                              }}
+                              className="w-full bg-transparent py-1 text-xs text-white focus:outline-none"
+                            />
+                            <button 
+                              onClick={() => {
+                                if (maxChars > 0) applyMaxChars(maxChars);
+                              }}
+                              className="flex items-center justify-center pr-3 pl-2 text-[#8a8a8e] hover:text-white"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                            </button>
                           </div>
                         </div>
-                      </div>
-                    </div>
 
-                    <div className="flex flex-col gap-1.5">
-                      <span className="text-[10px] font-bold text-[#8a8a8e] uppercase tracking-wider">Replace With</span>
-                      <input
-                        type="text"
-                        value={replaceQuery}
-                        onChange={(e) => setReplaceQuery(e.target.value)}
-                        placeholder="Type replacement..."
-                        className="w-full bg-[#1a1a1c] border border-[#2a2a2d] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#52c595] transition-colors"
-                      />
-                    </div>
-
-                    <div className="flex justify-between items-center mt-2">
-                      {searchQuery && allMatches.length > 0 ? (
-                        <div className="flex items-center gap-1.5 text-xs text-[#52c595] font-semibold">
-                           <div className="w-1.5 h-1.5 rounded-full bg-[#52c595]" /> {allMatches.length} matches available
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[10px] text-[#8a8a8e]">Lines</label>
+                          <CustomSelect 
+                            value={linesMode}
+                            onChange={(val) => {
+                              setLinesMode(val);
+                              if (maxChars > 0) applyMaxChars(maxChars, val);
+                            }}
+                            options={['1 Line', '2 Lines', '3 Lines', '4 Lines', '5 Lines']}
+                            icon={<AlignLeft className="w-3.5 h-3.5" />}
+                          />
                         </div>
-                      ) : (
-                        <span className="text-[10px] text-[#8a8a8e] italic">Enter text to search</span>
-                      )}
-                      <div className="flex gap-2">
-                        <button 
-                          onClick={handleReplaceAll}
-                          disabled={!searchQuery || allMatches.length === 0}
-                          className="px-4 py-1.5 rounded-md border border-[#2a2a2d] text-white text-xs font-semibold hover:bg-[#2a2a2d] transition-colors disabled:opacity-50 flex items-center gap-1"
-                        >
-                          Replace All <span className="text-[10px] text-[#8a8a8e]">⌘↵</span>
-                        </button>
-                        <button 
-                          onClick={handleReplace}
-                          disabled={!searchQuery || allMatches.length === 0}
-                          className="px-6 py-1.5 rounded-md bg-[#52c595] hover:bg-[#43b384] text-[#111111] text-xs font-bold transition-colors disabled:opacity-50 flex items-center gap-1"
-                        >
-                          Replace <span>↵</span>
-                        </button>
                       </div>
                     </div>
+
+                    {/* ACTIONS */}
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center gap-2 text-[#8a8a8e] text-[10px] font-bold uppercase tracking-wider before:h-px before:flex-1 before:bg-[#2a2a2d] after:h-px after:flex-1 after:bg-[#2a2a2d]">
+                        ACTIONS
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        {/* Remove Punctuation */}
+                        <div className="flex items-center justify-between p-3 rounded-xl bg-[#1a1a1c] border border-[#2a2a2d]">
+                          <div className="flex items-start gap-3">
+                            <div className="mt-0.5 p-1.5 bg-[#2a2a2d] rounded-md">
+                              <TypeOutline className="w-4 h-4 text-[#8a8a8e]" />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-sm font-semibold text-white">Remove Punctuation</span>
+                              <span className="text-xs text-[#8a8a8e]">Strip all punctuation for a cleaner, minimal look</span>
+                            </div>
+                          </div>
+                          <button 
+                            onClick={() => setRemovePunctuation(!removePunctuation)}
+                            className={`w-10 h-5 rounded-full relative transition-colors ${removePunctuation ? 'bg-[#52c595]' : 'bg-[#2a2a2d]'}`}
+                          >
+                            <div className={`w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all`} style={{ left: removePunctuation ? '22px' : '2px' }} />
+                          </button>
+                        </div>
+
+                        {/* Remove Emphasis */}
+                        <div className="flex items-center justify-between p-3 rounded-xl bg-[#1a1a1c] border border-[#2a2a2d]">
+                          <div className="flex items-start gap-3">
+                            <div className="mt-0.5 p-1.5 bg-[#2a2a2d] rounded-md">
+                              <TypeOutline className="w-4 h-4 text-[#8a8a8e]" />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-sm font-semibold text-white">Remove Emphasis</span>
+                              <span className="text-xs text-[#8a8a8e]">Remove all text emphasis for uniform appearance</span>
+                            </div>
+                          </div>
+                          <button 
+                            onClick={() => setRemoveEmphasis(!removeEmphasis)}
+                            className={`w-10 h-5 rounded-full relative transition-colors ${removeEmphasis ? 'bg-[#52c595]' : 'bg-[#2a2a2d]'}`}
+                          >
+                            <div className={`w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all`} style={{ left: removeEmphasis ? '22px' : '2px' }} />
+                          </button>
+                        </div>
+
+                        {/* Remove Gaps */}
+                        <div className="flex items-center justify-between p-3 rounded-xl bg-[#1a1a1c] border border-[#2a2a2d]">
+                          <div className="flex items-start gap-3">
+                            <div className="mt-0.5 p-1.5 bg-[#2a2a2d] rounded-md">
+                              <TypeOutline className="w-4 h-4 text-[#8a8a8e]" />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-sm font-semibold text-white">Remove Gaps in Captions</span>
+                              <span className="text-xs text-[#8a8a8e]">Eliminate gaps between captions for seamless flow</span>
+                            </div>
+                          </div>
+                          <button 
+                            onClick={() => setRemoveGaps(!removeGaps)}
+                            className={`w-10 h-5 rounded-full relative transition-colors ${removeGaps ? 'bg-[#52c595]' : 'bg-[#2a2a2d]'}`}
+                          >
+                            <div className={`w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all`} style={{ left: removeGaps ? '22px' : '2px' }} />
+                          </button>
+                        </div>
+
+                        {/* Remove Emojis */}
+                        <div className="flex items-center justify-between p-3 rounded-xl bg-[#1a1a1c] border border-[#2a2a2d]">
+                          <div className="flex items-start gap-3">
+                            <div className="mt-0.5 p-1.5 bg-[#2a2a2d] rounded-md">
+                              <TypeOutline className="w-4 h-4 text-[#8a8a8e]" />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-sm font-semibold text-white text-opacity-50">Remove Emojis</span>
+                              <span className="text-xs text-[#8a8a8e] opacity-50">Remove all emojis from captions</span>
+                            </div>
+                          </div>
+                          <button 
+                            onClick={() => setRemoveEmojis(!removeEmojis)}
+                            className={`w-10 h-5 rounded-full relative transition-colors ${removeEmojis ? 'bg-[#52c595]' : 'bg-[#2a2a2d]'} opacity-50`}
+                          >
+                            <div className={`w-4 h-4 rounded-full bg-[#8a8a8e] absolute top-0.5 transition-all`} style={{ left: removeEmojis ? '22px' : '2px' }} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* TIMING */}
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center gap-2 text-[#8a8a8e] text-[10px] font-bold uppercase tracking-wider before:h-px before:flex-1 before:bg-[#2a2a2d] after:h-px after:flex-1 after:bg-[#2a2a2d]">
+                        TIMING
+                      </div>
+                      
+                      <div className="flex flex-col p-4 rounded-xl bg-[#1a1a1c] border border-[#2a2a2d] gap-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="p-1.5 bg-[#2a2a2d] rounded-md">
+                              <RotateCcw className="w-4 h-4 text-[#8a8a8e]" />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-sm font-semibold text-white">Caption Delay Control</span>
+                              <span className="text-xs text-[#8a8a8e]">Shift all captions earlier or later in time</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-[#8a8a8e]">{captionDelay === 0 ? 'No delay' : `${captionDelay > 0 ? '+' : ''}${captionDelay}s`}</span>
+                            <button onClick={() => setCaptionDelay(0)} className="text-[#8a8a8e] hover:text-white transition-colors">
+                              <RotateCcw className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-[10px] text-[#8a8a8e] w-6 text-right">-5s</span>
+                          <input 
+                            type="range"
+                            min="-5"
+                            max="5"
+                            step="0.1"
+                            value={captionDelay}
+                            onChange={(e) => setCaptionDelay(parseFloat(e.target.value))}
+                            onMouseUp={applyCaptionDelay}
+                            onPointerUp={applyCaptionDelay}
+                            className="flex-1 accent-[#52c595] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
+                          />
+                          <span className="text-[10px] text-[#8a8a8e] w-6">+5s</span>
+                        </div>
+                      </div>
+                    </div>
+
                   </div>
                 )}
 
-                {/* List */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar relative">
-                  {captions.map((caption, i) => {
-                    const isActive = caption.id === activeCaptionId;
-                    return (
-                      <div 
-                        key={caption.id} 
-                        onClick={() => seekRef.current?.(caption.start)}
-                        className={`flex items-start gap-4 px-5 py-4 border-b border-[#2a2a2d] hover:bg-[#222225] transition-colors group cursor-pointer ${
-                          isActive ? 'bg-[#222225]/45' : ''
-                        }`}
-                      >
-                        <div className="flex items-center justify-center shrink-0 mt-1 w-6 h-6 select-none">
-                          {isActive ? (
-                            <span className="text-xs font-bold w-6 h-6 rounded-full bg-[#52c595] text-[#161618] flex items-center justify-center">
-                              {i + 1}
-                            </span>
-                          ) : (
-                            <span className="text-xs font-medium text-[#8a8a8e]">
-                              {i + 1}
-                            </span>
-                          )}
+                  {/* Search & Replace Panel */}
+                  {showSearchReplace && (
+                    <div className="m-4 bg-[#111111] border border-[#2a2a2d] rounded-xl p-4 flex flex-col gap-4">
+                      <div className="flex justify-between items-center text-[#8a8a8e] text-xs font-semibold">
+                        <div className="flex items-center gap-2">
+                          <Search className="w-3.5 h-3.5" />
+                          FIND & REPLACE
                         </div>
+                        <button onClick={() => setShowSearchReplace(false)} className="hover:text-white transition-colors">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
 
-                        {editingCaptionId === caption.id ? (
-                          <textarea
-                            value={caption.text}
-                            onChange={(e) => handleCaptionChange(caption.id, e.target.value)}
-                            onBlur={() => setEditingCaptionId(null)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                setEditingCaptionId(null);
-                              }
-                            }}
-                            autoFocus
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-[15px] font-medium leading-relaxed text-[#e0e0e0] flex-1 bg-transparent border-none outline-none resize-none focus:ring-0 p-0 m-0 min-h-[20px]"
-                            rows={Math.max(1, Math.ceil(caption.text.length / 40))}
-                            style={{ overflow: 'hidden' }}
+                      <div className="flex flex-col gap-1.5">
+                        <span className="text-[10px] font-bold text-[#8a8a8e] uppercase tracking-wider">Find</span>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Search captions..."
+                            className="w-full bg-transparent border border-[#52c595] rounded-lg pl-3 pr-24 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#52c595]"
                           />
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-3 text-xs text-[#8a8a8e]">
+                            <span>Aa</span>
+                            <span>{allMatches.length > 0 ? `${currentMatchIndex + 1}/${allMatches.length}` : '0/0'}</span>
+                            <div className="flex gap-1">
+                              <ChevronUp onClick={handlePrevMatch} className="w-3.5 h-3.5 cursor-pointer hover:text-white transition-colors" />
+                              <ChevronDown onClick={handleNextMatch} className="w-3.5 h-3.5 cursor-pointer hover:text-white transition-colors" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <span className="text-[10px] font-bold text-[#8a8a8e] uppercase tracking-wider">Replace With</span>
+                        <input
+                          type="text"
+                          value={replaceQuery}
+                          onChange={(e) => setReplaceQuery(e.target.value)}
+                          placeholder="Type replacement..."
+                          className="w-full bg-[#1a1a1c] border border-[#2a2a2d] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#52c595] transition-colors"
+                        />
+                      </div>
+
+                      <div className="flex justify-between items-center mt-2">
+                        {searchQuery && allMatches.length > 0 ? (
+                          <div className="flex items-center gap-1.5 text-xs text-[#52c595] font-semibold">
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#52c595]" /> {allMatches.length} matches available
+                          </div>
                         ) : (
-                          <div className="flex flex-wrap gap-y-1 text-[15px] font-medium leading-relaxed text-[#e0e0e0] flex-1">
-                            {caption.text.split(/\s+/).map((word, wordIndex) => {
-                              const isWordEditing = editingWord && editingWord.captionId === caption.id && editingWord.wordIndex === wordIndex;
-                              if (isWordEditing) {
-                                return (
-                                  <div 
-                                    key={wordIndex}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="inline-flex items-center gap-1.5 px-2 py-0.5 border border-[#52c595]/50 bg-[#161618] rounded-md"
-                                  >
-                                    <input 
-                                      type="text"
-                                      value={editingWord.text}
-                                      onChange={(e) => setEditingWord(prev => prev ? { ...prev, text: e.target.value } : null)}
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
+                          <span className="text-[10px] text-[#8a8a8e] italic">Enter text to search</span>
+                        )}
+                        <div className="flex gap-2">
+                          <button
+                            onClick={handleReplaceAll}
+                            disabled={!searchQuery || allMatches.length === 0}
+                            className="px-4 py-1.5 rounded-md border border-[#2a2a2d] text-white text-xs font-semibold hover:bg-[#2a2a2d] transition-colors disabled:opacity-50 flex items-center gap-1"
+                          >
+                            Replace All <span className="text-[10px] text-[#8a8a8e]">⌘↵</span>
+                          </button>
+                          <button
+                            onClick={handleReplace}
+                            disabled={!searchQuery || allMatches.length === 0}
+                            className="px-6 py-1.5 rounded-md bg-[#52c595] hover:bg-[#43b384] text-[#111111] text-xs font-bold transition-colors disabled:opacity-50 flex items-center gap-1"
+                          >
+                            Replace <span>↵</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* List */}
+                  <div className="flex-1 overflow-y-auto custom-scrollbar relative">
+                    {displayCaptions.map((caption, i) => {
+                      const isActive = caption.id === activeCaptionId;
+                      return (
+                        <div
+                          key={caption.id}
+                          onClick={() => seekRef.current?.(caption.start)}
+                          className={`flex items-start gap-4 px-5 py-4 border-b border-[#2a2a2d] hover:bg-[#222225] transition-colors group cursor-pointer ${isActive ? 'bg-[#222225]/45' : ''
+                            }`}
+                        >
+                          <div className="flex items-center justify-center shrink-0 mt-1 w-6 h-6 select-none">
+                            {isActive ? (
+                              <span className="text-xs font-bold w-6 h-6 rounded-full bg-[#52c595] text-[#161618] flex items-center justify-center">
+                                {i + 1}
+                              </span>
+                            ) : (
+                              <span className="text-xs font-medium text-[#8a8a8e]">
+                                {i + 1}
+                              </span>
+                            )}
+                          </div>
+
+                          {editingCaptionId === caption.id ? (
+                            <textarea
+                              value={caption.text}
+                              onChange={(e) => handleCaptionChange(caption.id, e.target.value)}
+                              onBlur={() => setEditingCaptionId(null)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  setEditingCaptionId(null);
+                                }
+                              }}
+                              autoFocus
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-[15px] font-medium leading-relaxed text-[#e0e0e0] flex-1 bg-transparent border-none outline-none resize-none focus:ring-0 p-0 m-0 min-h-[20px]"
+                              rows={Math.max(1, Math.ceil(caption.text.length / 40))}
+                              style={{ overflow: 'hidden' }}
+                            />
+                          ) : (
+                            <div className="flex flex-wrap gap-y-1 text-[15px] font-medium leading-relaxed text-[#e0e0e0] flex-1">
+                              {caption.text.split(/\s+/).map((word, wordIndex) => {
+                                const isWordEditing = editingWord && editingWord.captionId === caption.id && editingWord.wordIndex === wordIndex;
+                                if (isWordEditing) {
+                                  return (
+                                    <div
+                                      key={wordIndex}
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="inline-flex items-center gap-1.5 px-2 py-0.5 border border-[#52c595]/50 bg-[#161618] rounded-md"
+                                    >
+                                      <input
+                                        type="text"
+                                        value={editingWord.text}
+                                        onChange={(e) => setEditingWord(prev => prev ? { ...prev, text: e.target.value } : null)}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') {
+                                            const targetCaption = captions.find(c => c.id === editingWord.captionId);
+                                            if (targetCaption) {
+                                              const wordsList = targetCaption.text.split(/\s+/);
+                                              wordsList[editingWord.wordIndex] = editingWord.text;
+                                              handleCaptionChange(editingWord.captionId, wordsList.join(' '));
+                                            }
+                                            setEditingWord(null);
+                                          } else if (e.key === 'Escape') {
+                                            setEditingWord(null);
+                                          }
+                                        }}
+                                        autoFocus
+                                        className="bg-transparent text-white outline-none w-20 text-[15px] font-medium p-0 border-none focus:ring-0"
+                                      />
+                                      <button
+                                        onClick={() => {
                                           const targetCaption = captions.find(c => c.id === editingWord.captionId);
                                           if (targetCaption) {
                                             const wordsList = targetCaption.text.split(/\s+/);
@@ -1185,331 +1988,315 @@ export function ReelEditor() {
                                             handleCaptionChange(editingWord.captionId, wordsList.join(' '));
                                           }
                                           setEditingWord(null);
-                                        } else if (e.key === 'Escape') {
-                                          setEditingWord(null);
-                                        }
-                                      }}
-                                      autoFocus
-                                      className="bg-transparent text-white outline-none w-20 text-[15px] font-medium p-0 border-none focus:ring-0"
-                                    />
-                                    <button 
-                                      onClick={() => {
-                                        const targetCaption = captions.find(c => c.id === editingWord.captionId);
-                                        if (targetCaption) {
-                                          const wordsList = targetCaption.text.split(/\s+/);
-                                          wordsList[editingWord.wordIndex] = editingWord.text;
-                                          handleCaptionChange(editingWord.captionId, wordsList.join(' '));
-                                        }
-                                        setEditingWord(null);
-                                      }}
-                                      className="text-[#52c595] hover:text-white font-bold text-xs"
-                                    >
-                                      ✓
-                                    </button>
-                                    <button 
-                                      onClick={() => setEditingWord(null)}
-                                      className="text-red-500 hover:text-white font-bold text-xs ml-1"
-                                    >
-                                      ✕
-                                    </button>
-                                  </div>
-                                );
-                              }
-                              const isPartOfAnyMatch = allMatches.some(m => m.captionId === caption.id && m.wordIndices.includes(wordIndex));
-                              const isPartOfActiveMatch = allMatches.length > 0 && currentMatchIndex < allMatches.length && 
-                                                          allMatches[currentMatchIndex].captionId === caption.id && 
-                                                          allMatches[currentMatchIndex].wordIndices.includes(wordIndex);
+                                        }}
+                                        className="text-[#52c595] hover:text-white font-bold text-xs"
+                                      >
+                                        ✓
+                                      </button>
+                                      <button
+                                        onClick={() => setEditingWord(null)}
+                                        className="text-red-500 hover:text-white font-bold text-xs ml-1"
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                  );
+                                }
+                                const isPartOfAnyMatch = allMatches.some(m => m.captionId === caption.id && m.wordIndices.includes(wordIndex));
+                                const isPartOfActiveMatch = allMatches.length > 0 && currentMatchIndex < allMatches.length &&
+                                  allMatches[currentMatchIndex].captionId === caption.id &&
+                                  allMatches[currentMatchIndex].wordIndices.includes(wordIndex);
 
-                              const matchStyle = isPartOfActiveMatch 
-                                 ? 'bg-[#52c595] text-[#111111] font-bold' 
-                                 : isPartOfAnyMatch 
-                                    ? 'bg-[#52c595]/30 text-[#52c595]' 
+                                const matchStyle = isPartOfActiveMatch
+                                  ? 'bg-[#52c595] text-[#111111] font-bold'
+                                  : isPartOfAnyMatch
+                                    ? 'bg-[#52c595]/30 text-[#52c595]'
                                     : 'hover:bg-white/10 hover:text-[#52c595] text-[#e0e0e0]';
 
-                              return (
-                                <span
-                                  key={wordIndex}
-                                  id={`word-${caption.id}-${wordIndex}`}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    const rect = e.currentTarget.getBoundingClientRect();
-                                    const menuHeight = 340; // rough height of the context menu
-                                    const spaceBelow = window.innerHeight - rect.bottom;
-                                    const openUpwards = spaceBelow < menuHeight;
-                                    
-                                    setWordMenu({
-                                      captionId: caption.id,
-                                      wordIndex,
-                                      word,
-                                      x: rect.left,
-                                      y: openUpwards ? rect.top - 5 : rect.bottom + 5,
-                                      openUpwards
-                                    });
-                                  }}
-                                  className={`px-1 py-[2px] rounded transition-all cursor-pointer ${matchStyle}`}
-                                >
-                                  {word}
-                                </span>
-                              );
-                            })}
-                          </div>
-                        )}
+                                return (
+                                  <span
+                                    key={wordIndex}
+                                    id={`word-${caption.id}-${wordIndex}`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const rect = e.currentTarget.getBoundingClientRect();
+                                      const menuHeight = 340; // rough height of the context menu
+                                      const spaceBelow = window.innerHeight - rect.bottom;
+                                      const openUpwards = spaceBelow < menuHeight;
 
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingCaptionId(caption.id);
+                                      setWordMenu({
+                                        captionId: caption.id,
+                                        wordIndex,
+                                        word,
+                                        x: rect.left,
+                                        y: openUpwards ? rect.top - 5 : rect.bottom + 5,
+                                        openUpwards
+                                      });
+                                    }}
+                                    className={`px-1 py-[2px] rounded transition-all cursor-pointer ${matchStyle}`}
+                                  >
+                                    {word}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          )}
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingCaptionId(caption.id);
+                            }}
+                            className="opacity-0 group-hover:opacity-100 p-1 text-[#8a8a8e] hover:text-white transition-opacity shrink-0"
+                          >
+                            <SplitSquareHorizontal className="w-4 h-4" />
+                          </button>
+                        </div>
+                      );
+                    })}
+
+                    {/* Word Context Menu Dropdown */}
+                    {wordMenu && createPortal(
+                      <div
+                        id="word-context-menu"
+                        className="fixed z-[9999] w-56 bg-[#1a1a1c] border border-[#2a2a2d] rounded-xl shadow-2xl p-1.5 flex flex-col gap-0.5 text-xs text-[#e0e0e0] pointer-events-auto"
+                        style={{
+                          left: `${wordMenu.x}px`,
+                          ...(wordMenu.openUpwards
+                            ? { bottom: `${window.innerHeight - wordMenu.y}px` }
+                            : { top: `${wordMenu.y}px` })
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          onClick={() => {
+                            setWordMenu(null);
                           }}
-                          className="opacity-0 group-hover:opacity-100 p-1 text-[#8a8a8e] hover:text-white transition-opacity shrink-0"
+                          className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-[#222225] hover:text-[#52c595] text-left transition-all"
                         >
-                          <SplitSquareHorizontal className="w-4 h-4" />
+                          <span className="text-[#8a8a8e] font-semibold text-sm">⚡</span>
+                          <div>
+                            <p className="font-semibold text-[11px]">Emphasize</p>
+                            <p className="text-[9px] text-[#8a8a8e]">Make this word stand out</p>
+                          </div>
                         </button>
-                      </div>
-                    );
-                  })}
 
-                  {/* Word Context Menu Dropdown */}
-                  {wordMenu && createPortal(
-                    <div 
-                      id="word-context-menu"
-                      className="fixed z-[9999] w-56 bg-[#1a1a1c] border border-[#2a2a2d] rounded-xl shadow-2xl p-1.5 flex flex-col gap-0.5 text-xs text-[#e0e0e0] pointer-events-auto"
-                      style={{ 
-                        left: `${wordMenu.x}px`, 
-                        ...(wordMenu.openUpwards 
-                             ? { bottom: `${window.innerHeight - wordMenu.y}px` } 
-                             : { top: `${wordMenu.y}px` }) 
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <button 
-                        onClick={() => {
-                          setWordMenu(null);
-                        }}
-                        className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-[#222225] hover:text-[#52c595] text-left transition-all"
-                      >
-                        <span className="text-[#8a8a8e] font-semibold text-sm">⚡</span>
-                        <div>
-                          <p className="font-semibold text-[11px]">Emphasize</p>
-                          <p className="text-[9px] text-[#8a8a8e]">Make this word stand out</p>
-                        </div>
-                      </button>
-                      
-                      <button 
-                        onClick={() => {
-                          setWordMenu(null);
-                        }}
-                        className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-[#222225] hover:text-[#52c595] text-left transition-all"
-                      >
-                        <span className="text-[#8a8a8e] font-semibold text-sm">🔍</span>
-                        <div>
-                          <p className="font-semibold text-[11px]">Spotlight</p>
-                          <p className="text-[9px] text-[#8a8a8e]">Feature for maximum impact</p>
-                        </div>
-                      </button>
+                        <button
+                          onClick={() => {
+                            setWordMenu(null);
+                          }}
+                          className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-[#222225] hover:text-[#52c595] text-left transition-all"
+                        >
+                          <span className="text-[#8a8a8e] font-semibold text-sm">🔍</span>
+                          <div>
+                            <p className="font-semibold text-[11px]">Spotlight</p>
+                            <p className="text-[9px] text-[#8a8a8e]">Feature for maximum impact</p>
+                          </div>
+                        </button>
 
-                      <div className="h-[1px] bg-[#2a2a2d] my-0.5" />
+                        <div className="h-[1px] bg-[#2a2a2d] my-0.5" />
 
-                      <button 
-                        onClick={() => {
-                          setEditingWord({
-                            captionId: wordMenu.captionId,
-                            wordIndex: wordMenu.wordIndex,
-                            text: wordMenu.word
-                          });
-                          setWordMenu(null);
-                        }}
-                        className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-[#222225] hover:text-white text-left transition-all"
-                      >
-                        <span className="text-[#8a8a8e] text-sm">✏️</span>
-                        <div>
-                          <p className="font-semibold text-[11px]">Edit</p>
-                          <p className="text-[9px] text-[#8a8a8e]">Modify the text</p>
-                        </div>
-                      </button>
-
-                      <button 
-                        onClick={() => {
-                          // Clean punctuation from word for better search experience
-                          const cleanWord = wordMenu.word.replace(/[.,!?]+$/, '');
-                          setSearchQuery(cleanWord);
-                          setShowSearchReplace(true);
-                          setWordMenu(null);
-                        }}
-                        className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-[#222225] hover:text-white text-left transition-all"
-                      >
-                        <span className="text-[#8a8a8e] text-sm">🔍</span>
-                        <div>
-                          <p className="font-semibold text-[11px]">Search & Replace</p>
-                          <p className="text-[9px] text-[#8a8a8e]">Find all occurrences</p>
-                        </div>
-                      </button>
-
-                      <div className="h-[1px] bg-[#2a2a2d] my-0.5" />
-
-                      <button 
-                        onClick={() => {
-                          const targetCaptionIndex = captions.findIndex(c => c.id === wordMenu.captionId);
-                          if (targetCaptionIndex !== -1) {
-                            const targetCaption = captions[targetCaptionIndex];
-                            const words = targetCaption.text.split(/\s+/);
-                            const j = wordMenu.wordIndex;
-                            
-                            const duration = targetCaption.end - targetCaption.start;
-                            const timePerWord = duration / Math.max(1, words.length);
-                            
-                            const newCaptions = [];
-                            
-                            // Before word
-                            if (j > 0) {
-                              newCaptions.push({
-                                id: Date.now() + 1,
-                                start: targetCaption.start,
-                                end: targetCaption.start + j * timePerWord,
-                                text: words.slice(0, j).join(' ')
-                              });
-                            }
-                            
-                            // The word itself
-                            newCaptions.push({
-                              id: Date.now() + 2,
-                              start: targetCaption.start + j * timePerWord,
-                              end: targetCaption.start + (j + 1) * timePerWord,
-                              text: words[j]
+                        <button
+                          onClick={() => {
+                            setEditingWord({
+                              captionId: wordMenu.captionId,
+                              wordIndex: wordMenu.wordIndex,
+                              text: wordMenu.word
                             });
-                            
-                            // After word
-                            if (j < words.length - 1) {
+                            setWordMenu(null);
+                          }}
+                          className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-[#222225] hover:text-white text-left transition-all"
+                        >
+                          <span className="text-[#8a8a8e] text-sm">✏️</span>
+                          <div>
+                            <p className="font-semibold text-[11px]">Edit</p>
+                            <p className="text-[9px] text-[#8a8a8e]">Modify the text</p>
+                          </div>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            // Clean punctuation from word for better search experience
+                            const cleanWord = wordMenu.word.replace(/[.,!?]+$/, '');
+                            setSearchQuery(cleanWord);
+                            setShowSearchReplace(true);
+                            setWordMenu(null);
+                          }}
+                          className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-[#222225] hover:text-white text-left transition-all"
+                        >
+                          <span className="text-[#8a8a8e] text-sm">🔍</span>
+                          <div>
+                            <p className="font-semibold text-[11px]">Search & Replace</p>
+                            <p className="text-[9px] text-[#8a8a8e]">Find all occurrences</p>
+                          </div>
+                        </button>
+
+                        <div className="h-[1px] bg-[#2a2a2d] my-0.5" />
+
+                        <button
+                          onClick={() => {
+                            const targetCaptionIndex = captions.findIndex(c => c.id === wordMenu.captionId);
+                            if (targetCaptionIndex !== -1) {
+                              const targetCaption = captions[targetCaptionIndex];
+                              const words = targetCaption.text.split(/\s+/);
+                              const j = wordMenu.wordIndex;
+
+                              const duration = targetCaption.end - targetCaption.start;
+                              const timePerWord = duration / Math.max(1, words.length);
+
+                              const newCaptions = [];
+
+                              // Before word
+                              if (j > 0) {
+                                newCaptions.push({
+                                  id: Date.now() + 1,
+                                  start: targetCaption.start,
+                                  end: targetCaption.start + j * timePerWord,
+                                  text: words.slice(0, j).join(' ')
+                                });
+                              }
+
+                              // The word itself
                               newCaptions.push({
-                                id: Date.now() + 3,
-                                start: targetCaption.start + (j + 1) * timePerWord,
-                                end: targetCaption.end,
-                                text: words.slice(j + 1).join(' ')
+                                id: Date.now() + 2,
+                                start: targetCaption.start + j * timePerWord,
+                                end: targetCaption.start + (j + 1) * timePerWord,
+                                text: words[j]
                               });
+
+                              // After word
+                              if (j < words.length - 1) {
+                                newCaptions.push({
+                                  id: Date.now() + 3,
+                                  start: targetCaption.start + (j + 1) * timePerWord,
+                                  end: targetCaption.end,
+                                  text: words.slice(j + 1).join(' ')
+                                });
+                              }
+
+                              const newCaptionsList = [...captions];
+                              newCaptionsList.splice(targetCaptionIndex, 1, ...newCaptions);
+                              setCaptions(newCaptionsList);
                             }
-                            
-                            const newCaptionsList = [...captions];
-                            newCaptionsList.splice(targetCaptionIndex, 1, ...newCaptions);
-                            setCaptions(newCaptionsList);
-                          }
-                          setWordMenu(null);
-                        }}
-                        className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-[#222225] hover:text-white text-left transition-all"
-                      >
-                        <span className="text-[#8a8a8e] text-sm">🥞</span>
-                        <div>
-                          <p className="font-semibold text-[11px]">Split</p>
-                          <p className="text-[9px] text-[#8a8a8e]">Split caption here</p>
-                        </div>
-                      </button>
+                            setWordMenu(null);
+                          }}
+                          className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-[#222225] hover:text-white text-left transition-all"
+                        >
+                          <span className="text-[#8a8a8e] text-sm">🥞</span>
+                          <div>
+                            <p className="font-semibold text-[11px]">Split</p>
+                            <p className="text-[9px] text-[#8a8a8e]">Split caption here</p>
+                          </div>
+                        </button>
 
-                      <button 
-                        onClick={() => {
-                          const targetCaptionIndex = captions.findIndex(c => c.id === wordMenu.captionId);
-                          if (targetCaptionIndex > 0) {
-                            const targetCaption = captions[targetCaptionIndex];
-                            const prevCaption = captions[targetCaptionIndex - 1];
-                            
-                            const targetWords = targetCaption.text.split(/\s+/);
-                            const wordToMove = targetWords.splice(wordMenu.wordIndex, 1)[0];
-                            
-                            const timePerWord = (targetCaption.end - targetCaption.start) / Math.max(1, targetWords.length + 1);
-                            
-                            const newCaptionsList = [...captions];
-                            newCaptionsList[targetCaptionIndex - 1] = {
-                              ...prevCaption,
-                              text: prevCaption.text + ' ' + wordToMove,
-                              end: prevCaption.end + timePerWord
-                            };
-                            newCaptionsList[targetCaptionIndex] = {
-                              ...targetCaption,
-                              text: targetWords.join(' '),
-                              start: targetCaption.start + timePerWord
-                            };
-                            
-                            if (targetWords.length === 0) {
-                              newCaptionsList.splice(targetCaptionIndex, 1);
+                        <button
+                          onClick={() => {
+                            const targetCaptionIndex = captions.findIndex(c => c.id === wordMenu.captionId);
+                            if (targetCaptionIndex > 0) {
+                              const targetCaption = captions[targetCaptionIndex];
+                              const prevCaption = captions[targetCaptionIndex - 1];
+
+                              const targetWords = targetCaption.text.split(/\s+/);
+                              const wordToMove = targetWords.splice(wordMenu.wordIndex, 1)[0];
+
+                              const timePerWord = (targetCaption.end - targetCaption.start) / Math.max(1, targetWords.length + 1);
+
+                              const newCaptionsList = [...captions];
+                              newCaptionsList[targetCaptionIndex - 1] = {
+                                ...prevCaption,
+                                text: prevCaption.text + ' ' + wordToMove,
+                                end: prevCaption.end + timePerWord
+                              };
+                              newCaptionsList[targetCaptionIndex] = {
+                                ...targetCaption,
+                                text: targetWords.join(' '),
+                                start: targetCaption.start + timePerWord
+                              };
+
+                              if (targetWords.length === 0) {
+                                newCaptionsList.splice(targetCaptionIndex, 1);
+                              }
+
+                              setCaptions(newCaptionsList);
                             }
-                            
-                            setCaptions(newCaptionsList);
-                          }
-                          setWordMenu(null);
-                        }}
-                        className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-[#222225] hover:text-white text-left transition-all"
-                      >
-                        <span className="text-[#8a8a8e] text-sm">⬅️</span>
-                        <div>
-                          <p className="font-semibold text-[11px]">Previous Line</p>
-                          <p className="text-[9px] text-[#8a8a8e]">Move word to previous line</p>
-                        </div>
-                      </button>
+                            setWordMenu(null);
+                          }}
+                          className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-[#222225] hover:text-white text-left transition-all"
+                        >
+                          <span className="text-[#8a8a8e] text-sm">⬅️</span>
+                          <div>
+                            <p className="font-semibold text-[11px]">Previous Line</p>
+                            <p className="text-[9px] text-[#8a8a8e]">Move word to previous line</p>
+                          </div>
+                        </button>
 
-                      <button 
-                        onClick={() => {
-                          const targetCaptionIndex = captions.findIndex(c => c.id === wordMenu.captionId);
-                          if (targetCaptionIndex !== -1 && targetCaptionIndex < captions.length - 1) {
-                            const targetCaption = captions[targetCaptionIndex];
-                            const nextCaption = captions[targetCaptionIndex + 1];
-                            
-                            const targetWords = targetCaption.text.split(/\s+/);
-                            const wordToMove = targetWords.splice(wordMenu.wordIndex, 1)[0];
-                            
-                            const timePerWord = (targetCaption.end - targetCaption.start) / Math.max(1, targetWords.length + 1);
-                            
-                            const newCaptionsList = [...captions];
-                            newCaptionsList[targetCaptionIndex] = {
-                              ...targetCaption,
-                              text: targetWords.join(' '),
-                              end: targetCaption.end - timePerWord
-                            };
-                            newCaptionsList[targetCaptionIndex + 1] = {
-                              ...nextCaption,
-                              text: wordToMove + ' ' + nextCaption.text,
-                              start: nextCaption.start - timePerWord
-                            };
-                            
-                            if (targetWords.length === 0) {
-                              newCaptionsList.splice(targetCaptionIndex, 1);
+                        <button
+                          onClick={() => {
+                            const targetCaptionIndex = captions.findIndex(c => c.id === wordMenu.captionId);
+                            if (targetCaptionIndex !== -1 && targetCaptionIndex < captions.length - 1) {
+                              const targetCaption = captions[targetCaptionIndex];
+                              const nextCaption = captions[targetCaptionIndex + 1];
+
+                              const targetWords = targetCaption.text.split(/\s+/);
+                              const wordToMove = targetWords.splice(wordMenu.wordIndex, 1)[0];
+
+                              const timePerWord = (targetCaption.end - targetCaption.start) / Math.max(1, targetWords.length + 1);
+
+                              const newCaptionsList = [...captions];
+                              newCaptionsList[targetCaptionIndex] = {
+                                ...targetCaption,
+                                text: targetWords.join(' '),
+                                end: targetCaption.end - timePerWord
+                              };
+                              newCaptionsList[targetCaptionIndex + 1] = {
+                                ...nextCaption,
+                                text: wordToMove + ' ' + nextCaption.text,
+                                start: nextCaption.start - timePerWord
+                              };
+
+                              if (targetWords.length === 0) {
+                                newCaptionsList.splice(targetCaptionIndex, 1);
+                              }
+
+                              setCaptions(newCaptionsList);
                             }
-                            
-                            setCaptions(newCaptionsList);
-                          }
-                          setWordMenu(null);
-                        }}
-                        className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-[#222225] hover:text-white text-left transition-all"
-                      >
-                        <span className="text-[#8a8a8e] text-sm">➡️</span>
-                        <div>
-                          <p className="font-semibold text-[11px]">Next Line</p>
-                          <p className="text-[9px] text-[#8a8a8e]">Move word to next line</p>
-                        </div>
-                      </button>
+                            setWordMenu(null);
+                          }}
+                          className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-[#222225] hover:text-white text-left transition-all"
+                        >
+                          <span className="text-[#8a8a8e] text-sm">➡️</span>
+                          <div>
+                            <p className="font-semibold text-[11px]">Next Line</p>
+                            <p className="text-[9px] text-[#8a8a8e]">Move word to next line</p>
+                          </div>
+                        </button>
 
-                      <div className="h-[1px] bg-[#2a2a2d] my-0.5" />
+                        <div className="h-[1px] bg-[#2a2a2d] my-0.5" />
 
-                      <button 
-                        onClick={() => {
-                          const targetCaption = captions.find(c => c.id === wordMenu.captionId);
-                          if (targetCaption) {
-                            const wordsList = targetCaption.text.split(/\s+/);
-                            wordsList.splice(wordMenu.wordIndex, 1);
-                            handleCaptionChange(wordMenu.captionId, wordsList.join(' '));
-                          }
-                          setWordMenu(null);
-                        }}
-                        className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-red-500/10 hover:text-red-500 text-left transition-all"
-                      >
-                        <span className="text-red-500 text-sm">🗑️</span>
-                        <div>
-                          <p className="font-semibold text-[11px] text-red-500">Delete</p>
-                          <p className="text-[9px] text-red-500/80">Remove this word</p>
-                        </div>
-                      </button>
-                    </div>,
-                    document.body
-                  )}
+                        <button
+                          onClick={() => {
+                            const targetCaption = captions.find(c => c.id === wordMenu.captionId);
+                            if (targetCaption) {
+                              const wordsList = targetCaption.text.split(/\s+/);
+                              wordsList.splice(wordMenu.wordIndex, 1);
+                              handleCaptionChange(wordMenu.captionId, wordsList.join(' '));
+                            }
+                            setWordMenu(null);
+                          }}
+                          className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-red-500/10 hover:text-red-500 text-left transition-all"
+                        >
+                          <span className="text-red-500 text-sm">🗑️</span>
+                          <div>
+                            <p className="font-semibold text-[11px] text-red-500">Delete</p>
+                            <p className="text-[9px] text-red-500/80">Remove this word</p>
+                          </div>
+                        </button>
+                      </div>,
+                      document.body
+                    )}
+                  </div>
                 </div>
-              </div>
-            </Panel>
+              </Panel>
 
               <PanelResizeHandle className="h-2 bg-transparent cursor-row-resize relative z-10 hover:bg-[#2a2a2d] transition-colors rounded-full my-0.5 mx-2" />
 
@@ -1519,13 +2306,13 @@ export function ReelEditor() {
                 <div className="h-10 border-b border-[#2a2a2d] flex items-center px-4 justify-between bg-[#1a1a1c] shrink-0">
                   <div className="flex items-center gap-4">
                     <div className="flex bg-[#161618] rounded p-0.5 border border-[#2a2a2d]">
-                      <button 
+                      <button
                         onClick={() => setWordLineToggle('WORD')}
                         className={`px-3 py-1 text-[10px] font-bold rounded-sm ${wordLineToggle === 'WORD' ? 'bg-white text-black' : 'text-[#8a8a8e]'}`}
                       >
                         WORD
                       </button>
-                      <button 
+                      <button
                         onClick={() => setWordLineToggle('LINE')}
                         className={`px-3 py-1 text-[10px] font-bold rounded-sm ${wordLineToggle === 'LINE' ? 'bg-white text-black' : 'text-[#8a8a8e]'}`}
                       >
@@ -1533,66 +2320,234 @@ export function ReelEditor() {
                       </button>
                     </div>
                     <div className="h-4 w-[1px] bg-[#2a2a2d]"></div>
-                    <button className="flex items-center gap-1.5 text-xs font-medium text-[#e0e0e0] hover:text-white px-2 py-1 rounded hover:bg-[#2a2a2d]">
-                      <span className="text-lg leading-none">+</span> Word
-                    </button>
-                    <div className="h-4 w-[1px] bg-[#2a2a2d]"></div>
                     <div className="flex items-center gap-1 hidden 2xl:flex">
-                      <button className="p-1.5 text-[#8a8a8e] hover:text-white rounded hover:bg-[#2a2a2d]"><Undo2 className="w-3.5 h-3.5" /></button>
-                      <button className="p-1.5 text-[#8a8a8e] hover:text-white rounded hover:bg-[#2a2a2d]"><Redo2 className="w-3.5 h-3.5" /></button>
-                      <button className="p-1.5 text-[#8a8a8e] hover:text-white rounded hover:bg-[#2a2a2d]"><Scissors className="w-3.5 h-3.5" /></button>
-                      <button className="p-1.5 text-[#8a8a8e] hover:text-white rounded hover:bg-[#2a2a2d]"><ChevronLeft className="w-3.5 h-3.5" /></button>
-                      <button className="p-1.5 text-[#8a8a8e] hover:text-white rounded hover:bg-[#2a2a2d]"><ChevronRight className="w-3.5 h-3.5" /></button>
-                      <button className="p-1.5 text-[#8a8a8e] hover:text-white rounded hover:bg-[#2a2a2d]"><Trash2 className="w-3.5 h-3.5" /></button>
+                      <button 
+                        onClick={handleTimelineUndo}
+                        disabled={historyIndex <= 0}
+                        className={`p-1.5 rounded hover:bg-[#2a2a2d] transition-colors ${historyIndex > 0 ? 'text-[#8a8a8e] hover:text-white cursor-pointer' : 'text-[#444] cursor-not-allowed'}`}
+                      >
+                        <Undo2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button 
+                        onClick={handleTimelineRedo}
+                        disabled={historyIndex >= history.length - 1}
+                        className={`p-1.5 rounded hover:bg-[#2a2a2d] transition-colors ${historyIndex < history.length - 1 ? 'text-[#8a8a8e] hover:text-white cursor-pointer' : 'text-[#444] cursor-not-allowed'}`}
+                      >
+                        <Redo2 className="w-3.5 h-3.5" />
+                      </button>
+
+                      <button 
+                        onClick={handleTimelineMergeLeft} 
+                        className={`p-1.5 rounded hover:bg-[#2a2a2d] transition-colors ${selectedBlockId ? 'text-[#8a8a8e] hover:text-white cursor-pointer' : 'text-[#444] cursor-not-allowed'}`}
+                        disabled={!selectedBlockId}
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                      </button>
+                      <button 
+                        onClick={handleTimelineMergeRight} 
+                        className={`p-1.5 rounded hover:bg-[#2a2a2d] transition-colors ${selectedBlockId ? 'text-[#8a8a8e] hover:text-white cursor-pointer' : 'text-[#444] cursor-not-allowed'}`}
+                        disabled={!selectedBlockId}
+                      >
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                      <button 
+                        onClick={handleTimelineDelete} 
+                        className={`p-1.5 rounded transition-colors ${selectedBlockId ? 'text-red-500 hover:text-red-400 hover:bg-red-500/10 cursor-pointer' : 'text-[#444] cursor-not-allowed hover:bg-[#2a2a2d]'}`}
+                        disabled={!selectedBlockId}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-3">
-                    <ZoomIn className="w-3.5 h-3.5 text-[#8a8a8e]" />
-                    <div className="w-16 lg:w-24 h-1 bg-[#2a2a2d] rounded-full relative">
-                       <div className="absolute top-1/2 -translate-y-1/2 left-[20%] w-2 h-2 bg-white rounded-full"></div>
+                    <ZoomOut 
+                      className="w-3.5 h-3.5 text-[#8a8a8e] cursor-pointer hover:text-white transition-colors" 
+                      onClick={() => setZoomLevel(z => Math.max(0.5, z - 0.2))} 
+                    />
+                    <div className="w-16 lg:w-24 h-1 relative flex items-center group">
+                      <input 
+                        type="range" 
+                        min="0.5" 
+                        max="3" 
+                        step="0.1" 
+                        value={zoomLevel} 
+                        onChange={(e) => setZoomLevel(parseFloat(e.target.value))}
+                        className="w-full h-1 bg-[#2a2a2d] rounded-full cursor-pointer accent-white"
+                        style={{
+                          background: `linear-gradient(to right, white ${((zoomLevel - 0.5) / 2.5) * 100}%, #2a2a2d ${((zoomLevel - 0.5) / 2.5) * 100}%)`
+                        }}
+                      />
                     </div>
-                    <Search className="w-3.5 h-3.5 text-[#8a8a8e] ml-2" />
+                    <ZoomIn 
+                      className="w-3.5 h-3.5 text-[#8a8a8e] ml-2 cursor-pointer hover:text-white transition-colors" 
+                      onClick={() => setZoomLevel(z => Math.min(3, z + 0.2))} 
+                    />
                   </div>
                 </div>
-                
+
                 {/* Timeline Tracks */}
-                <div className="flex-1 overflow-x-auto overflow-y-hidden relative bg-[#161618] custom-scrollbar">
-                  <div className="w-[1200px] h-full relative">
-                    {/* Content pinned to the bottom */}
-                    <div className="absolute bottom-0 left-0 w-full flex flex-col pb-2">
+                <div 
+                  ref={timelineScrollRef} 
+                  className="flex-1 overflow-x-auto overflow-y-hidden relative bg-[#161618] custom-scrollbar"
+                  onWheel={(e) => {
+                    if (e.deltaY !== 0 && timelineScrollRef.current) {
+                      timelineScrollRef.current.scrollLeft += e.deltaY;
+                    }
+                  }}
+                >
+                  <div 
+                    className="h-full relative select-none" 
+                    style={{ width: `${Math.max(1200, (Math.max(durationRef.current || 0, displayCaptions.length > 0 ? Math.max(...displayCaptions.map(c => c.end)) : 5)) * (200 * zoomLevel) + 400)}px` }} 
+                    onMouseDown={handleTimelineMouseDown}
+                  >
+                    {/* Content */}
+                    <div className="absolute top-0 left-0 w-full flex flex-col h-full justify-start">
                       {/* Time markers */}
-                      <div className="h-6 flex items-end text-[10px] text-[#8a8a8e] font-mono tracking-tighter border-b border-[#2a2a2d]/50 w-full px-4 justify-between select-none">
-                        <span>00:00.500</span><span>00:01.000</span><span>00:01.500</span><span>00:02.000</span><span>00:02.500</span><span>00:03.000</span><span>00:03.500</span><span>00:04.000</span><span>00:04.500</span><span>00:05.000</span>
+                      <div className="absolute top-0 w-full h-6 border-b border-[#2a2a2d]/50 bg-[#161618] select-none z-0">
+                        {(() => {
+                          const maxTime = Math.max(durationRef.current || 0, displayCaptions.length > 0 ? Math.max(...displayCaptions.map(c => c.end)) : 5);
+                          const markers = [];
+                          for (let i = 0.5; i <= maxTime + 2; i += 0.5) {
+                            const mins = Math.floor(i / 60).toString().padStart(2, '0');
+                            const secs = Math.floor(i % 60).toString().padStart(2, '0');
+                            const ms = ((i % 1) * 1000).toString().padStart(3, '0');
+                            markers.push(
+                              <div key={i} className="absolute text-[10px] text-[#8a8a8e] font-mono tracking-tighter pointer-events-none" style={{ left: `${i * (200 * zoomLevel)}px` }}>
+                                {mins}:{secs}.{ms}
+                              </div>
+                            );
+                          }
+                          return markers;
+                        })()}
                       </div>
-                      
-                      {/* Word Blocks */}
-                      <div className="h-10 mt-2 flex items-center gap-1 px-4 w-full">
-                        <div className="h-6 bg-[#d4ca8e] text-black text-[10px] font-bold rounded flex items-center px-2 min-w-[40px]">Hello</div>
-                        <div className="h-6 bg-[#d4ca8e] text-black text-[10px] font-bold rounded flex items-center px-1 min-w-[20px]">and</div>
-                        <div className="h-6 bg-[#d4ca8e] text-black text-[10px] font-bold rounded flex items-center px-2 min-w-[50px]">welcome</div>
-                        <div className="h-6 bg-[#d4ca8e] text-black text-[10px] font-bold rounded flex items-center px-1 min-w-[15px]">to</div>
-                        <div className="h-6 bg-[#d4ca8e] text-black text-[10px] font-bold rounded flex items-center px-2 min-w-[60px]">Kalakaar.</div>
-                        <div className="h-6 bg-[#d4ca8e] text-black text-[10px] font-bold rounded flex items-center px-1 ml-4 min-w-[20px]">As</div>
-                        <div className="h-6 bg-[#d4ca8e] text-black text-[10px] font-bold rounded flex items-center px-2 min-w-[30px]">you</div>
-                        <div className="h-6 bg-[#d4ca8e] text-black text-[10px] font-bold rounded flex items-center px-2 min-w-[30px]">can</div>
-                        <div className="h-6 bg-[#d4ca8e] text-black text-[10px] font-bold rounded flex items-center px-2 min-w-[30px]">see,</div>
-                        <div className="h-6 bg-[#d4ca8e] text-black text-[10px] font-bold rounded flex items-center px-2 min-w-[25px]">we</div>
-                        <div className="h-6 bg-[#d4ca8e] text-black text-[10px] font-bold rounded flex items-center px-2 min-w-[40px]">have</div>
-                        <div className="h-6 bg-[#d4ca8e] text-black text-[10px] font-bold rounded flex items-center px-2 min-w-[60px]">captions</div>
+
+                      {/* Tracks Area (Middle) */}
+                      <div className="h-16 shrink-0 mt-6 relative z-10 pt-2">
+                        {(() => {
+                          const pxPerSec = 200 * zoomLevel;
+                          return wordLineToggle === 'LINE' ? (
+                            displayCaptions.map((c, i) => {
+                              const start = (optimisticTimings[c.id]?.start ?? c.start);
+                              const end = (optimisticTimings[c.id]?.end ?? c.end);
+                              const minStart = i > 0 ? displayCaptions[i-1].end : 0;
+                              const maxEnd = i < displayCaptions.length - 1 ? displayCaptions[i+1].start : Infinity;
+                              return (
+                                <div 
+                                  key={c.id} 
+                                  onMouseDown={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedBlockId(c.id);
+                                    setDraggingBlock({ id: c.id, type: 'line', action: 'move', startX: e.clientX, initialStart: start, initialEnd: end, minStart, maxEnd });
+                                  }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedBlockId(c.id);
+                                    if (!draggingBlock && seekRef.current) seekRef.current(start);
+                                  }}
+                                  className={`absolute h-10 bg-[#afa667] text-white text-[11px] font-bold rounded-sm flex flex-col justify-center px-2 truncate shadow-sm hover:brightness-110 cursor-grab active:cursor-grabbing border-r border-[#989155] border-y border-l ${(draggingBlock?.id === c.id || selectedBlockId === c.id) ? 'ring-2 ring-blue-500 z-10' : ''}`}
+                                  style={{ 
+                                    left: `${start * pxPerSec}px`, 
+                                    width: `${Math.max(10, (end - start) * pxPerSec - 6)}px` 
+                                  }}
+                                >
+                                  {/* Left Handle */}
+                                  <div 
+                                    className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-white/30 rounded-l-sm"
+                                    onMouseDown={(e) => {
+                                      e.stopPropagation();
+                                      setDraggingBlock({ id: c.id, type: 'line', action: 'resize-left', startX: e.clientX, initialStart: start, initialEnd: end, minStart, maxEnd });
+                                    }}
+                                  />
+                                  <span className="truncate w-full leading-tight pointer-events-none">{c.text}</span>
+                                  <span className="text-[8px] font-medium text-white/80 flex items-center gap-0.5 mt-[1px] tracking-wide pointer-events-none"><span className="italic mr-0.5 text-white/60 font-serif">I</span> Text</span>
+                                  {/* Right Handle */}
+                                  <div 
+                                    className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-white/30 rounded-r-sm"
+                                    onMouseDown={(e) => {
+                                      e.stopPropagation();
+                                      setDraggingBlock({ id: c.id, type: 'line', action: 'resize-right', startX: e.clientX, initialStart: start, initialEnd: end, minStart, maxEnd });
+                                    }}
+                                  />
+                                </div>
+                              );
+                            })
+                          ) : (
+                            displayCaptions.flatMap((c) => {
+                              return (c.words || []).map((w: any, i: number) => {
+                                const wStart = (optimisticTimings[w.id]?.start ?? w.start);
+                                const wEnd = (optimisticTimings[w.id]?.end ?? w.end);
+                                const minStart = i > 0 ? c.words[i-1].end : c.start;
+                                const maxEnd = i < c.words.length - 1 ? c.words[i+1].start : c.end;
+                                
+                                return (
+                                  <div 
+                                    key={w.id}
+                                    onMouseDown={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedBlockId(w.id);
+                                      setDraggingBlock({ id: w.id, type: 'word', action: 'move', startX: e.clientX, initialStart: wStart, initialEnd: wEnd, minStart, maxEnd });
+                                    }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedBlockId(w.id);
+                                      if (!draggingBlock && seekRef.current) seekRef.current(wStart);
+                                    }}
+                                    className={`absolute h-10 bg-[#afa667] text-white text-[11px] font-bold rounded-sm flex flex-col justify-center px-2 truncate shadow-sm hover:brightness-110 cursor-grab active:cursor-grabbing border border-[#989155] ${(draggingBlock?.id === w.id || selectedBlockId === w.id) ? 'ring-2 ring-blue-500 z-10' : ''}`}
+                                    style={{ 
+                                      left: `${wStart * pxPerSec}px`, 
+                                      width: `${Math.max(10, (wEnd - wStart) * pxPerSec)}px` 
+                                    }}
+                                  >
+                                    {/* Left Handle */}
+                                    <div 
+                                      className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-white/30 rounded-l-sm"
+                                      onMouseDown={(e) => {
+                                        e.stopPropagation();
+                                        setDraggingBlock({ id: w.id, type: 'word', action: 'resize-left', startX: e.clientX, initialStart: wStart, initialEnd: wEnd, minStart, maxEnd });
+                                      }}
+                                    />
+                                    <span className="truncate w-full leading-tight pointer-events-none">{w.text}</span>
+                                    <span className="text-[8px] font-medium text-white/80 flex items-center gap-0.5 mt-[1px] tracking-wide pointer-events-none"><span className="italic mr-0.5 text-white/60 font-serif">I</span> Text</span>
+                                    {/* Right Handle */}
+                                    <div 
+                                      className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-white/30 rounded-r-sm"
+                                      onMouseDown={(e) => {
+                                        e.stopPropagation();
+                                        setDraggingBlock({ id: w.id, type: 'word', action: 'resize-right', startX: e.clientX, initialStart: wStart, initialEnd: wEnd, minStart, maxEnd });
+                                      }}
+                                    />
+                                  </div>
+                                );
+                              });
+                            })
+                          );
+                        })()}
                       </div>
 
                       {/* Waveform */}
-                      <div className="h-12 mt-2 w-full px-4 flex items-center opacity-70">
-                        <svg className="w-full h-full text-[#52c595]" preserveAspectRatio="none" viewBox="0 0 100 20">
-                          <path d="M0,10 Q2,5 4,10 T8,10 T12,12 T16,10 T20,8 T24,10 T28,15 T32,10 T36,10 T40,10 M42,10 Q44,5 46,10 T50,10 T54,12 T58,10 T62,8 T66,10 T70,15 T74,10 T78,10 M80,10 Q82,5 84,10 T88,10 T92,12 T96,10 T100,10" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
-                        </svg>
+                      <div className="h-14 shrink-0 w-full flex items-center opacity-70 border-y border-[#2a2a2d]/50 relative overflow-hidden bg-[#111111]/30 pointer-events-none">
+                        <div className="h-full flex items-center">
+                          {renderWaveform()}
+                        </div>
                       </div>
                     </div>
-                    
+
                     {/* Playhead */}
-                    <div className="absolute top-0 bottom-0 left-[20%] w-[1px] bg-white z-10 shadow-[0_0_4px_rgba(255,255,255,0.8)] pointer-events-none">
-                      <div className="absolute -top-1 -left-1 w-0 h-0 border-l-[4px] border-r-[4px] border-t-[6px] border-l-transparent border-r-transparent border-t-white"></div>
+                    <div ref={playheadRef} className="absolute top-0 bottom-0 w-[1px] bg-[#52c595] z-30 shadow-[0_0_4px_rgba(82,197,149,0.5)] origin-left will-change-transform" style={{ left: 0, pointerEvents: 'none' }}>
+                      <div 
+                        className="absolute -top-[1px] -left-[7px] cursor-ew-resize drop-shadow-md"
+                        style={{ pointerEvents: 'auto' }}
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          isDraggingTimelineRef.current = true;
+                          seekFromMouseEvent(e as any);
+                        }}
+                      >
+                        <svg width="15" height="18" viewBox="0 0 15 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M0 0H15V11L7.5 18L0 11V0Z" fill="#52c595"/>
+                        </svg>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1603,9 +2558,9 @@ export function ReelEditor() {
           <PanelResizeHandle className="w-2 bg-transparent cursor-col-resize relative z-10 hover:bg-[#2a2a2d] transition-colors rounded-full mx-0.5 my-2" />
 
           {/* MIDDLE COLUMN: Video Preview */}
-          <VideoPlayer 
-            videoUrl={videoUrl} 
-            captions={captions}
+          <VideoPlayer
+            videoUrl={videoUrl}
+            captions={displayCaptions}
             fontFamily={fontFamily}
             fontFace={fontFace}
             hoveredFontFamily={hoveredFontFamily}
@@ -1647,6 +2602,9 @@ export function ReelEditor() {
             activeCaptionId={activeCaptionId}
             setActiveCaptionId={setActiveCaptionId}
             seekRef={seekRef}
+            linesMode={linesMode}
+            currentTimeRef={currentTimeRef}
+            durationRef={durationRef}
           />
 
           <PanelResizeHandle className="w-2 bg-transparent cursor-col-resize relative z-10 hover:bg-[#2a2a2d] transition-colors rounded-full mx-0.5 my-2" />
@@ -1656,7 +2614,7 @@ export function ReelEditor() {
             {/* Horizontal Tabs */}
             <div className="flex border-b border-[#2a2a2d] px-2 pt-2">
               {['Text', 'Templates', 'Transitions', 'AI Audio'].map(tab => (
-                <button 
+                <button
                   key={tab}
                   onClick={() => setActiveTabRight(tab.toLowerCase())}
                   className={`px-3 py-3 text-[11px] font-bold tracking-wide transition-colors border-b-2 relative top-[1px]
@@ -1670,10 +2628,10 @@ export function ReelEditor() {
             <div className="flex-1 overflow-y-auto custom-scrollbar">
               {activeTabRight === 'text' && (
                 <div className="p-5 space-y-6">
-                  
+
                   {/* FONTS SECTION */}
                   <div>
-                    <button 
+                    <button
                       onClick={() => toggleAccordion('fonts')}
                       className="flex items-center gap-2 text-[10px] font-bold text-[#8a8a8e] tracking-widest uppercase mb-4 w-full text-left focus:outline-none"
                     >
@@ -1685,13 +2643,13 @@ export function ReelEditor() {
                         <div className="flex items-center gap-3">
                           <span className="text-xs text-[#8a8a8e] w-[70px]">Font Family</span>
                           <div className="flex-1 flex gap-2">
-                            <CustomSelect 
+                            <CustomSelect
                               value={fontFamily}
                               options={['Inter', 'Roboto', 'Montserrat', 'Poppins']}
                               onChange={setFontFamily}
                               onHoverChange={setHoveredFontFamily}
                             />
-                            <button 
+                            <button
                               onClick={() => setFontFamily('Inter')}
                               className="w-8 h-8 shrink-0 rounded-md bg-[#1a1a1c] border border-[#2a2a2d] flex items-center justify-center text-[#8a8a8e] hover:text-white"
                             >
@@ -1703,7 +2661,7 @@ export function ReelEditor() {
                         <div className="flex items-center gap-3">
                           <span className="text-xs text-[#8a8a8e] w-[70px]">Font Face</span>
                           <div className="flex-1 flex gap-2">
-                            <CustomSelect 
+                            <CustomSelect
                               value={fontFace}
                               options={[
                                 'Thin', 'Extra Light', 'Light', 'Regular', 'Medium', 'Semi Bold', 'Bold', 'Extra Bold', 'Black',
@@ -1712,7 +2670,7 @@ export function ReelEditor() {
                               onChange={setFontFace}
                               onHoverChange={setHoveredFontFace}
                             />
-                            <button 
+                            <button
                               onClick={() => setFontFace('Regular')}
                               className="w-8 h-8 shrink-0 rounded-md bg-[#1a1a1c] border border-[#2a2a2d] flex items-center justify-center text-[#8a8a8e] hover:text-white"
                             >
@@ -1724,11 +2682,11 @@ export function ReelEditor() {
                         <div className="flex items-center gap-3 pt-2">
                           <div className="flex-1 flex items-center gap-3">
                             <TypeOutline className="w-4 h-4 text-[#8a8a8e]" />
-                            <input 
-                              type="range" 
-                              min="12" 
-                              max="120" 
-                              value={fontSize} 
+                            <input
+                              type="range"
+                              min="12"
+                              max="120"
+                              value={fontSize}
                               onChange={(e) => setFontSize(parseInt(e.target.value))}
                               className="flex-1 accent-[#52c595] h-1 bg-[#3a3a3d] rounded-full appearance-none outline-none cursor-pointer"
                             />
@@ -1737,7 +2695,7 @@ export function ReelEditor() {
                             <div className="bg-[#1a1a1c] border border-[#2a2a2d] rounded-md px-2 py-1.5 text-xs text-white flex items-center gap-1 w-16 justify-center">
                               {fontSize} <span className="text-[#8a8a8e]">px</span>
                             </div>
-                            <button 
+                            <button
                               onClick={() => setFontSize(41)}
                               className="w-8 h-8 shrink-0 rounded-md bg-[#1a1a1c] border border-[#2a2a2d] flex items-center justify-center text-[#8a8a8e] hover:text-white"
                             >
@@ -1753,7 +2711,7 @@ export function ReelEditor() {
 
                   {/* FORMAT SECTION */}
                   <div>
-                    <button 
+                    <button
                       onClick={() => toggleAccordion('format')}
                       className="flex items-center gap-2 text-[10px] font-bold text-[#8a8a8e] tracking-widest uppercase mb-4 w-full text-left focus:outline-none"
                     >
@@ -1764,25 +2722,25 @@ export function ReelEditor() {
                         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2">
                           <span className="text-xs text-[#8a8a8e]">Styles</span>
                           <div className="flex bg-[#1a1a1c] rounded-md border border-[#2a2a2d] overflow-hidden">
-                            <button 
+                            <button
                               onClick={() => setCasing(prev => prev === 'capitalize' ? 'none' : 'capitalize')}
                               className={`flex-1 min-w-[32px] h-8 flex items-center justify-center transition-colors ${casing === 'capitalize' ? 'bg-[#2a2a2d] text-white' : 'text-[#8a8a8e] hover:bg-[#2a2a2d]'}`}
                             >
                               <span className="font-serif italic font-bold">Tt</span>
                             </button>
-                            <button 
+                            <button
                               onClick={() => setCasing(prev => prev === 'uppercase' ? 'none' : 'uppercase')}
                               className={`flex-1 min-w-[32px] h-8 flex items-center justify-center transition-colors border-l border-[#2a2a2d] ${casing === 'uppercase' ? 'bg-[#2a2a2d] text-white' : 'text-[#8a8a8e] hover:bg-[#2a2a2d]'}`}
                             >
                               <span className="font-bold">T</span>
                             </button>
-                            <button 
+                            <button
                               onClick={() => setCasing(prev => prev === 'lowercase' ? 'none' : 'lowercase')}
                               className={`flex-1 min-w-[32px] h-8 flex items-center justify-center transition-colors border-l border-[#2a2a2d] ${casing === 'lowercase' ? 'bg-[#2a2a2d] text-white' : 'text-[#8a8a8e] hover:bg-[#2a2a2d]'}`}
                             >
                               <span className="font-serif italic">t</span>
                             </button>
-                            <button 
+                            <button
                               onClick={() => setStyleFlags(prev => ({ ...prev, underline: !prev.underline }))}
                               className={`flex-1 min-w-[32px] h-8 flex items-center justify-center transition-colors border-l border-[#2a2a2d] ${styleFlags.underline ? 'bg-[#2a2a2d] text-white' : 'text-[#8a8a8e] hover:bg-[#2a2a2d]'}`}
                             >
@@ -1793,19 +2751,19 @@ export function ReelEditor() {
                         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2">
                           <span className="text-xs text-[#8a8a8e]">Text Alignment</span>
                           <div className="flex bg-[#1a1a1c] rounded-md border border-[#2a2a2d] overflow-hidden">
-                            <button 
+                            <button
                               onClick={() => setTextAlign('left')}
                               className={`flex-1 min-w-[32px] h-8 flex items-center justify-center transition-colors ${textAlign === 'left' ? 'bg-[#2a2a2d] text-white' : 'text-[#8a8a8e] hover:bg-[#2a2a2d]'}`}
                             >
                               <AlignLeft className="w-4 h-4" />
                             </button>
-                            <button 
+                            <button
                               onClick={() => setTextAlign('center')}
                               className={`flex-1 min-w-[32px] h-8 flex items-center justify-center transition-colors border-l border-[#2a2a2d] ${textAlign === 'center' ? 'bg-[#2a2a2d] text-white' : 'text-[#8a8a8e] hover:bg-[#2a2a2d]'}`}
                             >
                               <AlignCenter className="w-4 h-4" />
                             </button>
-                            <button 
+                            <button
                               onClick={() => setTextAlign('right')}
                               className={`flex-1 min-w-[32px] h-8 flex items-center justify-center transition-colors border-l border-[#2a2a2d] ${textAlign === 'right' ? 'bg-[#2a2a2d] text-white' : 'text-[#8a8a8e] hover:bg-[#2a2a2d]'}`}
                             >
@@ -1821,7 +2779,7 @@ export function ReelEditor() {
 
                   {/* POSITION SECTION */}
                   <div>
-                    <button 
+                    <button
                       onClick={() => toggleAccordion('position')}
                       className="flex items-center gap-2 text-[10px] font-bold text-[#8a8a8e] tracking-widest uppercase mb-4 w-full text-left focus:outline-none"
                     >
@@ -1832,8 +2790,8 @@ export function ReelEditor() {
                         <span className="text-xs text-[#8a8a8e]">X</span>
                         <div className="flex-1 flex gap-1 min-w-[100px] items-stretch">
                           <div className="flex-1 bg-[#1a1a1c] border border-[#2a2a2d] rounded-md px-2 py-1 flex items-center justify-between font-mono">
-                            <input 
-                              type="text" 
+                            <input
+                              type="text"
                               value={inputX}
                               onChange={(e) => {
                                 const valStr = e.target.value;
@@ -1866,13 +2824,13 @@ export function ReelEditor() {
                             <span className="text-[#8a8a8e] text-xs mr-1.5">%</span>
                             {/* Expanded Mini Spinner Arrows */}
                             <div className="flex flex-col text-[10px] text-zinc-500 shrink-0 border-l border-[#2a2a2d] pl-1.5 ml-1 select-none">
-                              <button 
+                              <button
                                 onClick={() => setPosition(prev => ({ ...prev, x: Math.min(100, parseFloat((prev.x + 0.5).toFixed(1))) }))}
                                 className="hover:text-white hover:bg-[#2a2a2d] rounded transition-colors h-3.5 w-4 flex items-center justify-center font-bold"
                               >
                                 ▲
                               </button>
-                              <button 
+                              <button
                                 onClick={() => setPosition(prev => ({ ...prev, x: Math.max(0, parseFloat((prev.x - 0.5).toFixed(1))) }))}
                                 className="hover:text-white hover:bg-[#2a2a2d] rounded transition-colors h-3.5 w-4 flex items-center justify-center font-bold mt-0.5"
                               >
@@ -1880,7 +2838,7 @@ export function ReelEditor() {
                               </button>
                             </div>
                           </div>
-                          <button 
+                          <button
                             onClick={() => setPosition(prev => ({ ...prev, x: 50.0 }))}
                             className="w-8 shrink-0 rounded-md bg-[#1a1a1c] border border-[#2a2a2d] flex items-center justify-center text-[#8a8a8e] hover:text-white self-stretch"
                           >
@@ -1890,8 +2848,8 @@ export function ReelEditor() {
                         <span className="text-xs text-[#8a8a8e] ml-1">Y</span>
                         <div className="flex-1 flex gap-1 min-w-[100px] items-stretch">
                           <div className="flex-1 bg-[#1a1a1c] border border-[#2a2a2d] rounded-md px-2 py-1 flex items-center justify-between font-mono">
-                            <input 
-                              type="text" 
+                            <input
+                              type="text"
                               value={inputY}
                               onChange={(e) => {
                                 const valStr = e.target.value;
@@ -1924,13 +2882,13 @@ export function ReelEditor() {
                             <span className="text-[#8a8a8e] text-xs mr-1.5">%</span>
                             {/* Expanded Mini Spinner Arrows */}
                             <div className="flex flex-col text-[10px] text-zinc-500 shrink-0 border-l border-[#2a2a2d] pl-1.5 ml-1 select-none">
-                              <button 
+                              <button
                                 onClick={() => setPosition(prev => ({ ...prev, y: Math.min(100, parseFloat((prev.y + 0.5).toFixed(1))) }))}
                                 className="hover:text-white hover:bg-[#2a2a2d] rounded transition-colors h-3.5 w-4 flex items-center justify-center font-bold"
                               >
                                 ▲
                               </button>
-                              <button 
+                              <button
                                 onClick={() => setPosition(prev => ({ ...prev, y: Math.max(0, parseFloat((prev.y - 0.5).toFixed(1))) }))}
                                 className="hover:text-white hover:bg-[#2a2a2d] rounded transition-colors h-3.5 w-4 flex items-center justify-center font-bold mt-0.5"
                               >
@@ -1938,7 +2896,7 @@ export function ReelEditor() {
                               </button>
                             </div>
                           </div>
-                          <button 
+                          <button
                             onClick={() => setPosition(prev => ({ ...prev, y: 65.0 }))}
                             className="w-8 shrink-0 rounded-md bg-[#1a1a1c] border border-[#2a2a2d] flex items-center justify-center text-[#8a8a8e] hover:text-white self-stretch"
                           >
@@ -1953,7 +2911,7 @@ export function ReelEditor() {
 
                   {/* COLOR SECTION */}
                   <div>
-                    <button 
+                    <button
                       onClick={() => toggleAccordion('color')}
                       className="flex items-center gap-2 text-[10px] font-bold text-[#8a8a8e] tracking-widest uppercase mb-4 w-full text-left focus:outline-none"
                     >
@@ -1962,13 +2920,13 @@ export function ReelEditor() {
                     {openAccordions.color && (
                       <div className="space-y-4 pl-1">
                         <div className="flex bg-[#1a1a1c] rounded-md border border-[#2a2a2d] p-0.5">
-                          <button 
+                          <button
                             onClick={() => setColorToggle('Solid')}
                             className={`flex-1 py-1.5 text-xs font-medium rounded-sm flex items-center justify-center gap-1.5 ${colorToggle === 'Solid' ? 'bg-[#2a2a2d] text-white' : 'text-[#8a8a8e]'}`}
                           >
                             <div className="w-2.5 h-2.5 rounded-full bg-white opacity-80" /> Solid
                           </button>
-                          <button 
+                          <button
                             onClick={() => {
                               setColorToggle('Gradient');
                               setColor(gradientStops[0].color);
@@ -1985,7 +2943,7 @@ export function ReelEditor() {
                             <div className="space-y-2">
                               <div className="flex items-center justify-between">
                                 <span className="text-xs text-[#8a8a8e]">Stops</span>
-                                <button 
+                                <button
                                   onClick={() => {
                                     setGradientStops([
                                       { id: 1, position: 0, color: '#8a7300', opacity: 100 },
@@ -2002,7 +2960,7 @@ export function ReelEditor() {
                               </div>
                               <div ref={stopsContainerRef} className="relative pt-1 pb-6 px-2 bg-[#161618] rounded-md border border-[#2a2a2d] h-14 flex items-center">
                                 {/* The Gradient Visual Bar */}
-                                <div 
+                                <div
                                   id="gradient-stops-bar"
                                   className="w-full h-4 rounded shadow-inner border border-[#2a2a2d] relative cursor-pointer"
                                   style={{
@@ -2021,9 +2979,9 @@ export function ReelEditor() {
                                 />
                                 {/* Draggable Stops */}
                                 {gradientStops.map(stop => (
-                                  <div 
+                                  <div
                                     key={stop.id}
-                                    className="absolute bottom-1.5 cursor-ew-resize transform -translate-x-1/2 flex flex-col items-center z-10 select-none" 
+                                    className="absolute bottom-1.5 cursor-ew-resize transform -translate-x-1/2 flex flex-col items-center z-10 select-none"
                                     style={{ left: `calc(${stop.position}% + 8px - (${stop.position / 100} * 16px))` }}
                                     onMouseDown={(e) => {
                                       e.preventDefault();
@@ -2032,13 +2990,13 @@ export function ReelEditor() {
                                       const startX = e.clientX;
                                       const startPos = stop.position;
                                       let hasDragged = false;
-                                      
+
                                       const onMouseMove = (moveEvent: MouseEvent) => {
                                         const deltaX = Math.abs(moveEvent.clientX - startX);
                                         if (deltaX > 3) {
                                           hasDragged = true;
                                         }
-                                        
+
                                         const bar = document.getElementById('gradient-stops-bar');
                                         if (bar) {
                                           const rect = bar.getBoundingClientRect();
@@ -2047,17 +3005,17 @@ export function ReelEditor() {
                                           setGradientStops(prev => prev.map(s => s.id === stop.id ? { ...s, position: newPos } : s));
                                         }
                                       };
-                                      
+
                                       const onMouseUp = () => {
                                         window.removeEventListener('mousemove', onMouseMove);
                                         window.removeEventListener('mouseup', onMouseUp);
-                                        
+
                                         // Only toggle the popup if they didn't drag the handle
                                         if (!hasDragged) {
                                           setOpenStopPickerId(openStopPickerId === stop.id ? null : stop.id);
                                         }
                                       };
-                                      
+
                                       window.addEventListener('mousemove', onMouseMove);
                                       window.addEventListener('mouseup', onMouseUp);
                                     }}
@@ -2069,12 +3027,12 @@ export function ReelEditor() {
 
                                     {/* Color Picker popover overlay */}
                                     {openStopPickerId === stop.id && (
-                                      <div 
+                                      <div
                                         onClick={(e) => e.stopPropagation()}
                                         onMouseDown={(e) => e.stopPropagation()}
                                         className="absolute bottom-full mb-3 z-50 left-1/2 transform -translate-x-1/2 cursor-default"
                                       >
-                                        <StopColorPicker 
+                                        <StopColorPicker
                                           color={stop.color}
                                           opacity={stop.opacity || 100}
                                           positionPercent={stop.position}
@@ -2109,18 +3067,18 @@ export function ReelEditor() {
                               <span className="text-xs text-[#8a8a8e]">Angle</span>
                               <div className="flex-grow flex items-stretch gap-2 justify-end">
                                 <div className="flex items-center gap-2 flex-grow max-w-[160px]">
-                                  <input 
-                                    type="range" 
-                                    min="0" 
-                                    max="360" 
-                                    value={gradientAngle} 
+                                  <input
+                                    type="range"
+                                    min="0"
+                                    max="360"
+                                    value={gradientAngle}
                                     onChange={(e) => setGradientAngle(parseInt(e.target.value))}
                                     className="w-full accent-[#52c595] cursor-pointer h-1 bg-[#2a2a2d] rounded-lg appearance-none"
                                   />
                                 </div>
                                 <div className="bg-[#1a1a1c] border border-[#2a2a2d] rounded-md px-2 py-1 flex items-center justify-between font-mono w-16">
-                                  <input 
-                                    type="text" 
+                                  <input
+                                    type="text"
                                     value={inputAngle}
                                     onChange={(e) => {
                                       const valStr = e.target.value;
@@ -2134,7 +3092,7 @@ export function ReelEditor() {
                                     className="bg-transparent text-white text-xs outline-none w-full border-none p-0 select-text text-center"
                                   />
                                 </div>
-                                <button 
+                                <button
                                   onClick={() => setGradientAngle(90)}
                                   className="w-8 shrink-0 rounded-md bg-[#1a1a1c] border border-[#2a2a2d] flex items-center justify-center text-[#8a8a8e] hover:text-white self-stretch"
                                 >
@@ -2147,13 +3105,13 @@ export function ReelEditor() {
                             <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2">
                               <span className="text-xs text-[#8a8a8e]">Level</span>
                               <div className="flex bg-[#1a1a1c] rounded-md border border-[#2a2a2d] p-0.5 w-[140px]">
-                                <button 
+                                <button
                                   onClick={() => setGradientLevel('word')}
                                   className={`flex-1 py-1 text-[10px] font-semibold rounded-sm flex items-center justify-center gap-1 ${gradientLevel === 'word' ? 'bg-[#2a2a2d] text-white shadow' : 'text-[#8a8a8e]'}`}
                                 >
                                   Word
                                 </button>
-                                <button 
+                                <button
                                   onClick={() => setGradientLevel('char')}
                                   className={`flex-1 py-1 text-[10px] font-semibold rounded-sm flex items-center justify-center gap-1 ${gradientLevel === 'char' ? 'bg-[#2a2a2d] text-white shadow' : 'text-[#8a8a8e]'}`}
                                 >
@@ -2170,13 +3128,13 @@ export function ReelEditor() {
                             <div className="flex items-stretch gap-2">
                               <div ref={colorPickerRef} className="relative flex-1">
                                 <div className="bg-[#1a1a1c] border border-[#2a2a2d] rounded-md px-2 py-1.5 flex items-center gap-2 min-w-[120px]">
-                                  <button 
+                                  <button
                                     onClick={() => setShowColorPicker(!showColorPicker)}
                                     className="w-6 h-6 rounded border border-[#2a2a2d] bg-transparent overflow-hidden p-0 relative focus:outline-none shrink-0"
                                   >
                                     <div className="w-full h-full rounded" style={{ backgroundColor: color }} />
                                   </button>
-                                  <input 
+                                  <input
                                     type="text"
                                     value={inputColor}
                                     onChange={(e) => {
@@ -2190,7 +3148,7 @@ export function ReelEditor() {
                                     className="bg-transparent text-xs font-mono text-white uppercase outline-none w-full border-none p-0 select-text"
                                   />
                                 </div>
-                                
+
                                 {/* Custom Color Picker dropdown */}
                                 {showColorPicker && (
                                   <div className="absolute right-0 bottom-full mb-2 z-50">
@@ -2198,7 +3156,7 @@ export function ReelEditor() {
                                   </div>
                                 )}
                               </div>
-                              <button 
+                              <button
                                 onClick={() => setColor('#FFFFFF')}
                                 className="w-8 shrink-0 rounded-md bg-[#1a1a1c] border border-[#2a2a2d] flex items-center justify-center text-[#8a8a8e] hover:text-white self-stretch"
                               >
@@ -2218,7 +3176,7 @@ export function ReelEditor() {
                     const key = title.toLowerCase();
                     return (
                       <div key={title}>
-                        <button 
+                        <button
                           onClick={() => toggleAccordion(key)}
                           className="flex items-center gap-2 text-[10px] font-bold text-[#8a8a8e] tracking-widest uppercase mb-4 w-full text-left focus:outline-none"
                         >
@@ -2232,18 +3190,18 @@ export function ReelEditor() {
                                 <div className="flex items-center justify-between gap-3">
                                   <span className="text-xs text-[#8a8a8e] w-24">Letter Spacing</span>
                                   <div className="flex-1 flex items-center gap-3">
-                                    <input 
-                                      type="range" 
-                                      min="-5" 
-                                      max="20" 
-                                      value={letterSpacing} 
+                                    <input
+                                      type="range"
+                                      min="-5"
+                                      max="20"
+                                      value={letterSpacing}
                                       onChange={(e) => setLetterSpacing(Number(e.target.value))}
                                       className="flex-1 accent-[#52c595] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
                                     />
                                     <div className="w-12 h-7 bg-[#1a1a1c] border border-[#2a2a2d] rounded-md flex items-center justify-center text-xs text-white">
                                       {letterSpacing}
                                     </div>
-                                    <button 
+                                    <button
                                       onClick={() => setLetterSpacing(0)}
                                       className="w-8 h-7 rounded-md bg-[#1a1a1c] border border-[#2a2a2d] flex items-center justify-center text-[#8a8a8e] hover:text-white"
                                     >
@@ -2256,19 +3214,19 @@ export function ReelEditor() {
                                 <div className="flex items-center justify-between gap-3">
                                   <span className="text-xs text-[#8a8a8e] w-24">Line Spacing</span>
                                   <div className="flex-1 flex items-center gap-3">
-                                    <input 
-                                      type="range" 
-                                      min="0.8" 
-                                      max="3.0" 
+                                    <input
+                                      type="range"
+                                      min="0.8"
+                                      max="3.0"
                                       step="0.1"
-                                      value={lineSpacing} 
+                                      value={lineSpacing}
                                       onChange={(e) => setLineSpacing(Number(e.target.value))}
                                       className="flex-1 accent-[#52c595] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
                                     />
                                     <div className="w-12 h-7 bg-[#1a1a1c] border border-[#2a2a2d] rounded-md flex items-center justify-center text-xs text-white">
                                       {lineSpacing.toFixed(1)}
                                     </div>
-                                    <button 
+                                    <button
                                       onClick={() => setLineSpacing(1.2)}
                                       className="w-8 h-7 rounded-md bg-[#1a1a1c] border border-[#2a2a2d] flex items-center justify-center text-[#8a8a8e] hover:text-white"
                                     >
@@ -2283,7 +3241,7 @@ export function ReelEditor() {
                                 <div className="flex flex-col gap-4">
                                   <div className="flex items-center justify-between">
                                     <span className="text-sm font-semibold text-white">Drop Shadow</span>
-                                    <button 
+                                    <button
                                       onClick={() => setShadowEnabled(!shadowEnabled)}
                                       className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 focus:outline-none ${shadowEnabled ? 'bg-[#52c595]' : 'bg-[#2a2a2d]'}`}
                                     >
@@ -2297,14 +3255,14 @@ export function ReelEditor() {
                                         <span className="text-xs text-[#8a8a8e]">Color</span>
                                         <div className="flex items-center gap-2 shrink-0">
                                           <div className="relative flex items-center gap-2 bg-[#1a1a1c] border border-[#2a2a2d] rounded-md px-2 py-1.5 h-9 w-[104px] shrink-0" ref={shadowColorRef}>
-                                            <button 
+                                            <button
                                               onClick={() => setShowShadowColorPicker(!showShadowColorPicker)}
                                               className="w-6 h-6 rounded border border-[#2a2a2d] bg-transparent overflow-hidden p-0 relative focus:outline-none shrink-0"
                                             >
                                               <div className="w-full h-full rounded" style={{ backgroundColor: shadowColor }} />
                                             </button>
-                                            <input 
-                                              type="text" 
+                                            <input
+                                              type="text"
                                               value={shadowColor.toUpperCase()}
                                               onChange={(e) => setShadowColor(e.target.value)}
                                               className="bg-transparent text-[11px] font-mono text-white outline-none w-14 border-none p-0 select-text"
@@ -2321,11 +3279,11 @@ export function ReelEditor() {
                                       <div className="flex items-center justify-between gap-3">
                                         <span className="text-xs text-[#8a8a8e] w-16">Position X</span>
                                         <div className="flex-1 flex items-center gap-3">
-                                          <input 
-                                            type="range" 
-                                            min="-20" 
-                                            max="20" 
-                                            value={shadowX} 
+                                          <input
+                                            type="range"
+                                            min="-20"
+                                            max="20"
+                                            value={shadowX}
                                             onChange={(e) => setShadowX(Number(e.target.value))}
                                             className="flex-1 accent-[#52c595] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
                                           />
@@ -2338,11 +3296,11 @@ export function ReelEditor() {
                                       <div className="flex items-center justify-between gap-3">
                                         <span className="text-xs text-[#8a8a8e] w-16">Position Y</span>
                                         <div className="flex-1 flex items-center gap-3">
-                                          <input 
-                                            type="range" 
-                                            min="-20" 
-                                            max="20" 
-                                            value={shadowY} 
+                                          <input
+                                            type="range"
+                                            min="-20"
+                                            max="20"
+                                            value={shadowY}
                                             onChange={(e) => setShadowY(Number(e.target.value))}
                                             className="flex-1 accent-[#52c595] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
                                           />
@@ -2355,11 +3313,11 @@ export function ReelEditor() {
                                       <div className="flex items-center justify-between gap-3">
                                         <span className="text-xs text-[#8a8a8e] w-16">Blur</span>
                                         <div className="flex-1 flex items-center gap-3">
-                                          <input 
-                                            type="range" 
-                                            min="0" 
-                                            max="30" 
-                                            value={shadowBlur} 
+                                          <input
+                                            type="range"
+                                            min="0"
+                                            max="30"
+                                            value={shadowBlur}
                                             onChange={(e) => setShadowBlur(Number(e.target.value))}
                                             className="flex-1 accent-[#52c595] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
                                           />
@@ -2376,7 +3334,7 @@ export function ReelEditor() {
                                 <div className="flex flex-col gap-4 mt-2">
                                   <div className="flex items-center justify-between">
                                     <span className="text-sm font-semibold text-white">Text Stroke</span>
-                                    <button 
+                                    <button
                                       onClick={() => setStrokeEnabled(!strokeEnabled)}
                                       className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 focus:outline-none ${strokeEnabled ? 'bg-[#52c595]' : 'bg-[#2a2a2d]'}`}
                                     >
@@ -2390,14 +3348,14 @@ export function ReelEditor() {
                                         <span className="text-xs text-[#8a8a8e]">Color</span>
                                         <div className="flex items-center gap-2 shrink-0">
                                           <div className="relative flex items-center gap-2 bg-[#1a1a1c] border border-[#2a2a2d] rounded-md px-2 py-1.5 h-9 w-[104px] shrink-0" ref={strokeColorRef}>
-                                            <button 
+                                            <button
                                               onClick={() => setShowStrokeColorPicker(!showStrokeColorPicker)}
                                               className="w-6 h-6 rounded border border-[#2a2a2d] bg-transparent overflow-hidden p-0 relative focus:outline-none shrink-0"
                                             >
                                               <div className="w-full h-full rounded" style={{ backgroundColor: strokeColor }} />
                                             </button>
-                                            <input 
-                                              type="text" 
+                                            <input
+                                              type="text"
                                               value={strokeColor.toUpperCase()}
                                               onChange={(e) => setStrokeColor(e.target.value)}
                                               className="bg-transparent text-[11px] font-mono text-white outline-none w-14 border-none p-0 select-text"
@@ -2414,11 +3372,11 @@ export function ReelEditor() {
                                       <div className="flex items-center justify-between gap-3">
                                         <span className="text-xs text-[#8a8a8e] w-16">Width</span>
                                         <div className="flex-1 flex items-center gap-3">
-                                          <input 
-                                            type="range" 
-                                            min="0" 
-                                            max="10" 
-                                            value={strokeWidth} 
+                                          <input
+                                            type="range"
+                                            min="0"
+                                            max="10"
+                                            value={strokeWidth}
                                             onChange={(e) => setStrokeWidth(Number(e.target.value))}
                                             className="flex-1 accent-[#52c595] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
                                           />
@@ -2435,7 +3393,7 @@ export function ReelEditor() {
                                 <div className="flex flex-col gap-4 mt-2">
                                   <div className="flex items-center justify-between">
                                     <span className="text-sm font-semibold text-white">Background</span>
-                                    <button 
+                                    <button
                                       onClick={() => setBgEnabled(!bgEnabled)}
                                       className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 focus:outline-none ${bgEnabled ? 'bg-[#52c595]' : 'bg-[#2a2a2d]'}`}
                                     >
@@ -2449,14 +3407,14 @@ export function ReelEditor() {
                                         <span className="text-xs text-[#8a8a8e]">Color</span>
                                         <div className="flex items-center gap-2 shrink-0">
                                           <div className="relative flex items-center gap-2 bg-[#1a1a1c] border border-[#2a2a2d] rounded-md px-2 py-1.5 h-9 w-[104px] shrink-0" ref={bgColorRef}>
-                                            <button 
+                                            <button
                                               onClick={() => setShowBgColorPicker(!showBgColorPicker)}
                                               className="w-6 h-6 rounded border border-[#2a2a2d] bg-transparent overflow-hidden p-0 relative focus:outline-none shrink-0"
                                             >
                                               <div className="w-full h-full rounded" style={{ backgroundColor: bgColor }} />
                                             </button>
-                                            <input 
-                                              type="text" 
+                                            <input
+                                              type="text"
                                               value={bgColor.toUpperCase()}
                                               onChange={(e) => setBgColor(e.target.value)}
                                               className="bg-transparent text-[11px] font-mono text-white outline-none w-14 border-none p-0 select-text"
@@ -2467,7 +3425,7 @@ export function ReelEditor() {
                                               </div>
                                             )}
                                           </div>
-                                          <button 
+                                          <button
                                             onClick={() => {
                                               setBgColor('#000000');
                                               setBgOpacity(100);
@@ -2486,18 +3444,18 @@ export function ReelEditor() {
                                       <div className="flex items-center justify-between gap-3">
                                         <span className="text-xs text-[#8a8a8e] w-16">Radius</span>
                                         <div className="flex-1 flex items-center gap-3">
-                                          <input 
-                                            type="range" 
-                                            min="0" 
-                                            max="50" 
-                                            value={bgRadius} 
+                                          <input
+                                            type="range"
+                                            min="0"
+                                            max="50"
+                                            value={bgRadius}
                                             onChange={(e) => setBgRadius(Number(e.target.value))}
                                             className="flex-1 accent-[#52c595] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
                                           />
                                           <div className="w-12 h-7 bg-[#1a1a1c] border border-[#2a2a2d] rounded-md flex items-center justify-center text-xs text-white">
                                             {bgRadius}
                                           </div>
-                                          <button 
+                                          <button
                                             onClick={() => setBgRadius(24)}
                                             className="w-8 h-7 rounded-md bg-[#1a1a1c] border border-[#2a2a2d] flex items-center justify-center text-[#8a8a8e] hover:text-white"
                                           >
@@ -2511,18 +3469,18 @@ export function ReelEditor() {
                                       <div className="flex items-center justify-between gap-3">
                                         <span className="text-xs text-[#8a8a8e] w-16">Width</span>
                                         <div className="flex-1 flex items-center gap-3">
-                                          <input 
-                                            type="range" 
-                                            min="0" 
-                                            max="100" 
-                                            value={bgWidth} 
+                                          <input
+                                            type="range"
+                                            min="0"
+                                            max="100"
+                                            value={bgWidth}
                                             onChange={(e) => setBgWidth(Number(e.target.value))}
                                             className="flex-1 accent-[#52c595] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
                                           />
                                           <div className="w-12 h-7 bg-[#1a1a1c] border border-[#2a2a2d] rounded-md flex items-center justify-center text-xs text-white">
                                             {bgWidth}
                                           </div>
-                                          <button 
+                                          <button
                                             onClick={() => setBgWidth(48)}
                                             className="w-8 h-7 rounded-md bg-[#1a1a1c] border border-[#2a2a2d] flex items-center justify-center text-[#8a8a8e] hover:text-white"
                                           >
@@ -2534,18 +3492,18 @@ export function ReelEditor() {
                                       <div className="flex items-center justify-between gap-3">
                                         <span className="text-xs text-[#8a8a8e] w-16">Height</span>
                                         <div className="flex-1 flex items-center gap-3">
-                                          <input 
-                                            type="range" 
-                                            min="0" 
-                                            max="100" 
-                                            value={bgHeight} 
+                                          <input
+                                            type="range"
+                                            min="0"
+                                            max="100"
+                                            value={bgHeight}
                                             onChange={(e) => setBgHeight(Number(e.target.value))}
                                             className="flex-1 accent-[#52c595] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
                                           />
                                           <div className="w-12 h-7 bg-[#1a1a1c] border border-[#2a2a2d] rounded-md flex items-center justify-center text-xs text-white">
                                             {bgHeight}
                                           </div>
-                                          <button 
+                                          <button
                                             onClick={() => setBgHeight(24)}
                                             className="w-8 h-7 rounded-md bg-[#1a1a1c] border border-[#2a2a2d] flex items-center justify-center text-[#8a8a8e] hover:text-white"
                                           >
@@ -2556,7 +3514,7 @@ export function ReelEditor() {
 
                                       <div className="flex items-center justify-between mt-2">
                                         <span className="text-xs text-[#8a8a8e]">Drop Shadow</span>
-                                        <button 
+                                        <button
                                           onClick={() => setBgShadowEnabled(!bgShadowEnabled)}
                                           className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors duration-200 focus:outline-none ${bgShadowEnabled ? 'bg-[#52c595]' : 'bg-[#2a2a2d]'}`}
                                         >
@@ -2566,7 +3524,7 @@ export function ReelEditor() {
 
                                       <div className="flex items-center justify-between mt-1">
                                         <span className="text-xs text-[#8a8a8e]">Outline</span>
-                                        <button 
+                                        <button
                                           onClick={() => setBgOutlineEnabled(!bgOutlineEnabled)}
                                           className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors duration-200 focus:outline-none ${bgOutlineEnabled ? 'bg-[#52c595]' : 'bg-[#2a2a2d]'}`}
                                         >

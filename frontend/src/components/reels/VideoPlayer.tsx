@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { RefreshCw, Play, Pause, Volume2, Maximize2, Minimize2, Video, Type } from 'lucide-react';
+import { RefreshCw, Play, Pause, Volume2, VolumeX, Maximize2, Minimize2, Video, Type } from 'lucide-react';
 import { Panel } from 'react-resizable-panels';
 import { VideoPlayer as LimeplayPlayer } from "@/components/video-player/player";
 import { useTimelineStore } from '@/hooks/limeplay/use-timeline';
 import { usePlaybackStore } from '@/hooks/limeplay/use-playback';
+import { useVolumeStore } from '@/hooks/limeplay/use-volume';
 
 export interface CaptionItem {
   id: number;
@@ -55,6 +56,9 @@ interface CustomPlayerUIProps {
   activeCaptionId?: number | null;
   setActiveCaptionId?: (id: number | null) => void;
   seekRef?: React.RefObject<((time: number) => void) | null>;
+  linesMode?: string;
+  currentTimeRef?: React.MutableRefObject<number>;
+  durationRef?: React.MutableRefObject<number>;
 }
 
 function CustomPlayerUI({ 
@@ -96,13 +100,20 @@ function CustomPlayerUI({
   lineSpacing = 1.2,
   activeCaptionId,
   setActiveCaptionId,
-  seekRef
+  seekRef,
+  linesMode,
+  currentTimeRef,
+  durationRef
 }: CustomPlayerUIProps) {
   const currentTime = useTimelineStore((state) => state.currentTime);
   const duration = useTimelineStore((state) => state.duration);
   const paused = usePlaybackStore((state) => state.paused);
   const togglePaused = usePlaybackStore((state) => state.togglePaused);
   const seek = useTimelineStore((state) => state.seek);
+  const volume = useVolumeStore((state) => state.level);
+  const muted = useVolumeStore((state) => state.muted);
+  const toggleMute = useVolumeStore((state) => state.toggleMute);
+  const setVolume = useVolumeStore((state) => state.setVolume);
 
   // Sync seek function reference to parent
   useEffect(() => {
@@ -110,6 +121,20 @@ function CustomPlayerUI({
       (seekRef as any).current = seek;
     }
   }, [seek, seekRef]);
+
+  // Sync currentTime to parent
+  useEffect(() => {
+    if (currentTimeRef) {
+      currentTimeRef.current = currentTime;
+    }
+  }, [currentTime, currentTimeRef]);
+
+  // Sync duration to parent
+  useEffect(() => {
+    if (durationRef) {
+      durationRef.current = duration;
+    }
+  }, [duration, durationRef]);
 
   // Sync active caption ID to parent state
   const activeCaption = captions?.find(
@@ -424,12 +449,17 @@ function CustomPlayerUI({
             }`} 
             style={{ ...captionStyle, ...bgStyle }}
           >
-            {activeCaption.text.split(' ').map((word, wordIndex) => {
+            {activeCaption.text.split(' ').map((word, wordIndex, wordsArr) => {
               const isHighlight = wordIndex % 4 === 3;
-              
+              const numLines = linesMode ? parseInt(linesMode.split(' ')[0]) : 1;
+              const wordsPerLine = numLines > 1 ? Math.ceil(wordsArr.length / numLines) : wordsArr.length + 1;
+              const isNewLine = numLines > 1 && wordIndex > 0 && wordIndex % wordsPerLine === 0;
+
+              let wordElement;
+
               if (colorToggle === 'Gradient') {
                 if (gradientLevel === 'char') {
-                  return (
+                  wordElement = (
                     <span key={wordIndex} className="inline-block mr-1.5 whitespace-nowrap">
                       {word.split('').map((char, charIndex) => {
                         const uniqueClass = `char-grad-${wordIndex}-${charIndex}`;
@@ -454,7 +484,7 @@ function CustomPlayerUI({
                   );
                 } else {
                   const uniqueClass = `word-grad-${wordIndex}`;
-                  return (
+                  wordElement = (
                     <span key={wordIndex} className={`${uniqueClass} inline-block mr-1.5`}>
                       <style>{`
                         .${uniqueClass} {
@@ -473,7 +503,7 @@ function CustomPlayerUI({
                 }
               } else {
                 const uniqueClass = `word-solid-${wordIndex}`;
-                return (
+                wordElement = (
                   <span key={wordIndex} className={`${uniqueClass} inline-block mr-1.5`}>
                     <style>{`
                       .${uniqueClass} {
@@ -486,6 +516,13 @@ function CustomPlayerUI({
                   </span>
                 );
               }
+
+              return (
+                <React.Fragment key={wordIndex}>
+                  {isNewLine && <div className="basis-full h-0" />}
+                  {wordElement}
+                </React.Fragment>
+              );
             })}
           </div>
         </div>
@@ -499,7 +536,35 @@ function CustomPlayerUI({
         <div className="h-14 flex items-center justify-between px-5">
           <div className="flex items-center gap-4">
             <button onClick={togglePaused} className="text-[#e0e0e0] hover:text-white transition-colors p-1">{paused ? <Play className="w-4 h-4 fill-current" /> : <Pause className="w-4 h-4 fill-current" />}</button>
-            <button className="text-[#e0e0e0] hover:text-white transition-colors p-1"><Volume2 className="w-4 h-4" /></button>
+            
+            <div className="relative flex items-center group/volume h-8">
+              <div className="flex items-center bg-transparent group-hover/volume:bg-[#2a2a2d] rounded-full transition-all overflow-hidden w-6 group-hover/volume:w-24">
+                <button 
+                  onClick={toggleMute} 
+                  className="text-[#e0e0e0] hover:text-white transition-colors p-1 shrink-0 w-6 flex items-center justify-center z-10"
+                >
+                  {muted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className={`w-4 h-4 ${!muted && volume > 0 ? 'text-[#52c595]' : ''}`} />}
+                </button>
+                <input 
+                  type="range" 
+                  min="0" 
+                  max="1" 
+                  step="0.05" 
+                  value={muted ? 0 : volume}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    setVolume(val);
+                    if (val > 0 && muted) toggleMute();
+                    else if (val === 0 && !muted) toggleMute();
+                  }}
+                  className="w-16 h-1 ml-1 appearance-none bg-zinc-600 rounded-full outline-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white cursor-pointer opacity-0 group-hover/volume:opacity-100 transition-opacity delay-75 shrink-0"
+                  style={{
+                    background: `linear-gradient(to right, white ${(muted ? 0 : volume) * 100}%, #52525b ${(muted ? 0 : volume) * 100}%)`
+                  }}
+                />
+              </div>
+            </div>
+
             <span className="text-xs font-medium text-zinc-400 font-mono">{formatTime(currentTime)} / {formatTime(duration)}</span>
           </div>
           <button className="text-[#e0e0e0] hover:text-white transition-colors p-1"><Maximize2 className="w-4 h-4" /></button>
@@ -550,7 +615,10 @@ export function VideoPlayer({
   lineSpacing,
   activeCaptionId,
   setActiveCaptionId,
-  seekRef
+  seekRef,
+  linesMode,
+  currentTimeRef,
+  durationRef
 }: any) {
   return (
     <Panel defaultSize={40} minSize={20} className="flex flex-col bg-[#0f0f11] relative overflow-hidden rounded-xl border border-[#2a2a2d] custom-player-wrapper">
@@ -598,6 +666,9 @@ export function VideoPlayer({
                 activeCaptionId={activeCaptionId}
                 setActiveCaptionId={setActiveCaptionId}
                 seekRef={seekRef}
+                linesMode={linesMode}
+                currentTimeRef={currentTimeRef}
+                durationRef={durationRef}
               />
             </LimeplayPlayer>
           </div>

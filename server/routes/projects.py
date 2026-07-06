@@ -116,7 +116,8 @@ def upload_video():
     if not name:
         name = os.path.splitext(secure_filename(file.filename))[0]
         
-    filename = f"{int(os.path.getmtime(os.path.expanduser('~')))}_{secure_filename(file.filename)}"
+    import time
+    filename = f"{int(time.time())}_{secure_filename(file.filename)}"
     filepath = os.path.join(user_video_dir, filename)
     file.save(filepath)
     
@@ -124,7 +125,7 @@ def upload_video():
     duration = get_audio_duration(filepath)
 
     # Extract audio using FFmpeg subprocess
-    audio_filename = f"extracted_{user_id}_{int(os.path.getmtime(os.path.expanduser('~')))}.wav"
+    audio_filename = f"extracted_{user_id}_{int(time.time())}.wav"
     audio_filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], audio_filename)
     
     import subprocess
@@ -137,6 +138,10 @@ def upload_video():
     except Exception as e:
         print(f"[FFmpeg] Failed to extract audio: {str(e)}")
         has_audio = False
+        with open(os.path.join(current_app.config['UPLOAD_FOLDER'], 'ffmpeg_error.txt'), 'w') as f:
+            f.write(f"Exception: {str(e)}\nCommand: {' '.join(cmd)}\n")
+            if isinstance(e, subprocess.CalledProcessError):
+                f.write(f"Stdout: {e.stdout}\nStderr: {e.stderr}\n")
     
     project = Project(
         user_id=user_id,
