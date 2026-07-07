@@ -433,6 +433,90 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, options, onChange, o
   );
 };
 
+const VideoItem = ({
+  video,
+  isSelected,
+  onClick,
+}: {
+  video: {
+    id: number;
+    filename: string;
+    url: string;
+    duration: number;
+    size: number;
+    created_at: string;
+  };
+  isSelected: boolean;
+  onClick: () => void;
+}) => {
+  return (
+    <div
+      onClick={onClick}
+      className={`group relative aspect-[9/16] bg-[#161618] rounded-lg overflow-hidden cursor-pointer transition-all ${
+        isSelected ? 'ring-2 ring-blue-500' : 'hover:ring-1 hover:ring-white/20'
+      }`}
+    >
+      <video
+        src={video.url}
+        className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity"
+        preload="metadata"
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+      <div className="absolute bottom-2 left-2 right-2 flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity">
+        <span className="text-[10px] font-medium text-white/80 font-mono bg-black/50 px-1.5 py-0.5 rounded">
+          {formatTime(video.duration)}
+        </span>
+        <span className="text-[10px] font-medium text-white/60 bg-black/50 px-1.5 py-0.5 rounded">
+          {(video.size / (1024 * 1024)).toFixed(1)} MB
+        </span>
+      </div>
+      {isSelected && (
+        <div className="absolute top-2 right-2 bg-blue-500 text-white rounded-full p-1 shadow-lg">
+          <Check className="w-3 h-3" />
+        </div>
+      )}
+    </div>
+  );
+};
+
+const WaveformCanvas = ({ audioData, totalWidth, duration, pxPerSec }: { audioData: Float32Array | null, totalWidth: number, duration: number, pxPerSec: number }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.beginPath();
+    ctx.moveTo(0, 28);
+    ctx.lineTo(totalWidth, 28);
+    ctx.strokeStyle = 'rgba(82,197,149, 0.3)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    if (!audioData || audioData.length === 0 || duration <= 0) return;
+
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(82,197,149, 0.6)';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+
+    for (let x = 0; x < totalWidth; x += 5) {
+      const time = x / pxPerSec;
+      const dataIndex = Math.floor((time / duration) * audioData.length);
+      const amp = dataIndex >= 0 && dataIndex < audioData.length ? audioData[dataIndex] * 45 : 0;
+      const drawAmp = Math.max(1, amp);
+      ctx.moveTo(x, 28 - drawAmp);
+      ctx.lineTo(x, 28 + drawAmp);
+    }
+    ctx.stroke();
+  }, [audioData, totalWidth, duration, pxPerSec]);
+
+  return <canvas ref={canvasRef} width={totalWidth} height={56} className="pointer-events-none" />;
+};
+
 export function ReelEditor() {
   const [activeTabLeft, setActiveTabLeft] = useState('captions');
   const [seekTo, setSeekTo] = useState<number>(0);
@@ -548,9 +632,15 @@ export function ReelEditor() {
   const [uploadStage, setUploadStage] = useState<'idle' | 'upload' | 'processing' | 'transcribing' | 'success' | 'error'>('idle');
   const [processingError, setProcessingError] = useState<string | null>(null);
 
+  // New states for mode selection
+  const [showModeModal, setShowModeModal] = useState(false);
+  const [selectedFileToUpload, setSelectedFileToUpload] = useState<File | null>(null);
+  const [transcriptionMode, setTranscriptionMode] = useState('native_language');
+
   // Timeline & active word selection states
   const [activeCaptionId, setActiveCaptionId] = useState<number | null>(null);
   const seekRef = useRef<((time: number) => void) | null>(null);
+  const togglePlayRef = useRef<(() => void) | null>(null);
   const currentTimeRef = useRef(0);
   const durationRef = useRef(0);
   const playheadRef = useRef<HTMLDivElement>(null);
@@ -568,12 +658,74 @@ export function ReelEditor() {
     minStart: number;
     maxEnd: number;
   } | null>(null);
-  const [selectedBlockId, setSelectedBlockId] = useState<string | number | null>(null);
+  const [selectedBlockIds, setSelectedBlockIds] = useState<Array<string | number>>([]);
+  const selectedBlockId = selectedBlockIds[0] || null;
+  const setSelectedBlockId = React.useCallback((id: string | number | null) => {
+    setSelectedBlockIds(id === null ? [] : [id]);
+  }, []);
+  const [aiAudioClean, setAiAudioClean] = useState(false);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+
+  useEffect(() => {
+    const checkVideo = setInterval(() => {
+      const videoEl = document.querySelector('video');
+      if (videoEl) {
+        const handlePlay = () => setIsVideoPlaying(true);
+        const handlePause = () => setIsVideoPlaying(false);
+        videoEl.addEventListener('play', handlePlay);
+        videoEl.addEventListener('pause', handlePause);
+        setIsVideoPlaying(!videoEl.paused);
+        clearInterval(checkVideo);
+      }
+    }, 1000);
+
+    return () => {
+      clearInterval(checkVideo);
+    };
+  }, [videoUrl]);
   const [optimisticTimings, setOptimisticTimings] = useState<Record<string, {start: number, end: number}>>({});
   const optimisticTimingsRef = useRef(optimisticTimings);
   useEffect(() => {
     optimisticTimingsRef.current = optimisticTimings;
   }, [optimisticTimings]);
+
+  const [selectionBox, setSelectionBox] = useState<{
+    startX: number;
+    startY: number;
+    currentX: number;
+    currentY: number;
+  } | null>(null);
+
+  const [audioData, setAudioData] = useState<Float32Array | null>(null);
+  const [audioDuration, setAudioDuration] = useState<number>(0);
+
+  useEffect(() => {
+    if (!videoUrl) return;
+    const fetchAudio = async () => {
+      try {
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const response = await fetch(videoUrl);
+        const arrayBuffer = await response.arrayBuffer();
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        const channelData = audioBuffer.getChannelData(0);
+        const step = Math.ceil(channelData.length / 5000); // 5000 points of resolution
+        const peaks = new Float32Array(Math.ceil(channelData.length / step));
+        for (let i = 0; i < peaks.length; i++) {
+          let max = 0;
+          for (let j = 0; j < step; j++) {
+            const val = Math.abs(channelData[i * step + j]);
+            if (val > max) max = val;
+          }
+          peaks[i] = max;
+        }
+        setAudioDuration(audioBuffer.duration);
+        setAudioData(peaks);
+      } catch (err) {
+        console.error("Error decoding audio for waveform:", err);
+      }
+    };
+    fetchAudio();
+  }, [videoUrl]);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -609,17 +761,21 @@ export function ReelEditor() {
         if (!updated) return result;
         
         if (draggingBlock.type === 'line') {
-          const idx = result.findIndex(c => c.id === draggingBlock.id);
+          const idx = result.findIndex((c, idx) => (c.id ?? idx) === draggingBlock.id);
           if (idx !== -1) {
             result[idx] = { ...result[idx], start: updated.start, end: updated.end };
           }
         } else {
           // Update a word inside a chunk
           for (let i = 0; i < result.length; i++) {
-            if (result[i].words) {
-              const wIdx = result[i].words.findIndex((w: any) => w.id === draggingBlock.id);
+            let wordsArray = result[i].words;
+            if (!wordsArray || wordsArray.length === 0) {
+              wordsArray = generateWordsForChunk(result[i], i).words;
+            }
+            if (wordsArray) {
+              const wIdx = wordsArray.findIndex((w: any) => w.id === draggingBlock.id);
               if (wIdx !== -1) {
-                const newWords = [...result[i].words];
+                const newWords = [...wordsArray];
                 newWords[wIdx] = { ...newWords[wIdx], start: updated.start, end: updated.end };
                 result[i] = { ...result[i], words: newWords };
                 break;
@@ -643,23 +799,87 @@ export function ReelEditor() {
     };
   }, [draggingBlock]);
 
-  // Global mouse handlers for playhead scrubbing
+  // Global mouse handlers for playhead scrubbing & selection box dragging
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (!isDraggingTimelineRef.current) return;
-      if (timelineScrollRef.current) {
-         const innerDiv = timelineScrollRef.current.firstChild as HTMLDivElement;
-         if (innerDiv) {
-            const rect = innerDiv.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const pxPerSec = 200 * zoomLevelRef.current;
-            const time = Math.max(0, x / pxPerSec);
-            if (seekRef.current) seekRef.current(time);
-         }
+      if (isDraggingTimelineRef.current) {
+        if (timelineScrollRef.current) {
+           const innerDiv = timelineScrollRef.current.firstChild as HTMLDivElement;
+           if (innerDiv) {
+              const rect = innerDiv.getBoundingClientRect();
+              const x = e.clientX - rect.left;
+              const pxPerSec = 200 * zoomLevelRef.current;
+              const time = Math.max(0, x / pxPerSec);
+              if (seekRef.current) seekRef.current(time);
+           }
+        }
+      } else if (selectionBoxRef.current) {
+        const innerDiv = document.querySelector('.timeline-scroll-content');
+        if (innerDiv) {
+          const rect = innerDiv.getBoundingClientRect();
+          const currentX = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+          const currentY = Math.max(0, Math.min(rect.height, e.clientY - rect.top));
+          setSelectionBox(prev => prev ? { ...prev, currentX, currentY } : null);
+        }
       }
     };
     const handleMouseUp = () => {
       isDraggingTimelineRef.current = false;
+      
+      if (selectionBoxRef.current) {
+        const box = selectionBoxRef.current;
+        const x1 = Math.min(box.startX, box.currentX);
+        const x2 = Math.max(box.startX, box.currentX);
+        const y1 = Math.min(box.startY, box.currentY);
+        const y2 = Math.max(box.startY, box.currentY);
+        
+        const innerDiv = document.querySelector('.timeline-scroll-content');
+        if (innerDiv) {
+          const rect = innerDiv.getBoundingClientRect();
+          const selectBoxRect = {
+            left: rect.left + x1,
+            right: rect.left + x2,
+            top: rect.top + y1,
+            bottom: rect.top + y2
+          };
+          
+          const selectedIds: Array<string | number> = [];
+          displayCaptionsRef.current.forEach(c => {
+            if (wordLineToggleRef.current === 'LINE') {
+              const el = document.getElementById(`line-block-${c.id}`);
+              if (el) {
+                const elRect = el.getBoundingClientRect();
+                if (
+                  elRect.left <= selectBoxRect.right &&
+                  elRect.right >= selectBoxRect.left &&
+                  elRect.top <= selectBoxRect.bottom &&
+                  elRect.bottom >= selectBoxRect.top
+                ) {
+                  selectedIds.push(c.id);
+                }
+              }
+            } else {
+              (c.words || []).forEach((w: any) => {
+                const el = document.getElementById(`word-block-${w.id}`);
+                if (el) {
+                  const elRect = el.getBoundingClientRect();
+                  if (
+                    elRect.left <= selectBoxRect.right &&
+                    elRect.right >= selectBoxRect.left &&
+                    elRect.top <= selectBoxRect.bottom &&
+                    elRect.bottom >= selectBoxRect.top
+                  ) {
+                    selectedIds.push(w.id);
+                  }
+                }
+              });
+            }
+          });
+          
+          setSelectedBlockIds(selectedIds);
+        }
+        setSelectionBox(null);
+      }
     };
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
@@ -674,16 +894,20 @@ export function ReelEditor() {
     const updatePlayhead = () => {
       const pxPerSec = 200 * zoomLevelRef.current;
       if (playheadRef.current) {
-        const x = currentTimeRef.current * pxPerSec;
+        const videoEl = document.querySelector('video');
+        const time = videoEl ? videoEl.currentTime : currentTimeRef.current;
+        const x = time * pxPerSec;
         playheadRef.current.style.transform = `translateX(${x}px)`;
         
         // Auto-scroll logic if playhead goes out of view
         if (timelineScrollRef.current) {
           const scrollLeft = timelineScrollRef.current.scrollLeft;
           const clientWidth = timelineScrollRef.current.clientWidth;
+          const videoEl = document.querySelector('video');
+          const isPlaying = videoEl ? !videoEl.paused : false;
           
-          // Don't auto-scroll if the user is currently dragging/scrubbing
-          if (!isDraggingTimelineRef.current) {
+          // Only auto-scroll if the video is playing OR the user is dragging the playhead
+          if (isPlaying || isDraggingTimelineRef.current) {
             if (x > scrollLeft + clientWidth - 100) {
               timelineScrollRef.current.scrollLeft = x - clientWidth + 100;
             } else if (x < scrollLeft + 50) {
@@ -708,8 +932,19 @@ export function ReelEditor() {
   };
 
   const handleTimelineMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    setSelectedBlockId(null);
-    // Logic removed to allow separate playhead dragging
+    if (e.target !== e.currentTarget && (e.target as HTMLElement).closest('.timeline-block')) {
+      return;
+    }
+    setSelectedBlockIds([]);
+    const rect = e.currentTarget.getBoundingClientRect();
+    const startX = e.clientX - rect.left;
+    const startY = e.clientY - rect.top;
+    setSelectionBox({
+      startX,
+      startY,
+      currentX: startX,
+      currentY: startY
+    });
   };
 
   const handleTimelineSplit = () => {
@@ -791,7 +1026,7 @@ export function ReelEditor() {
           setCaptions(newCaptionsList);
       }
     } else {
-        const targetCaptionIndex = captions.findIndex(c => c.id === selectedBlockId);
+        const targetCaptionIndex = captions.findIndex((c, idx) => (c.id ?? idx) === selectedBlockId);
         if (targetCaptionIndex > 0) {
             const targetCaption = captions[targetCaptionIndex];
             const prevCaption = captions[targetCaptionIndex - 1];
@@ -849,7 +1084,7 @@ export function ReelEditor() {
           }
       }
     } else {
-        const targetCaptionIndex = captions.findIndex(c => c.id === selectedBlockId);
+        const targetCaptionIndex = captions.findIndex((c, idx) => (c.id ?? idx) === selectedBlockId);
         if (targetCaptionIndex !== -1 && targetCaptionIndex < captions.length - 1) {
             const targetCaption = captions[targetCaptionIndex];
             const nextCaption = captions[targetCaptionIndex + 1];
@@ -866,54 +1101,28 @@ export function ReelEditor() {
   };
 
   const handleTimelineDelete = () => {
-    if (!selectedBlockId) return;
+    if (selectedBlockIds.length === 0) return;
     if (wordLineToggle === 'WORD') {
-      let targetCaptionIndex = -1;
-      let wordIndex = -1;
-      for (let i = 0; i < captions.length; i++) {
-        if (captions[i].words) {
-          const wIdx = captions[i].words.findIndex((w: any) => w.id === selectedBlockId);
-          if (wIdx !== -1) {
-            targetCaptionIndex = i;
-            wordIndex = wIdx;
-            break;
-          }
-        }
-      }
-
-      if (targetCaptionIndex !== -1 && wordIndex !== -1) {
-        const targetCaption = captions[targetCaptionIndex];
-        const wordsList = targetCaption.text.split(/\s+/);
-        wordsList.splice(wordIndex, 1);
-        handleCaptionChange(targetCaption.id, wordsList.join(' '));
-      }
+      setCaptions(prev => {
+        return prev.map(c => {
+          if (!c.words) return c;
+          const remainingWords = c.words.filter((w: any) => !selectedBlockIds.includes(w.id));
+          const newText = remainingWords.map((w: any) => w.text).join(' ');
+          return { ...c, text: newText, words: remainingWords };
+        }).filter(c => c.text.trim().length > 0);
+      });
     } else {
-        const newCaptionsList = captions.filter(c => c.id !== selectedBlockId);
-        setCaptions(newCaptionsList);
+      setCaptions(prev => prev.filter((c, idx) => !selectedBlockIds.includes(c.id ?? idx)));
     }
+    setSelectedBlockIds([]);
   };
 
   const renderWaveform = () => {
-    const maxTime = Math.max(durationRef.current || 0, displayCaptions.length > 0 ? Math.max(...displayCaptions.map(c => c.end)) : 5);
+    const maxTime = Math.max(audioDuration || durationRef.current || 0, displayCaptions.length > 0 ? Math.max(...displayCaptions.map(c => c.end)) : 5);
     const pxPerSec = 200 * zoomLevel;
     const totalWidth = Math.max(1200, (maxTime + 2) * pxPerSec);
     
-    let path = "";
-    for (let x = 0; x < totalWidth; x += 5) {
-      const t = x / pxPerSec;
-      const isActive = displayCaptions.some(c => t >= c.start && t <= c.end);
-      const maxAmp = isActive ? 18 : 3;
-      const minAmp = isActive ? 6 : 1;
-      const amp = Math.random() * (maxAmp - minAmp) + minAmp;
-      path += `M ${x} ${28 - amp} L ${x} ${28 + amp} `;
-    }
-    
-    return (
-      <svg width={totalWidth} height="56" className="text-[#52c595]/60">
-        <path d={path} stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-        <line x1="0" y1="28" x2={totalWidth} y2="28" stroke="currentColor" strokeWidth="1" opacity="0.3" />
-      </svg>
-    );
+    return <WaveformCanvas audioData={audioData} totalWidth={totalWidth} duration={audioDuration || durationRef.current || maxTime} pxPerSec={pxPerSec} />;
   };
   const [wordMenu, setWordMenu] = useState<{
     captionId: number;
@@ -996,9 +1205,9 @@ export function ReelEditor() {
     setOpenAccordions(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const generateWordsForChunk = (c: any) => {
+  const generateWordsForChunk = (c: any, cIdx?: number) => {
     if (c.words && c.words.length > 0) return c;
-    const wordsList = c.text.split(/\s+/).filter((w: string) => w.trim().length > 0);
+    const wordsList = (c.text || '').split(/\s+/).filter((w: string) => w.trim().length > 0);
     const duration = c.end - c.start;
     const timePerWord = duration / Math.max(1, wordsList.length);
     const words = wordsList.map((w: string, i: number) => {
@@ -1006,7 +1215,7 @@ export function ReelEditor() {
       const gapRatio = hasPunctuation ? 0.4 : 0.15;
       const gapTime = timePerWord * gapRatio;
       return {
-        id: `w-${c.id || Date.now()}-${i}-${Math.random().toString(36).substr(2, 5)}`,
+        id: `w-${c.id ?? cIdx ?? Date.now()}-${i}`,
         text: w,
         start: c.start + i * timePerWord,
         end: c.start + (i + 1) * timePerWord - gapTime
@@ -1024,7 +1233,7 @@ export function ReelEditor() {
     { id: 6, start: 12.0, end: 14.5, text: "language from the left side on the" },
     { id: 7, start: 14.5, end: 17.0, text: "screen and you'd be able to see those" },
     { id: 8, start: 17.0, end: 20.0, text: "subtitles." }
-  ].map(generateWordsForChunk));
+  ].map((c, i) => generateWordsForChunk(c, i)));
 
   const [history, setHistory] = useState<any[][]>([captions]);
   const [historyIndex, setHistoryIndex] = useState(0);
@@ -1067,30 +1276,121 @@ export function ReelEditor() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if user is typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
         if (e.shiftKey) {
           handleTimelineRedo();
         } else {
           handleTimelineUndo();
         }
+        return;
       }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
         handleTimelineRedo();
+        return;
+      }
+
+      // Space to Play/Pause
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (togglePlayRef.current) togglePlayRef.current();
+        return;
+      }
+
+      // Left/Right Arrow to Nudge Selected Block(s)
+      if (selectedBlockIds.length > 0 && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        e.preventDefault();
+        const delta = e.key === 'ArrowLeft' ? -0.1 : 0.1;
+        setCaptions(prev => {
+          let updated = false;
+          const newCaptions = prev.map(c => {
+            let nextChunk = { ...c };
+            if (selectedBlockIds.includes(c.id)) {
+              updated = true;
+              nextChunk.start = Math.max(0, nextChunk.start + delta);
+              nextChunk.end = Math.max(0, nextChunk.end + delta);
+            }
+            if (nextChunk.words) {
+              nextChunk.words = nextChunk.words.map((w: any) => {
+                if (selectedBlockIds.includes(w.id)) {
+                  updated = true;
+                  return { ...w, start: Math.max(0, w.start + delta), end: Math.max(0, w.end + delta) };
+                }
+                return w;
+              });
+            }
+            return nextChunk;
+          });
+          
+          if (updated) {
+            isUndoRedoRef.current = true;
+            return newCaptions;
+          }
+          return prev;
+        });
+        return;
+      }
+
+      // 'S' key to Split Block at Playhead
+      if (e.key.toLowerCase() === 's' && !e.ctrlKey && !e.metaKey) {
+        setCaptions(prev => {
+          const t = currentTimeRef.current;
+          const targetIndex = prev.findIndex(c => t > c.start && t < c.end);
+          if (targetIndex !== -1) {
+            const targetCaption = prev[targetIndex];
+            const proportion = (t - targetCaption.start) / (targetCaption.end - targetCaption.start);
+            const splitIdx = Math.floor(targetCaption.text.length * proportion);
+            
+            let safeSplitIdx = splitIdx;
+            while (safeSplitIdx > 0 && targetCaption.text[safeSplitIdx] !== ' ') {
+              safeSplitIdx--;
+            }
+            if (safeSplitIdx === 0) safeSplitIdx = splitIdx; // fallback to hard split
+
+            const firstText = targetCaption.text.slice(0, safeSplitIdx).trim();
+            const secondText = targetCaption.text.slice(safeSplitIdx).trim();
+
+            if (firstText && secondText) {
+              const newCaptions = [...prev];
+              newCaptions[targetIndex] = { ...targetCaption, end: t, text: firstText, words: [] };
+              newCaptions.splice(targetIndex + 1, 0, {
+                ...targetCaption,
+                id: Date.now(),
+                start: t,
+                text: secondText,
+                words: []
+              });
+              return newCaptions;
+            }
+          }
+          return prev;
+        });
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleTimelineUndo, handleTimelineRedo]);
+  }, [handleTimelineUndo, handleTimelineRedo, selectedBlockId]);
 
   const handleCaptionChange = (id: number, newText: string) => {
     setCaptions(captions.map(c => c.id === id ? { ...c, text: newText } : c));
   };
 
   const displayCaptions = React.useMemo(() => {
-    let result = captions.map(c => ({ 
-      ...c, 
-      words: c.words ? c.words.map((w: any) => ({ ...w })) : [] 
-    }));
+    let result = captions.map((c, cIdx) => {
+      let words = c.words ? c.words.map((w: any, i: number) => ({ 
+        ...w,
+        text: w.text || w.word || '',
+        id: w.id || `w-${c.id ?? cIdx}-${i}`
+      })) : [];
+      if (words.length === 0) {
+        words = generateWordsForChunk(c, cIdx).words;
+      }
+      return { ...c, id: c.id ?? cIdx, words };
+    });
     
     if (removePunctuation) {
       result.forEach(c => {
@@ -1119,6 +1419,13 @@ export function ReelEditor() {
     }
     return result;
   }, [captions, removePunctuation, removeEmphasis, removeEmojis, removeGaps]);
+
+  const selectionBoxRef = useRef(selectionBox);
+  useEffect(() => { selectionBoxRef.current = selectionBox; }, [selectionBox]);
+  const wordLineToggleRef = useRef(wordLineToggle);
+  useEffect(() => { wordLineToggleRef.current = wordLineToggle; }, [wordLineToggle]);
+  const displayCaptionsRef = useRef(displayCaptions);
+  useEffect(() => { displayCaptionsRef.current = displayCaptions; }, [displayCaptions]);
 
   useEffect(() => {
     if (wordsMode === 'Default') return;
@@ -1282,7 +1589,7 @@ export function ReelEditor() {
     const match = allMatches[currentMatchIndex];
     if (!match) return;
 
-    const captionIndex = captions.findIndex(c => c.id === match.captionId);
+    const captionIndex = captions.findIndex((c, idx) => (c.id ?? idx) === match.captionId);
     if (captionIndex !== -1) {
       const targetCaption = captions[captionIndex];
       const regex = new RegExp(searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
@@ -1340,6 +1647,16 @@ export function ReelEditor() {
       return;
     }
 
+    setSelectedFileToUpload(file);
+    setShowModeModal(true);
+    e.target.value = '';
+  };
+
+  const startUpload = () => {
+    if (!selectedFileToUpload) return;
+    setShowModeModal(false);
+
+    const file = selectedFileToUpload;
     const formData = new FormData();
     formData.append('video', file);
     formData.append('name', file.name);
@@ -1387,7 +1704,7 @@ export function ReelEditor() {
                 'Content-Type': 'application/json',
                 ...(token ? { 'Authorization': `Bearer ${token}` } : {})
               },
-              body: JSON.stringify({ mode: 'native_language' })
+              body: JSON.stringify({ mode: transcriptionMode })
             });
 
             if (!transcribeResponse.ok) {
@@ -1413,13 +1730,13 @@ export function ReelEditor() {
         } finally {
           setIsUploading(false);
           setTranscribing(false);
-          e.target.value = '';
+          setSelectedFileToUpload(null);
         }
       } else {
         setProcessingError('Upload failed. Please check your network connection and try again.');
         setUploadStage('error');
         setIsUploading(false);
-        e.target.value = '';
+        setSelectedFileToUpload(null);
       }
     };
 
@@ -1427,7 +1744,7 @@ export function ReelEditor() {
       setProcessingError('Network error occurred during file upload.');
       setUploadStage('error');
       setIsUploading(false);
-      e.target.value = '';
+      setSelectedFileToUpload(null);
     };
 
     xhr.send(formData);
@@ -1435,6 +1752,49 @@ export function ReelEditor() {
 
   return (
     <div className="relative flex h-full w-full bg-[#000000] text-[#e0e0e0] font-sans overflow-hidden">
+
+      {/* Transcription Mode Selection Modal */}
+      {showModeModal && (
+        <div className="absolute inset-0 bg-[#0f0f11]/95 z-50 flex flex-col items-center justify-center backdrop-blur-sm">
+          <div className="w-[360px] bg-[#161618] border border-[#2a2a2d] rounded-2xl p-6 flex flex-col gap-6 shadow-2xl">
+            <div className="flex flex-col gap-2 text-center">
+              <h3 className="font-bold text-white text-lg">Transcription Settings</h3>
+              <p className="text-xs text-[#8a8a8e]">Select the language mode for transcription before uploading.</p>
+            </div>
+            
+            <div className="flex flex-col gap-2">
+              <label className="text-[10px] text-[#8a8a8e] font-semibold uppercase tracking-wider ml-1">Language Mode</label>
+              <select
+                value={transcriptionMode}
+                onChange={(e) => setTranscriptionMode(e.target.value)}
+                className="w-full bg-[#2a2a2d] border border-white/10 text-white px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest outline-none focus:ring-1 focus:ring-[#52c595] cursor-pointer"
+              >
+                <option value="native_language" className="bg-zinc-900 text-white">Native Language</option>
+                <option value="native_english" className="bg-zinc-900 text-white">Native+English</option>
+                <option value="english" className="bg-zinc-900 text-white">English (Roman)</option>
+              </select>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowModeModal(false);
+                  setSelectedFileToUpload(null);
+                }}
+                className="flex-1 py-2.5 bg-[#2a2a2d] hover:bg-[#3a3a3d] text-white font-semibold text-xs rounded-xl transition-colors focus:outline-none border border-white/5"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={startUpload}
+                className="flex-1 py-2.5 bg-[#52c595] hover:bg-[#43b384] text-black font-semibold text-xs rounded-xl transition-colors focus:outline-none"
+              >
+                Start Upload
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Upload and Transcription Progress Overlay */}
       {uploadStage !== 'idle' && (
@@ -2135,7 +2495,7 @@ export function ReelEditor() {
 
                         <button
                           onClick={() => {
-                            const targetCaptionIndex = captions.findIndex(c => c.id === wordMenu.captionId);
+                            const targetCaptionIndex = captions.findIndex((c, idx) => (c.id ?? idx) === wordMenu.captionId);
                             if (targetCaptionIndex !== -1) {
                               const targetCaption = captions[targetCaptionIndex];
                               const words = targetCaption.text.split(/\s+/);
@@ -2191,7 +2551,7 @@ export function ReelEditor() {
 
                         <button
                           onClick={() => {
-                            const targetCaptionIndex = captions.findIndex(c => c.id === wordMenu.captionId);
+                            const targetCaptionIndex = captions.findIndex((c, idx) => (c.id ?? idx) === wordMenu.captionId);
                             if (targetCaptionIndex > 0) {
                               const targetCaption = captions[targetCaptionIndex];
                               const prevCaption = captions[targetCaptionIndex - 1];
@@ -2232,7 +2592,7 @@ export function ReelEditor() {
 
                         <button
                           onClick={() => {
-                            const targetCaptionIndex = captions.findIndex(c => c.id === wordMenu.captionId);
+                            const targetCaptionIndex = captions.findIndex((c, idx) => (c.id ?? idx) === wordMenu.captionId);
                             if (targetCaptionIndex !== -1 && targetCaptionIndex < captions.length - 1) {
                               const targetCaption = captions[targetCaptionIndex];
                               const nextCaption = captions[targetCaptionIndex + 1];
@@ -2397,23 +2757,46 @@ export function ReelEditor() {
                   }}
                 >
                   <div 
-                    className="h-full relative select-none" 
-                    style={{ width: `${Math.max(1200, (Math.max(durationRef.current || 0, displayCaptions.length > 0 ? Math.max(...displayCaptions.map(c => c.end)) : 5)) * (200 * zoomLevel) + 400)}px` }} 
+                    className="h-full relative select-none timeline-scroll-content" 
+                    style={{ width: `${Math.max(1200, (Math.max(audioDuration || durationRef.current || 0, displayCaptions.length > 0 ? Math.max(...displayCaptions.map(c => c.end)) : 5)) * (200 * zoomLevel) + 400)}px` }} 
                     onMouseDown={handleTimelineMouseDown}
                   >
+                    {/* Selection Marquee Box */}
+                    {selectionBox && (
+                      <div 
+                        className="absolute border border-dashed border-[#52c595] bg-[#52c595]/10 z-40 pointer-events-none"
+                        style={{
+                          left: `${Math.min(selectionBox.startX, selectionBox.currentX)}px`,
+                          width: `${Math.abs(selectionBox.currentX - selectionBox.startX)}px`,
+                          top: `${Math.min(selectionBox.startY, selectionBox.currentY)}px`,
+                          height: `${Math.abs(selectionBox.currentY - selectionBox.startY)}px`
+                        }}
+                      />
+                    )}
                     {/* Content */}
                     <div className="absolute top-0 left-0 w-full flex flex-col h-full justify-start">
                       {/* Time markers */}
-                      <div className="absolute top-0 w-full h-6 border-b border-[#2a2a2d]/50 bg-[#161618] select-none z-0">
+                      <div 
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          isDraggingTimelineRef.current = true;
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          const x = e.clientX - rect.left;
+                          const pxPerSec = 200 * zoomLevel;
+                          const time = Math.max(0, x / pxPerSec);
+                          if (seekRef.current) seekRef.current(time);
+                        }}
+                        className="absolute top-0 w-full h-6 border-b border-[#2a2a2d]/50 bg-[#161618] select-none z-20 cursor-pointer"
+                      >
                         {(() => {
-                          const maxTime = Math.max(durationRef.current || 0, displayCaptions.length > 0 ? Math.max(...displayCaptions.map(c => c.end)) : 5);
+                          const maxTime = Math.max(audioDuration || durationRef.current || 0, displayCaptions.length > 0 ? Math.max(...displayCaptions.map(c => c.end)) : 5);
                           const markers = [];
                           for (let i = 0.5; i <= maxTime + 2; i += 0.5) {
                             const mins = Math.floor(i / 60).toString().padStart(2, '0');
                             const secs = Math.floor(i % 60).toString().padStart(2, '0');
                             const ms = ((i % 1) * 1000).toString().padStart(3, '0');
                             markers.push(
-                              <div key={i} className="absolute text-[10px] text-[#8a8a8e] font-mono tracking-tighter pointer-events-none" style={{ left: `${i * (200 * zoomLevel)}px` }}>
+                              <div key={i} className="absolute text-[10px] text-[#52c595] font-mono tracking-tighter pointer-events-none" style={{ left: `${i * (200 * zoomLevel)}px` }}>
                                 {mins}:{secs}.{ms}
                               </div>
                             );
@@ -2435,17 +2818,28 @@ export function ReelEditor() {
                               return (
                                 <div 
                                   key={c.id} 
+                                  id={`line-block-${c.id}`}
+                                  className={`timeline-block absolute h-10 bg-[#afa667] text-white text-[11px] font-bold rounded-sm flex flex-col justify-center px-2 truncate shadow-sm hover:brightness-110 cursor-grab active:cursor-grabbing border-r border-[#989155] border-y border-l ${(draggingBlock?.id === c.id || selectedBlockIds.includes(c.id)) ? 'ring-2 ring-blue-500 z-10' : ''}`}
                                   onMouseDown={(e) => {
                                     e.stopPropagation();
-                                    setSelectedBlockId(c.id);
+                                    setSelectedBlockIds(prev => {
+                                      if (e.shiftKey) {
+                                        return prev.includes(c.id) ? prev.filter(x => x !== c.id) : [...prev, c.id];
+                                      }
+                                      return [c.id];
+                                    });
                                     setDraggingBlock({ id: c.id, type: 'line', action: 'move', startX: e.clientX, initialStart: start, initialEnd: end, minStart, maxEnd });
                                   }}
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setSelectedBlockId(c.id);
+                                    setSelectedBlockIds(prev => {
+                                      if (e.shiftKey) {
+                                        return prev.includes(c.id) ? prev.filter(x => x !== c.id) : [...prev, c.id];
+                                      }
+                                      return [c.id];
+                                    });
                                     if (!draggingBlock && seekRef.current) seekRef.current(start);
                                   }}
-                                  className={`absolute h-10 bg-[#afa667] text-white text-[11px] font-bold rounded-sm flex flex-col justify-center px-2 truncate shadow-sm hover:brightness-110 cursor-grab active:cursor-grabbing border-r border-[#989155] border-y border-l ${(draggingBlock?.id === c.id || selectedBlockId === c.id) ? 'ring-2 ring-blue-500 z-10' : ''}`}
                                   style={{ 
                                     left: `${start * pxPerSec}px`, 
                                     width: `${Math.max(10, (end - start) * pxPerSec - 6)}px` 
@@ -2483,17 +2877,28 @@ export function ReelEditor() {
                                 return (
                                   <div 
                                     key={w.id}
+                                    id={`word-block-${w.id}`}
+                                    className={`timeline-block absolute h-10 bg-[#afa667] text-white text-[11px] font-bold rounded-sm flex flex-col justify-center px-2 truncate shadow-sm hover:brightness-110 cursor-grab active:cursor-grabbing border border-[#989155] ${(draggingBlock?.id === w.id || selectedBlockIds.includes(w.id)) ? 'ring-2 ring-blue-500 z-10' : ''}`}
                                     onMouseDown={(e) => {
                                       e.stopPropagation();
-                                      setSelectedBlockId(w.id);
+                                      setSelectedBlockIds(prev => {
+                                        if (e.shiftKey) {
+                                          return prev.includes(w.id) ? prev.filter(x => x !== w.id) : [...prev, w.id];
+                                        }
+                                        return [w.id];
+                                      });
                                       setDraggingBlock({ id: w.id, type: 'word', action: 'move', startX: e.clientX, initialStart: wStart, initialEnd: wEnd, minStart, maxEnd });
                                     }}
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      setSelectedBlockId(w.id);
+                                      setSelectedBlockIds(prev => {
+                                        if (e.shiftKey) {
+                                          return prev.includes(w.id) ? prev.filter(x => x !== w.id) : [...prev, w.id];
+                                        }
+                                        return [w.id];
+                                      });
                                       if (!draggingBlock && seekRef.current) seekRef.current(wStart);
                                     }}
-                                    className={`absolute h-10 bg-[#afa667] text-white text-[11px] font-bold rounded-sm flex flex-col justify-center px-2 truncate shadow-sm hover:brightness-110 cursor-grab active:cursor-grabbing border border-[#989155] ${(draggingBlock?.id === w.id || selectedBlockId === w.id) ? 'ring-2 ring-blue-500 z-10' : ''}`}
                                     style={{ 
                                       left: `${wStart * pxPerSec}px`, 
                                       width: `${Math.max(10, (wEnd - wStart) * pxPerSec)}px` 
@@ -2588,6 +2993,7 @@ export function ReelEditor() {
             strokeOpacity={strokeOpacity}
             strokeWidth={strokeWidth}
             bgEnabled={bgEnabled}
+            aiAudioClean={aiAudioClean}
             bgColor={bgColor}
             bgOpacity={bgOpacity}
             bgRadius={bgRadius}
@@ -2602,6 +3008,7 @@ export function ReelEditor() {
             activeCaptionId={activeCaptionId}
             setActiveCaptionId={setActiveCaptionId}
             seekRef={seekRef}
+            togglePlayRef={togglePlayRef}
             linesMode={linesMode}
             currentTimeRef={currentTimeRef}
             durationRef={durationRef}
@@ -2613,7 +3020,7 @@ export function ReelEditor() {
           <Panel defaultSize={25} minSize={20} className="flex flex-col bg-[#161618] relative overflow-hidden rounded-xl border border-[#2a2a2d] right-sidebar-panel">
             {/* Horizontal Tabs */}
             <div className="flex border-b border-[#2a2a2d] px-2 pt-2">
-              {['Text', 'Templates', 'Transitions', 'AI Audio'].map(tab => (
+              {['Text', 'Templates', 'Transitions', 'Audio'].map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveTabRight(tab.toLowerCase())}
@@ -3545,6 +3952,77 @@ export function ReelEditor() {
                     );
                   })}
 
+                </div>
+              )}
+
+              {activeTabRight === 'audio' && (
+                <div className="p-5 flex flex-col gap-6 text-[#e0e0e0] select-none h-full">
+
+                  {/* Header info */}
+                  <div className="text-center space-y-2">
+                    <h3 className="text-base font-bold text-white tracking-wide">Audio Enhancement</h3>
+                    <p className="text-xs text-[#8a8a8e] leading-relaxed max-w-[280px] mx-auto">
+                      Clean up your audio, Remove Background Noise & Enhance Overall Audio Quality.
+                    </p>
+                    <p className="text-[10px] text-[#52c595]/80 font-medium italic">
+                      Audio Enhancement Removes Background Music as well!
+                    </p>
+                  </div>
+
+                  {/* Toggle Card */}
+                  <div className="bg-[#1a1a1c] border border-[#2a2a2d] rounded-xl p-4 flex items-center justify-between shadow-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-[#52c595]/10 flex items-center justify-center text-[#52c595]">
+                        <Volume2 className="w-5 h-5" />
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-sm font-bold text-white">Audio Cleaning</span>
+                        <span className="text-[10px] text-[#8a8a8e]">
+                          {aiAudioClean ? "Audio enhancement is active" : "Toggle to clean audio"}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setAiAudioClean(!aiAudioClean)}
+                      className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 focus:outline-none ${aiAudioClean ? 'bg-[#52c595]' : 'bg-[#2a2a2d]'}`}
+                    >
+                      <div className={`bg-black w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${aiAudioClean ? 'translate-x-5' : ''}`} />
+                    </button>
+                  </div>
+
+                  {/* Audio Waveform visualization card */}
+                  <div className="bg-[#1a1a1c]/40 border border-[#2a2a2d] rounded-xl p-4 flex flex-col gap-4 relative overflow-hidden">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${(aiAudioClean && isVideoPlaying) ? 'bg-[#52c595]' : 'bg-[#8a8a8e]'} transition-colors`} />
+                        <span className="text-xs font-bold text-white">Enhanced Audio</span>
+                      </div>
+                      {/* Animated Volume level lines */}
+                      <div className="flex items-end gap-0.5 h-3">
+                        <div className={`w-[2px] bg-[#52c595] rounded-full transition-all duration-300 ${(aiAudioClean && isVideoPlaying) ? 'animate-[pulse_0.6s_infinite_alternate_0.1s]' : 'h-1 opacity-40'}`} style={{ height: (aiAudioClean && isVideoPlaying) ? '12px' : '4px' }} />
+                        <div className={`w-[2px] bg-[#52c595] rounded-full transition-all duration-300 ${(aiAudioClean && isVideoPlaying) ? 'animate-[pulse_0.6s_infinite_alternate_0.3s]' : 'h-1.5 opacity-40'}`} style={{ height: (aiAudioClean && isVideoPlaying) ? '8px' : '6px' }} />
+                        <div className={`w-[2px] bg-[#52c595] rounded-full transition-all duration-300 ${(aiAudioClean && isVideoPlaying) ? 'animate-[pulse_0.6s_infinite_alternate_0.5s]' : 'h-2 opacity-40'}`} style={{ height: (aiAudioClean && isVideoPlaying) ? '10px' : '8px' }} />
+                      </div>
+                    </div>
+
+                    {/* Stylized custom animated waveform bars */}
+                    <div className="h-16 flex items-center justify-between gap-[3px] px-2 select-none relative z-10 bg-[#111]/30 rounded-lg p-2 overflow-hidden">
+                      {Array.from({ length: 28 }).map((_, idx) => {
+                        const baseVal = Math.sin(idx * 0.28) * 15 + 24;
+                        const finalHeight = (aiAudioClean && isVideoPlaying) ? Math.max(4, baseVal + Math.random() * 8) : Math.max(3, baseVal / 2);
+                        return (
+                          <div
+                            key={idx}
+                            className={`w-[3px] rounded-full transition-all duration-300 ${(aiAudioClean && isVideoPlaying) ? 'bg-[#52c595]' : 'bg-[#8a8a8e]/30'}`}
+                            style={{ 
+                              height: `${finalHeight}px`,
+                              animation: (aiAudioClean && isVideoPlaying) ? `pulse ${0.4 + Math.random() * 0.4}s infinite alternate` : 'none'
+                            }}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

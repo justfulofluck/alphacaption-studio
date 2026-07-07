@@ -449,7 +449,8 @@ def map_gemini_to_timestamps(gemini_text: str, wx_words: List[Dict]) -> Dict[str
         segments.append({
             "start": chunk[0]["start"],
             "end": chunk[-1]["end"],
-            "text": " ".join(w["word"] for w in chunk)
+            "text": " ".join(w["word"] for w in chunk),
+            "words": chunk
         })
 
     return {'segments': segments, 'word_segments': mapped}
@@ -506,7 +507,8 @@ def map_gemini_to_segments(gemini_text: str, wx_segments: List[Dict]) -> Dict[st
         segments.append({
             "start": chunk[0]["start"],
             "end": chunk[-1]["end"],
-            "text": " ".join(w["word"] for w in chunk)
+            "text": " ".join(w["word"] for w in chunk),
+            "words": chunk
         })
 
     return {'segments': segments, 'word_segments': word_segments}
@@ -543,7 +545,8 @@ def duration_based_mapping(transcript: str, audio_path: str) -> Dict[str, Any]:
         segments.append({
             "start": chunk[0]["start"],
             "end": chunk[-1]["end"],
-            "text": " ".join(w["word"] for w in chunk)
+            "text": " ".join(w["word"] for w in chunk),
+            "words": chunk
         })
 
     return {'segments': segments, 'word_segments': word_segments}

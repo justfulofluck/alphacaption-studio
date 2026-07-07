@@ -223,9 +223,9 @@ function Layout() {
         <SidebarInset className={isFullPageLayout ? "m-0 p-0" : ""}>
           {!isFullPageLayout && <SiteHeader user={{ name: user?.name || "User", avatar: user?.avatar }} />}
           <main className={cn(
-            "flex-1 overflow-auto transition-colors duration-500",
+            "flex-1 transition-colors duration-500",
             location.pathname === "/" ? "bg-[#050505]" : "bg-background",
-            isFullPageLayout ? "h-screen" : ""
+            isFullPageLayout ? "h-screen overflow-hidden" : "overflow-auto"
           )}>
             <Outlet context={{ isLoggedIn, setIsLoggedIn }} />
           </main>

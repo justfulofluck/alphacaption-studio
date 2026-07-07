@@ -59,6 +59,8 @@ interface CustomPlayerUIProps {
   linesMode?: string;
   currentTimeRef?: React.MutableRefObject<number>;
   durationRef?: React.MutableRefObject<number>;
+  togglePlayRef?: React.MutableRefObject<(() => void) | null>;
+  aiAudioClean?: boolean;
 }
 
 function CustomPlayerUI({ 
@@ -103,8 +105,88 @@ function CustomPlayerUI({
   seekRef,
   linesMode,
   currentTimeRef,
-  durationRef
+  durationRef,
+  togglePlayRef,
+  aiAudioClean = false
 }: CustomPlayerUIProps) {
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const audioSourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const filtersRef = useRef<{
+    highpass: BiquadFilterNode;
+    vocalBoost: BiquadFilterNode;
+    compressor: DynamicsCompressorNode;
+  } | null>(null);
+
+  useEffect(() => {
+    const videoEl = document.querySelector('video') as any;
+    if (!videoEl) return;
+
+    if (!videoEl._audioConnected) {
+      try {
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        const ctx = new AudioContextClass();
+        audioCtxRef.current = ctx;
+
+        const source = ctx.createMediaElementSource(videoEl);
+        audioSourceRef.current = source;
+
+        // 1. Highpass filter to cut low rumble (wind, AC hums)
+        const highpass = ctx.createBiquadFilter();
+        highpass.type = 'highpass';
+        highpass.frequency.value = 80;
+
+        // 2. Peaking filter to boost presence (speech clarity)
+        const vocalBoost = ctx.createBiquadFilter();
+        vocalBoost.type = 'peaking';
+        vocalBoost.frequency.value = 3000;
+        vocalBoost.Q.value = 1.0;
+        vocalBoost.gain.value = 5.0; // 5dB boost
+
+        // 3. Dynamics compressor to normalize voice peaks
+        const compressor = ctx.createDynamicsCompressor();
+        compressor.threshold.value = -24;
+        compressor.knee.value = 30;
+        compressor.ratio.value = 4;
+        compressor.attack.value = 0.003;
+        compressor.release.value = 0.25;
+
+        filtersRef.current = { highpass, vocalBoost, compressor };
+        videoEl._audioConnected = { ctx, source, filters: { highpass, vocalBoost, compressor } };
+      } catch (err) {
+        console.error("Failed to initialize Web Audio API for cleaning:", err);
+      }
+    }
+
+    const cached = videoEl._audioConnected;
+    if (cached) {
+      try {
+        cached.source.disconnect();
+        cached.filters.highpass.disconnect();
+        cached.filters.vocalBoost.disconnect();
+        cached.filters.compressor.disconnect();
+
+        if (aiAudioClean) {
+          cached.source.connect(cached.filters.highpass);
+          cached.filters.highpass.connect(cached.filters.vocalBoost);
+          cached.filters.vocalBoost.connect(cached.filters.compressor);
+          cached.filters.compressor.connect(cached.ctx.destination);
+        } else {
+          cached.source.connect(cached.ctx.destination);
+        }
+
+        const resumeCtx = () => {
+          if (cached.ctx.state === 'suspended') {
+            cached.ctx.resume().catch((e: any) => console.log("Failed to resume ctx:", e));
+          }
+        };
+        resumeCtx();
+        videoEl.addEventListener('play', resumeCtx);
+        window.addEventListener('click', resumeCtx);
+      } catch (err) {
+        console.error("Failed to connect/disconnect Web Audio nodes:", err);
+      }
+    }
+  }, [aiAudioClean]);
   const currentTime = useTimelineStore((state) => state.currentTime);
   const duration = useTimelineStore((state) => state.duration);
   const paused = usePlaybackStore((state) => state.paused);
@@ -122,6 +204,13 @@ function CustomPlayerUI({
     }
   }, [seek, seekRef]);
 
+  // Sync togglePaused function reference to parent
+  useEffect(() => {
+    if (togglePlayRef) {
+      (togglePlayRef as any).current = togglePaused;
+    }
+  }, [togglePaused, togglePlayRef]);
+
   // Sync currentTime to parent
   useEffect(() => {
     if (currentTimeRef) {
@@ -136,9 +225,24 @@ function CustomPlayerUI({
     }
   }, [duration, durationRef]);
 
+  const [smoothTime, setSmoothTime] = useState(0);
+
+  useEffect(() => {
+    let animId: number;
+    const updateSmoothTime = () => {
+      const videoEl = document.querySelector('video');
+      if (videoEl) {
+        setSmoothTime(videoEl.currentTime);
+      }
+      animId = requestAnimationFrame(updateSmoothTime);
+    };
+    animId = requestAnimationFrame(updateSmoothTime);
+    return () => cancelAnimationFrame(animId);
+  }, []);
+
   // Sync active caption ID to parent state
   const activeCaption = captions?.find(
-    (c) => currentTime >= c.start && currentTime < c.end
+    (c) => smoothTime >= c.start && smoothTime < c.end
   );
 
   useEffect(() => {
@@ -157,15 +261,11 @@ function CustomPlayerUI({
   const timelineRef = useRef<HTMLDivElement>(null);
 
   const formatTime = (secs: number) => {
-    if (isNaN(secs)) return "00:00:00";
-    const h = Math.floor(secs / 3600);
-    const m = Math.floor((secs % 3600) / 60);
+    if (isNaN(secs)) return "00:00.00";
+    const m = Math.floor(secs / 60);
     const s = Math.floor(secs % 60);
-    return [
-      h.toString().padStart(2, '0'),
-      m.toString().padStart(2, '0'),
-      s.toString().padStart(2, '0')
-    ].join(':');
+    const ms = Math.floor((secs % 1) * 100);
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
   };
 
   const handleTimelineSeek = (clientX: number) => {
@@ -450,7 +550,18 @@ function CustomPlayerUI({
             style={{ ...captionStyle, ...bgStyle }}
           >
             {activeCaption.text.split(' ').map((word, wordIndex, wordsArr) => {
-              const isHighlight = wordIndex % 4 === 3;
+              const wordObj = activeCaption.words && activeCaption.words[wordIndex];
+              // Highlight if currentTime is within the word's start and end time
+              let isHighlight = false;
+              if (wordObj) {
+                isHighlight = smoothTime >= wordObj.start && smoothTime <= wordObj.end;
+              } else if (wordsArr.length > 0) {
+                // Fallback highlighting if words array is missing or out of sync
+                const chunkDur = (activeCaption.end - activeCaption.start) / wordsArr.length;
+                const wStart = activeCaption.start + wordIndex * chunkDur;
+                const wEnd = wStart + chunkDur;
+                isHighlight = smoothTime >= wStart && smoothTime <= wEnd;
+              }
               const numLines = linesMode ? parseInt(linesMode.split(' ')[0]) : 1;
               const wordsPerLine = numLines > 1 ? Math.ceil(wordsArr.length / numLines) : wordsArr.length + 1;
               const isNewLine = numLines > 1 && wordIndex > 0 && wordIndex % wordsPerLine === 0;
@@ -618,14 +729,15 @@ export function VideoPlayer({
   seekRef,
   linesMode,
   currentTimeRef,
-  durationRef
+  durationRef,
+  aiAudioClean
 }: any) {
   return (
     <Panel defaultSize={40} minSize={20} className="flex flex-col bg-[#0f0f11] relative overflow-hidden rounded-xl border border-[#2a2a2d] custom-player-wrapper">
       <div className="flex-1 flex items-center justify-center min-h-0 w-full h-full relative">
         {videoUrl ? (
           <div className="absolute inset-0 w-full h-full player-media-container">
-            <LimeplayPlayer mediaProps={{ src: videoUrl ?? undefined, className: "relative z-10" }} layout="fill" theme="dark" className="absolute inset-0 w-full h-full">
+            <LimeplayPlayer mediaProps={{ src: videoUrl ?? undefined, className: "relative z-10", crossOrigin: "anonymous" }} layout="fill" theme="dark" className="absolute inset-0 w-full h-full">
               <CustomPlayerUI 
                 captions={captions} 
                 fontFamily={fontFamily} 
@@ -669,6 +781,7 @@ export function VideoPlayer({
                 linesMode={linesMode}
                 currentTimeRef={currentTimeRef}
                 durationRef={durationRef}
+                aiAudioClean={aiAudioClean}
               />
             </LimeplayPlayer>
           </div>
