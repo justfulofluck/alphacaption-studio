@@ -1819,7 +1819,7 @@ export function ReelEditor() {
 
             // Sync new captions with editor
             if (transcribeData.segments) {
-              setCaptions(transcribeData.segments);
+              setCaptions(transcribeData.segments.map((c: any, i: number) => generateWordsForChunk(c, i)));
             }
           } else {
             console.log('No audio stream detected. Skipping transcription.');
