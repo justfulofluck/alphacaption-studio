@@ -957,7 +957,7 @@ export function VideoPlayer({
   removeEmphasis
 }: any) {
   return (
-    <Panel defaultSize={40} minSize={20} className="flex flex-col bg-[#0f0f11] relative overflow-hidden rounded-xl border border-[#2a2a2d] custom-player-wrapper">
+    <Panel defaultSize={22} minSize={20} className="flex flex-col bg-[#0f0f11] relative overflow-hidden rounded-xl border border-[#2a2a2d] custom-player-wrapper">
       <div className="flex-1 flex items-center justify-center min-h-0 w-full h-full relative">
         {videoUrl ? (
           <div className="absolute inset-0 w-full h-full player-media-container">
