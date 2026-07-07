@@ -2017,7 +2017,7 @@ export function ReelEditor() {
         <PanelGroup orientation="horizontal">
 
           {/* LEFT COLUMN: Captions + Timeline */}
-          <Panel defaultSize={55} minSize={20} className="flex flex-col">
+          <Panel defaultSize={50} minSize={20} className="flex flex-col">
             <PanelGroup orientation="vertical">
 
               {/* TOP: Captions List */}
@@ -3154,7 +3154,7 @@ export function ReelEditor() {
           <PanelResizeHandle className="w-2 bg-transparent cursor-col-resize relative z-10 hover:bg-[#2a2a2d] transition-colors rounded-full mx-0.5 my-2" />
 
           {/* RIGHT COLUMN: Styling Options */}
-          <Panel defaultSize={23} minSize={20} className="flex flex-col bg-[#161618] relative overflow-hidden rounded-xl border border-[#2a2a2d] right-sidebar-panel">
+          <Panel defaultSize={24} minSize={20} className="flex flex-col bg-[#161618] relative overflow-hidden rounded-xl border border-[#2a2a2d] right-sidebar-panel">
             {/* Horizontal Tabs */}
             <div className="flex border-b border-[#2a2a2d] px-2 pt-2">
               {['Text', 'Templates', 'Transitions', 'Audio'].map(tab => (

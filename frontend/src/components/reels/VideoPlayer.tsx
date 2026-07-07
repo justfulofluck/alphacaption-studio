@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { RefreshCw, Play, Pause, Volume2, VolumeX, Maximize2, Minimize2, Video, Type } from 'lucide-react';
 import { Panel } from 'react-resizable-panels';
@@ -62,7 +63,7 @@ interface CustomPlayerUIProps {
   durationRef?: React.MutableRefObject<number>;
   togglePlayRef?: React.MutableRefObject<(() => void) | null>;
   aiAudioClean?: boolean;
-  
+
   // Emphasis props
   emphasisMode?: string;
   emphasisColor?: string;
@@ -91,7 +92,7 @@ interface CustomPlayerUIProps {
   hoveredSpotlightFontFace?: string | null;
 }
 
-function CustomPlayerUI({ 
+function CustomPlayerUI({
   captions,
   fontFamily,
   fontFace,
@@ -178,7 +179,7 @@ function CustomPlayerUI({
     const lower = face.toLowerCase();
     let weight = '400';
     let style = 'normal';
-    
+
     Object.keys(weightMap).forEach(k => {
       if (lower.includes(k)) {
         weight = weightMap[k];
@@ -392,7 +393,7 @@ function CustomPlayerUI({
       const playerContainer = document.querySelector('.player-media-container');
       if (!playerContainer) return;
       const rect = playerContainer.getBoundingClientRect();
-      
+
       const mouseXPercent = ((e.clientX - rect.left) / rect.width) * 100;
       const distFromCenter = Math.abs(mouseXPercent - position.x);
       let newWidth = distFromCenter * 2;
@@ -441,7 +442,7 @@ function CustomPlayerUI({
       const playerContainer = document.querySelector('.player-media-container');
       if (!playerContainer) return;
       const rect = playerContainer.getBoundingClientRect();
-      
+
       let x = ((e.clientX - rect.left) / rect.width) * 100;
       let y = ((e.clientY - rect.top) / rect.height) * 100;
 
@@ -492,7 +493,7 @@ function CustomPlayerUI({
   let fontStyle: React.CSSProperties['fontStyle'] = 'normal';
 
   const faceLower = (activeFontFace || '').toLowerCase();
-  
+
   if (faceLower.includes('italic')) {
     fontStyle = 'italic';
   }
@@ -518,12 +519,12 @@ function CustomPlayerUI({
   }
 
   const sortedStops = gradientStops ? [...gradientStops].sort((a, b) => a.position - b.position) : [];
-  const gradientString = sortedStops.length > 0 
+  const gradientString = sortedStops.length > 0
     ? `linear-gradient(${gradientAngle || 90}deg, ${sortedStops.map(s => {
-        const opacityVal = s.opacity !== undefined ? s.opacity : 100;
-        const alphaHex = Math.round(opacityVal * 2.55).toString(16).padStart(2, '0');
-        return `${s.color}${alphaHex} ${s.position}%`;
-      }).join(', ')})`
+      const opacityVal = s.opacity !== undefined ? s.opacity : 100;
+      const alphaHex = Math.round(opacityVal * 2.55).toString(16).padStart(2, '0');
+      return `${s.color}${alphaHex} ${s.position}%`;
+    }).join(', ')})`
     : `linear-gradient(${gradientAngle || 90}deg, ${color}, #52c595)`;
 
   const getRGBA = (hexColor: string, opacityPercent: number) => {
@@ -535,7 +536,7 @@ function CustomPlayerUI({
     return `rgba(${r}, ${g}, ${b}, ${op / 100})`;
   };
 
-  const shadowCSS = shadowEnabled 
+  const shadowCSS = shadowEnabled
     ? `${shadowX || 0}px ${shadowY || 0}px ${shadowBlur || 0}px ${getRGBA(shadowColor || '#000000', shadowOpacity !== undefined ? shadowOpacity : 63)}`
     : 'none';
 
@@ -590,7 +591,7 @@ function CustomPlayerUI({
         <button className="flex items-center gap-2 text-xs font-semibold bg-[#2a2a2d] hover:bg-[#3a3a3d] text-white px-3 py-1.5 rounded transition-colors border border-white/5">
           <RefreshCw className="w-3.5 h-3.5 text-[#52c595]" /> Replace
         </button>
-        
+
         {/* Middle icons */}
         <div className="flex items-center gap-3 bg-[#2a2a2d] px-3 py-1.5 rounded-lg border border-white/5">
           <button className="text-zinc-400 hover:text-white transition-colors"><Minimize2 className="w-4 h-4" /></button>
@@ -605,11 +606,11 @@ function CustomPlayerUI({
 
       {/* Caption Overlay */}
       {activeCaption ? (
-        <div 
+        <div
           className="absolute caption-drag-container pointer-events-auto cursor-move z-20 flex items-center justify-center"
-          style={{ 
-            left: `${position.x}%`, 
-            top: `${position.y}%`, 
+          style={{
+            left: `${position.x}%`,
+            top: `${position.y}%`,
             transform: 'translate(-50%, -50%)',
             width: `${boxWidth}%`
           }}
@@ -630,12 +631,11 @@ function CustomPlayerUI({
             </>
           )}
           {/* Transparent container background */}
-          <div 
-            className={`p-3 flex flex-wrap gap-y-1.5 rounded-xl select-none ${
-              textAlign === 'left' ? 'justify-start text-left' : 
-              textAlign === 'right' ? 'justify-end text-right' : 
-              'justify-center text-center'
-            }`} 
+          <div
+            className={`p-3 flex flex-wrap gap-y-1.5 rounded-xl select-none ${textAlign === 'left' ? 'justify-start text-left' :
+                textAlign === 'right' ? 'justify-end text-right' :
+                  'justify-center text-center'
+              }`}
             style={{ ...captionStyle, ...bgStyle }}
           >
             {activeCaption.text.split(' ').map((word, wordIndex, wordsArr) => {
@@ -685,16 +685,16 @@ function CustomPlayerUI({
                   level: spotlightGradientLevel
                 };
 
-                const activeFont = isEmphasized 
-                  ? (hoveredEmphasisFontFamily || styleConfig.font) 
+                const activeFont = isEmphasized
+                  ? (hoveredEmphasisFontFamily || styleConfig.font)
                   : (hoveredSpotlightFontFamily || styleConfig.font);
-                const activeFontFace = isEmphasized 
-                  ? (hoveredEmphasisFontFace || styleConfig.fontFace) 
+                const activeFontFace = isEmphasized
+                  ? (hoveredEmphasisFontFace || styleConfig.fontFace)
                   : (hoveredSpotlightFontFace || styleConfig.fontFace);
 
                 const fontCss = mapFontFaceToCss(activeFontFace);
                 const sizePx = fontSize * styleConfig.size;
-                
+
                 let wordStyle = '';
                 wordStyle += `font-size: ${sizePx}px !important;`;
                 wordStyle += `font-family: ${activeFont} !important;`;
@@ -702,7 +702,7 @@ function CustomPlayerUI({
                 wordStyle += `font-style: ${styleConfig.styles.italic ? 'italic' : fontCss.fontStyle} !important;`;
                 wordStyle += `text-decoration: ${styleConfig.styles.underline ? 'underline' : 'none'} !important;`;
                 wordStyle += `text-transform: ${styleConfig.styles.uppercase ? 'uppercase' : 'none'} !important;`;
-                
+
                 if (styleConfig.glow) {
                   wordStyle += `text-shadow: 0 0 6px ${styleConfig.glow}, 0 0 12px ${styleConfig.glow} !important;`;
                 } else if (shadowEnabled) {
@@ -849,20 +849,20 @@ function CustomPlayerUI({
         <div className="h-14 flex items-center justify-between px-5">
           <div className="flex items-center gap-4">
             <button onClick={togglePaused} className="text-[#e0e0e0] hover:text-white transition-colors p-1">{paused ? <Play className="w-4 h-4 fill-current" /> : <Pause className="w-4 h-4 fill-current" />}</button>
-            
+
             <div className="relative flex items-center group/volume h-8">
               <div className="flex items-center bg-transparent group-hover/volume:bg-[#2a2a2d] rounded-full transition-all overflow-hidden w-6 group-hover/volume:w-24">
-                <button 
-                  onClick={toggleMute} 
+                <button
+                  onClick={toggleMute}
                   className="text-[#e0e0e0] hover:text-white transition-colors p-1 shrink-0 w-6 flex items-center justify-center z-10"
                 >
                   {muted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className={`w-4 h-4 ${!muted && volume > 0 ? 'text-[#52c595]' : ''}`} />}
                 </button>
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="1" 
-                  step="0.05" 
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
                   value={muted ? 0 : volume}
                   onChange={(e) => {
                     const val = parseFloat(e.target.value);
@@ -887,23 +887,23 @@ function CustomPlayerUI({
   );
 }
 
-export function VideoPlayer({ 
-  videoUrl, 
-  captions, 
-  fontFamily, 
-  fontFace, 
-  hoveredFontFamily, 
-  hoveredFontFace, 
-  fontSize, 
-  styleFlags, 
-  casing, 
-  textAlign, 
-  position, 
-  setPosition, 
-  colorToggle, 
-  color, 
-  gradientStops, 
-  gradientAngle, 
+export function VideoPlayer({
+  videoUrl,
+  captions,
+  fontFamily,
+  fontFace,
+  hoveredFontFamily,
+  hoveredFontFace,
+  fontSize,
+  styleFlags,
+  casing,
+  textAlign,
+  position,
+  setPosition,
+  colorToggle,
+  color,
+  gradientStops,
+  gradientAngle,
   gradientLevel,
   // EFFECTS props
   shadowEnabled,
@@ -962,22 +962,22 @@ export function VideoPlayer({
         {videoUrl ? (
           <div className="absolute inset-0 w-full h-full player-media-container">
             <LimeplayPlayer mediaProps={{ src: videoUrl ?? undefined, className: "relative z-10", crossOrigin: "anonymous" }} layout="fill" theme="dark" className="absolute inset-0 w-full h-full">
-              <CustomPlayerUI 
-                captions={captions} 
-                fontFamily={fontFamily} 
-                fontFace={fontFace} 
-                hoveredFontFamily={hoveredFontFamily} 
-                hoveredFontFace={hoveredFontFace} 
-                fontSize={fontSize} 
-                styleFlags={styleFlags} 
-                casing={casing} 
-                textAlign={textAlign} 
-                position={position} 
-                setPosition={setPosition} 
-                colorToggle={colorToggle} 
-                color={color} 
-                gradientStops={gradientStops} 
-                gradientAngle={gradientAngle} 
+              <CustomPlayerUI
+                captions={captions}
+                fontFamily={fontFamily}
+                fontFace={fontFace}
+                hoveredFontFamily={hoveredFontFamily}
+                hoveredFontFace={hoveredFontFace}
+                fontSize={fontSize}
+                styleFlags={styleFlags}
+                casing={casing}
+                textAlign={textAlign}
+                position={position}
+                setPosition={setPosition}
+                colorToggle={colorToggle}
+                color={color}
+                gradientStops={gradientStops}
+                gradientAngle={gradientAngle}
                 gradientLevel={gradientLevel}
                 shadowEnabled={shadowEnabled}
                 shadowColor={shadowColor}
