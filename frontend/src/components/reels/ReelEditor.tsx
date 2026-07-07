@@ -4,7 +4,7 @@ import {
   Type, Music, Play, Search, RotateCcw, Home, Upload,
   Volume2, Maximize, Settings, AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Undo2, Redo2, Scissors, ChevronLeft, ChevronRight, Trash2, ZoomIn, ZoomOut, SplitSquareHorizontal, RefreshCw, TypeOutline,
-  X, ChevronUp, ChevronDown
+  X, ChevronUp, ChevronDown, Check
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
@@ -12,6 +12,13 @@ import { Link } from 'react-router-dom';
 import { VideoPlayer } from './VideoPlayer';
 import { API_BASE_URL } from '@/api/config';
 import { useTimelineStore } from '@/hooks/limeplay/use-timeline';
+
+// Format time in mm:ss format helper
+function formatTime(time: number): string {
+  const mins = Math.floor(time / 60).toString().padStart(2, '0');
+  const secs = Math.floor(time % 60).toString().padStart(2, '0');
+  return `${mins}:${secs}`;
+}
 
 // HSV to HEX conversion helper
 function hsvToHex(h: number, s: number, v: number): string {
@@ -538,6 +545,10 @@ export function ReelEditor() {
   const [fontFace, setFontFace] = useState('Bold');
   const [hoveredFontFamily, setHoveredFontFamily] = useState<string | null>(null);
   const [hoveredFontFace, setHoveredFontFace] = useState<string | null>(null);
+  const [hoveredEmphasisFontFamily, setHoveredEmphasisFontFamily] = useState<string | null>(null);
+  const [hoveredEmphasisFontFace, setHoveredEmphasisFontFace] = useState<string | null>(null);
+  const [hoveredSpotlightFontFamily, setHoveredSpotlightFontFamily] = useState<string | null>(null);
+  const [hoveredSpotlightFontFace, setHoveredSpotlightFontFace] = useState<string | null>(null);
   const [fontSize, setFontSize] = useState(41);
   const [styleFlags, setStyleFlags] = useState({ underline: false });
   const [casing, setCasing] = useState<'none' | 'capitalize' | 'uppercase' | 'lowercase'>('none');
@@ -565,6 +576,11 @@ export function ReelEditor() {
   const [showColorPicker, setShowColorPicker] = useState(false);
   const colorPickerRef = useRef<HTMLDivElement>(null);
   const stopsContainerRef = useRef<HTMLDivElement>(null);
+  
+  const emphasisColorPickerRef = useRef<HTMLDivElement>(null);
+  const emphasisStopsContainerRef = useRef<HTMLDivElement>(null);
+  const spotlightColorPickerRef = useRef<HTMLDivElement>(null);
+  const spotlightStopsContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
@@ -573,6 +589,12 @@ export function ReelEditor() {
       }
       if (stopsContainerRef.current && !stopsContainerRef.current.contains(e.target as Node)) {
         setOpenStopPickerId(null);
+      }
+      if (emphasisStopsContainerRef.current && !emphasisStopsContainerRef.current.contains(e.target as Node)) {
+        setEmphasisOpenStopPickerId(null);
+      }
+      if (spotlightStopsContainerRef.current && !spotlightStopsContainerRef.current.contains(e.target as Node)) {
+        setSpotlightOpenStopPickerId(null);
       }
     };
     document.addEventListener('mousedown', handleOutsideClick);
@@ -590,6 +612,43 @@ export function ReelEditor() {
   const [gradientAngle, setGradientAngle] = useState(90);
   const [gradientLevel, setGradientLevel] = useState<'word' | 'char'>('word');
   const [inputAngle, setInputAngle] = useState('90');
+
+  // EMPHASIS & SPOTLIGHT states
+  const [emphasisTab, setEmphasisTab] = useState<'emphasize' | 'spotlight'>('emphasize');
+  
+  // Emphasize Style States
+  const [emphasisMode, setEmphasisMode] = useState('Solid'); // 'Solid' | 'Gradient'
+  const [emphasisColor, setEmphasisColor] = useState('#5E1616');
+  const [emphasisSize, setEmphasisSize] = useState(1.0);
+  const [emphasisGlow, setEmphasisGlow] = useState('#5E1616');
+  const [emphasisFont, setEmphasisFont] = useState('Inter');
+  const [emphasisFontFace, setEmphasisFontFace] = useState('Regular Italic');
+  const [emphasisStyles, setEmphasisStyles] = useState({ uppercase: false, bold: false, italic: true, underline: false });
+  const [emphasisGradientStops, setEmphasisGradientStops] = useState([
+    { id: 1, position: 0, color: '#f3a63b', opacity: 100 },
+    { id: 2, position: 100, color: '#ffef7d', opacity: 100 }
+  ]);
+  const [emphasisGradientAngle, setEmphasisGradientAngle] = useState(90);
+  const [emphasisGradientLevel, setEmphasisGradientLevel] = useState<'word' | 'char'>('word');
+  const [emphasisActiveStopId, setEmphasisActiveStopId] = useState<number>(1);
+  const [emphasisOpenStopPickerId, setEmphasisOpenStopPickerId] = useState<number | null>(null);
+
+  // Spotlight Style States
+  const [spotlightMode, setSpotlightMode] = useState('Solid'); // 'Solid' | 'Gradient'
+  const [spotlightColor, setSpotlightColor] = useState('#FFFFFF');
+  const [spotlightSize, setSpotlightSize] = useState(1.3);
+  const [spotlightGlow, setSpotlightGlow] = useState('#FFFFFF');
+  const [spotlightFont, setSpotlightFont] = useState('Inter');
+  const [spotlightFontFace, setSpotlightFontFace] = useState('Regular Italic');
+  const [spotlightStyles, setSpotlightStyles] = useState({ uppercase: false, bold: false, italic: true, underline: false });
+  const [spotlightGradientStops, setSpotlightGradientStops] = useState([
+    { id: 1, position: 0, color: '#ffd900', opacity: 100 },
+    { id: 2, position: 100, color: '#ffffff', opacity: 100 }
+  ]);
+  const [spotlightGradientAngle, setSpotlightGradientAngle] = useState(90);
+  const [spotlightGradientLevel, setSpotlightGradientLevel] = useState<'word' | 'char'>('word');
+  const [spotlightActiveStopId, setSpotlightActiveStopId] = useState<number>(1);
+  const [spotlightOpenStopPickerId, setSpotlightOpenStopPickerId] = useState<number | null>(null);
 
   // EFFECTS section states
   // Drop Shadow
@@ -1224,6 +1283,50 @@ export function ReelEditor() {
     return { ...c, words };
   };
 
+  const handleToggleWordEmphasis = (captionId: number, wordIndex: number) => {
+    setCaptions(prev => prev.map(c => {
+      if (c.id !== captionId) return c;
+      let chunk = { ...c };
+      if (!chunk.words || chunk.words.length === 0) {
+        chunk = generateWordsForChunk(chunk);
+      }
+      const updatedWords = chunk.words.map((w: any, idx: number) => {
+        if (idx === wordIndex) {
+          const isEmphasized = !w.emphasis;
+          return {
+            ...w,
+            emphasis: isEmphasized,
+            spotlight: isEmphasized ? false : w.spotlight
+          };
+        }
+        return w;
+      });
+      return { ...chunk, words: updatedWords };
+    }));
+  };
+
+  const handleToggleWordSpotlight = (captionId: number, wordIndex: number) => {
+    setCaptions(prev => prev.map(c => {
+      if (c.id !== captionId) return c;
+      let chunk = { ...c };
+      if (!chunk.words || chunk.words.length === 0) {
+        chunk = generateWordsForChunk(chunk);
+      }
+      const updatedWords = chunk.words.map((w: any, idx: number) => {
+        if (idx === wordIndex) {
+          const isSpotlighted = !w.spotlight;
+          return {
+            ...w,
+            spotlight: isSpotlighted,
+            emphasis: isSpotlighted ? false : w.emphasis
+          };
+        }
+        return w;
+      });
+      return { ...chunk, words: updatedWords };
+    }));
+  };
+
   const [captions, setCaptions] = useState([
     { id: 1, start: 0.0, end: 2.5, text: "Hello and welcome to Kalakaar. As" },
     { id: 2, start: 2.5, end: 4.8, text: "you can see, we have captions on" },
@@ -1533,7 +1636,7 @@ export function ReelEditor() {
         const words = caption.text.split(/\s+/);
         const wordBounds: { start: number, end: number }[] = [];
         let currentIndex = 0;
-        words.forEach(w => {
+        words.forEach((w: string) => {
           const start = caption.text.indexOf(w, currentIndex);
           const end = start + w.length;
           wordBounds.push({ start, end });
@@ -2310,7 +2413,7 @@ export function ReelEditor() {
                             />
                           ) : (
                             <div className="flex flex-wrap gap-y-1 text-[15px] font-medium leading-relaxed text-[#e0e0e0] flex-1">
-                              {caption.text.split(/\s+/).map((word, wordIndex) => {
+                              {caption.text.split(/\s+/).map((word: string, wordIndex: number) => {
                                 const isWordEditing = editingWord && editingWord.captionId === caption.id && editingWord.wordIndex === wordIndex;
                                 if (isWordEditing) {
                                   return (
@@ -2372,6 +2475,13 @@ export function ReelEditor() {
                                   : isPartOfAnyMatch
                                     ? 'bg-[#52c595]/30 text-[#52c595]'
                                     : 'hover:bg-white/10 hover:text-[#52c595] text-[#e0e0e0]';
+                                const wordObj = caption.words && caption.words[wordIndex];
+                                const isWordSpecial = wordObj && (wordObj.emphasis || wordObj.spotlight);
+
+                                let finalStyle = matchStyle;
+                                if (isWordSpecial && !isPartOfActiveMatch && !isPartOfAnyMatch) {
+                                  finalStyle = 'bg-[#52c595]/10 text-[#52c595] px-2 py-0.5 rounded-md border border-[#52c595]/20 font-medium';
+                                }
 
                                 return (
                                   <span
@@ -2393,7 +2503,7 @@ export function ReelEditor() {
                                         openUpwards
                                       });
                                     }}
-                                    className={`px-1 py-[2px] rounded transition-all cursor-pointer ${matchStyle}`}
+                                    className={`px-1 py-[2px] rounded transition-all cursor-pointer ${finalStyle}`}
                                   >
                                     {word}
                                   </span>
@@ -2430,6 +2540,7 @@ export function ReelEditor() {
                       >
                         <button
                           onClick={() => {
+                            handleToggleWordEmphasis(wordMenu.captionId, wordMenu.wordIndex);
                             setWordMenu(null);
                           }}
                           className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-[#222225] hover:text-[#52c595] text-left transition-all"
@@ -2443,6 +2554,7 @@ export function ReelEditor() {
 
                         <button
                           onClick={() => {
+                            handleToggleWordSpotlight(wordMenu.captionId, wordMenu.wordIndex);
                             setWordMenu(null);
                           }}
                           className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-[#222225] hover:text-[#52c595] text-left transition-all"
@@ -2994,6 +3106,31 @@ export function ReelEditor() {
             strokeWidth={strokeWidth}
             bgEnabled={bgEnabled}
             aiAudioClean={aiAudioClean}
+            emphasisMode={emphasisMode}
+            emphasisColor={emphasisColor}
+            emphasisSize={emphasisSize}
+            emphasisGlow={emphasisGlow}
+            emphasisFont={emphasisFont}
+            emphasisFontFace={emphasisFontFace}
+            emphasisStyles={emphasisStyles}
+            emphasisGradientStops={emphasisGradientStops}
+            emphasisGradientAngle={emphasisGradientAngle}
+            emphasisGradientLevel={emphasisGradientLevel}
+            spotlightMode={spotlightMode}
+            spotlightColor={spotlightColor}
+            spotlightSize={spotlightSize}
+            spotlightGlow={spotlightGlow}
+            spotlightFont={spotlightFont}
+            spotlightFontFace={spotlightFontFace}
+            spotlightStyles={spotlightStyles}
+            hoveredEmphasisFontFamily={hoveredEmphasisFontFamily}
+            hoveredEmphasisFontFace={hoveredEmphasisFontFace}
+            hoveredSpotlightFontFamily={hoveredSpotlightFontFamily}
+            hoveredSpotlightFontFace={hoveredSpotlightFontFace}
+            spotlightGradientStops={spotlightGradientStops}
+            spotlightGradientAngle={spotlightGradientAngle}
+            spotlightGradientLevel={spotlightGradientLevel}
+            removeEmphasis={removeEmphasis}
             bgColor={bgColor}
             bgOpacity={bgOpacity}
             bgRadius={bgRadius}
@@ -3591,7 +3728,416 @@ export function ReelEditor() {
                         </button>
                         {openAccordions[key] && (
                           <div className="pl-4 py-2 text-xs text-[#8a8a8e]">
-                            {key === 'spacing' ? (
+                            {key === 'emphasis' ? (
+                              <div className="flex flex-col gap-4 mr-2">
+                                {(() => {
+                                  const isEmp = emphasisTab === 'emphasize';
+                                  const mode = isEmp ? emphasisMode : spotlightMode;
+                                  const setMode = isEmp ? setEmphasisMode : setSpotlightMode;
+                                  const colorVal = isEmp ? emphasisColor : spotlightColor;
+                                  const setColorVal = isEmp ? setEmphasisColor : setSpotlightColor;
+                                  const sizeVal = isEmp ? emphasisSize : spotlightSize;
+                                  const setSizeVal = isEmp ? setEmphasisSize : setSpotlightSize;
+                                  const glowVal = isEmp ? emphasisGlow : spotlightGlow;
+                                  const setGlowVal = isEmp ? setEmphasisGlow : setSpotlightGlow;
+                                  const fontVal = isEmp ? emphasisFont : spotlightFont;
+                                  const setFontVal = isEmp ? setEmphasisFont : setSpotlightFont;
+                                  const fontFaceVal = isEmp ? emphasisFontFace : spotlightFontFace;
+                                  const setFontFaceVal = isEmp ? setEmphasisFontFace : setSpotlightFontFace;
+                                  const styleFlagsVal = isEmp ? emphasisStyles : spotlightStyles;
+                                  const setStyleFlagsVal = isEmp ? setEmphasisStyles : setSpotlightStyles;
+                                  const setHoveredFontVal = isEmp ? setHoveredEmphasisFontFamily : setHoveredSpotlightFontFamily;
+                                  const setHoveredFontFaceVal = isEmp ? setHoveredEmphasisFontFace : setHoveredSpotlightFontFace;
+
+                                  // Gradient helpers
+                                  const gradStops = isEmp ? emphasisGradientStops : spotlightGradientStops;
+                                  const setGradStops = isEmp ? setEmphasisGradientStops : setSpotlightGradientStops;
+                                  const gradAngle = isEmp ? emphasisGradientAngle : spotlightGradientAngle;
+                                  const setGradAngle = isEmp ? setEmphasisGradientAngle : setSpotlightGradientAngle;
+                                  const gradLevel = isEmp ? emphasisGradientLevel : spotlightGradientLevel;
+                                  const setGradLevel = isEmp ? setEmphasisGradientLevel : setSpotlightGradientLevel;
+                                  const activeStopIdVal = isEmp ? emphasisActiveStopId : spotlightActiveStopId;
+                                  const setActiveStopIdVal = isEmp ? setEmphasisActiveStopId : setSpotlightActiveStopId;
+                                  const openStopPickerIdVal = isEmp ? emphasisOpenStopPickerId : spotlightOpenStopPickerId;
+                                  const setOpenStopPickerIdVal = isEmp ? setEmphasisOpenStopPickerId : setSpotlightOpenStopPickerId;
+                                  const colorPickerRefVal = isEmp ? emphasisColorPickerRef : spotlightColorPickerRef;
+                                  const stopsContainerRefVal = isEmp ? emphasisStopsContainerRef : spotlightStopsContainerRef;
+
+                                  return (
+                                    <div className="flex flex-col gap-4">
+                                      {/* Emphasize / Spotlight Tabs */}
+                                      <div className="flex bg-[#1a1a1c] rounded-md border border-[#2a2a2d] p-0.5">
+                                        <button
+                                          onClick={() => setEmphasisTab('emphasize')}
+                                          className={`flex-1 py-1.5 text-[11px] font-bold rounded-sm flex items-center justify-center transition-colors ${isEmp ? 'bg-[#2a2a2d] text-white shadow' : 'text-[#8a8a8e] hover:text-[#e0e0e0]'}`}
+                                        >
+                                          Emphasize
+                                        </button>
+                                        <button
+                                          onClick={() => setEmphasisTab('spotlight')}
+                                          className={`flex-1 py-1.5 text-[11px] font-bold rounded-sm flex items-center justify-center transition-colors ${!isEmp ? 'bg-[#2a2a2d] text-white shadow' : 'text-[#8a8a8e] hover:text-[#e0e0e0]'}`}
+                                        >
+                                          Spotlight
+                                        </button>
+                                      </div>
+
+                                      {/* Solid / Gradient Switcher */}
+                                      <div className="flex bg-[#1a1a1c] rounded-md border border-[#2a2a2d] p-0.5">
+                                        <button
+                                          onClick={() => setMode('Solid')}
+                                          className={`flex-1 py-1 text-[10px] font-semibold rounded-sm flex items-center justify-center gap-1.5 transition-colors ${mode === 'Solid' ? 'bg-[#2a2a2d] text-white shadow' : 'text-[#8a8a8e] hover:text-[#e0e0e0]'}`}
+                                        >
+                                          Solid
+                                        </button>
+                                        <button
+                                          onClick={() => setMode('Gradient')}
+                                          className={`flex-1 py-1 text-[10px] font-semibold rounded-sm flex items-center justify-center gap-1.5 transition-colors ${mode === 'Gradient' ? 'bg-[#2a2a2d] text-white shadow' : 'text-[#8a8a8e] hover:text-[#e0e0e0]'}`}
+                                        >
+                                          Gradient
+                                        </button>
+                                      </div>
+
+                                      {/* Stops Row (Gradient Mode Only) */}
+                                      {mode === 'Gradient' && (
+                                        <div className="space-y-2">
+                                          <div className="flex justify-between items-center text-xs text-[#8a8a8e]">
+                                            <span>Stops</span>
+                                            <button
+                                              onClick={() => setGradStops(isEmp ? [
+                                                { id: 1, position: 0, color: '#f3a63b', opacity: 100 },
+                                                { id: 2, position: 100, color: '#ffef7d', opacity: 100 }
+                                              ] : [
+                                                { id: 1, position: 0, color: '#ffd900', opacity: 100 },
+                                                { id: 2, position: 100, color: '#ffffff', opacity: 100 }
+                                              ])}
+                                              className="text-[10px] text-[#8a8a8e] hover:text-white flex items-center gap-1"
+                                            >
+                                              <RotateCcw className="w-3.5 h-3.5" /> Reset
+                                            </button>
+                                          </div>
+                                          <div ref={stopsContainerRefVal} className="relative pt-1 pb-6 px-2 bg-[#161618] rounded-md border border-[#2a2a2d] h-14 flex items-center">
+                                            {/* The Gradient Visual Bar */}
+                                            <div
+                                              id="emphasis-gradient-stops-bar"
+                                              className="w-full h-4 rounded shadow-inner border border-[#2a2a2d] relative cursor-pointer"
+                                              style={{
+                                                background: `linear-gradient(to right, ${[...gradStops].sort((a, b) => a.position - b.position).map(s => `${s.color} ${s.position}%`).join(', ')})`
+                                              }}
+                                              onClick={(e) => {
+                                                if (e.target !== e.currentTarget) return;
+                                                const rect = e.currentTarget.getBoundingClientRect();
+                                                const clickX = e.clientX - rect.left;
+                                                const pos = Math.max(0, Math.min(100, Math.round((clickX / rect.width) * 100)));
+                                                const nextId = gradStops.length > 0 ? Math.max(...gradStops.map(s => s.id)) + 1 : 1;
+                                                const newStop = { id: nextId, position: pos, color: '#ffffff', opacity: 100 };
+                                                setGradStops(prev => [...prev, newStop]);
+                                                setActiveStopIdVal(nextId);
+                                                setOpenStopPickerIdVal(nextId);
+                                              }}
+                                            />
+                                            {/* Draggable Stops */}
+                                            {gradStops.map(stop => (
+                                              <div
+                                                key={stop.id}
+                                                className="absolute bottom-1.5 cursor-ew-resize transform -translate-x-1/2 flex flex-col items-center z-10 select-none"
+                                                style={{ left: `calc(${stop.position}% + 8px - (${stop.position / 100} * 16px))` }}
+                                                onMouseDown={(e) => {
+                                                  e.preventDefault();
+                                                  e.stopPropagation();
+                                                  setActiveStopIdVal(stop.id);
+                                                  const startX = e.clientX;
+                                                  const startPos = stop.position;
+                                                  let hasDragged = false;
+
+                                                  const onMouseMove = (moveEvent: MouseEvent) => {
+                                                    const deltaX = Math.abs(moveEvent.clientX - startX);
+                                                    if (deltaX > 3) {
+                                                      hasDragged = true;
+                                                    }
+
+                                                    const bar = document.getElementById('emphasis-gradient-stops-bar');
+                                                    if (bar) {
+                                                      const rect = bar.getBoundingClientRect();
+                                                      const deltaPercent = ((moveEvent.clientX - startX) / rect.width) * 100;
+                                                      const newPos = Math.max(0, Math.min(100, Math.round(startPos + deltaPercent)));
+                                                      setGradStops(prev => prev.map(s => s.id === stop.id ? { ...s, position: newPos } : s));
+                                                    }
+                                                  };
+
+                                                  const onMouseUp = () => {
+                                                    window.removeEventListener('mousemove', onMouseMove);
+                                                    window.removeEventListener('mouseup', onMouseUp);
+
+                                                    if (!hasDragged) {
+                                                      setOpenStopPickerIdVal(openStopPickerIdVal === stop.id ? null : stop.id);
+                                                    }
+                                                  };
+
+                                                  window.addEventListener('mousemove', onMouseMove);
+                                                  window.addEventListener('mouseup', onMouseUp);
+                                                }}
+                                              >
+                                                {/* Triangle indicator (turns blue on selection) */}
+                                                <div className={`w-0 h-0 border-l-[5px] border-r-[5px] border-b-[6px] border-l-transparent border-r-transparent ${activeStopIdVal === stop.id ? 'border-b-[#3b82f6] scale-125' : 'border-b-[#8a8a8e]'}`} />
+                                                {/* Color circle indicator (turns blue border on selection) */}
+                                                <div className={`w-3.5 h-3.5 rounded-full border-2 ${activeStopIdVal === stop.id ? 'border-[#3b82f6] scale-110 shadow-[0_0_4px_rgba(59,130,246,0.6)]' : 'border-white'} mt-0.5`} style={{ backgroundColor: stop.color }} />
+                                              </div>
+                                            ))}
+                                          </div>
+
+                                          {openStopPickerIdVal !== null && openStopPickerIdVal > 0 && (
+                                            <div className="absolute right-0 bottom-full mb-2 z-50">
+                                              {(() => {
+                                                const activeStop = gradStops.find(s => s.id === openStopPickerIdVal);
+                                                if (!activeStop) return null;
+                                                return (
+                                                  <StopColorPicker
+                                                    color={activeStop.color}
+                                                    opacity={activeStop.opacity}
+                                                    positionPercent={activeStop.position}
+                                                    onColorChange={(newCol: string) => {
+                                                      setGradStops(prev => prev.map(s => s.id === openStopPickerIdVal ? { ...s, color: newCol } : s));
+                                                    }}
+                                                    onOpacityChange={(newOpacity: number) => {
+                                                      setGradStops(prev => prev.map(s => s.id === openStopPickerIdVal ? { ...s, opacity: newOpacity } : s));
+                                                    }}
+                                                    onPositionChange={(newPos: number) => {
+                                                      setGradStops(prev => prev.map(s => s.id === openStopPickerIdVal ? { ...s, position: newPos } : s));
+                                                    }}
+                                                    onRemove={() => {
+                                                      setGradStops(prev => prev.filter(s => s.id !== openStopPickerIdVal));
+                                                      setOpenStopPickerIdVal(null);
+                                                      const remaining = gradStops.filter(s => s.id !== openStopPickerIdVal);
+                                                      if (remaining.length > 0) {
+                                                        setActiveStopIdVal(remaining[0].id);
+                                                      }
+                                                    }}
+                                                    canRemove={gradStops.length > 2}
+                                                  />
+                                                );
+                                              })()}
+                                            </div>
+                                          )}
+
+                                          {/* Angle Slider */}
+                                          <div className="flex items-center justify-between gap-3">
+                                            <span className="text-xs text-[#8a8a8e] w-16">Angle</span>
+                                            <div className="flex-1 flex items-center gap-3">
+                                              <input
+                                                type="range"
+                                                min="0"
+                                                max="360"
+                                                value={gradAngle}
+                                                onChange={(e) => setGradAngle(Number(e.target.value))}
+                                                className="flex-1 accent-[#52c595] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
+                                              />
+                                              <div className="w-12 h-7 bg-[#1a1a1c] border border-[#2a2a2d] rounded-md flex items-center justify-center text-xs text-white">
+                                                {gradAngle}
+                                              </div>
+                                              <button
+                                                onClick={() => setGradAngle(90)}
+                                                className="w-8 h-7 rounded-md bg-[#1a1a1c] border border-[#2a2a2d] flex items-center justify-center text-[#8a8a8e] hover:text-white"
+                                              >
+                                                <RotateCcw className="w-3.5 h-3.5" />
+                                              </button>
+                                            </div>
+                                          </div>
+
+                                          {/* Level Switcher */}
+                                          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2">
+                                            <span className="text-xs text-[#8a8a8e]">Level</span>
+                                            <div className="flex bg-[#1a1a1c] rounded-md border border-[#2a2a2d] p-0.5 w-[140px]">
+                                              <button
+                                                onClick={() => setGradLevel('word')}
+                                                className={`flex-1 py-1 text-[10px] font-semibold rounded-sm flex items-center justify-center gap-1 ${gradLevel === 'word' ? 'bg-[#2a2a2d] text-white shadow' : 'text-[#8a8a8e]'}`}
+                                              >
+                                                Word
+                                              </button>
+                                              <button
+                                                onClick={() => setGradLevel('char')}
+                                                className={`flex-1 py-1 text-[10px] font-semibold rounded-sm flex items-center justify-center gap-1 ${gradLevel === 'char' ? 'bg-[#2a2a2d] text-white shadow' : 'text-[#8a8a8e]'}`}
+                                              >
+                                                Char
+                                              </button>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {/* Color Row (Solid Mode Only) */}
+                                      {mode === 'Solid' && (
+                                        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2 relative">
+                                          <span className="text-xs text-[#8a8a8e]">Color</span>
+                                          <div className="flex items-stretch gap-2">
+                                            <div ref={colorPickerRefVal} className="relative flex-1">
+                                              <div className="bg-[#1a1a1c] border border-[#2a2a2d] rounded-md px-2 py-1.5 flex items-center gap-2 min-w-[120px]">
+                                                <button
+                                                  onClick={() => setOpenStopPickerIdVal(openStopPickerIdVal === -100 ? null : -100)}
+                                                  className="w-6 h-6 rounded border border-[#2a2a2d] bg-transparent overflow-hidden p-0 relative focus:outline-none shrink-0"
+                                                >
+                                                  <div className="w-full h-full rounded" style={{ backgroundColor: colorVal }} />
+                                                </button>
+                                                <input
+                                                  type="text"
+                                                  value={colorVal}
+                                                  onChange={(e) => setColorVal(e.target.value)}
+                                                  className="bg-transparent text-xs font-mono text-white uppercase outline-none w-full border-none p-0 select-text"
+                                                />
+                                              </div>
+
+                                              {openStopPickerIdVal === -100 && (
+                                                <div className="absolute right-0 bottom-full mb-2 z-50">
+                                                  <CustomColorPicker color={colorVal} onChange={setColorVal} />
+                                                </div>
+                                              )}
+                                            </div>
+                                            <button
+                                              onClick={() => setColorVal(isEmp ? '#5E1616' : '#FFFFFF')}
+                                              className="w-8 shrink-0 rounded-md bg-[#1a1a1c] border border-[#2a2a2d] flex items-center justify-center text-[#8a8a8e] hover:text-white self-stretch"
+                                            >
+                                              <RotateCcw className="w-3.5 h-3.5" />
+                                            </button>
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {/* Size Slider */}
+                                      <div className="flex items-center justify-between gap-3 pt-2">
+                                        <span className="text-xs text-[#8a8a8e] w-24">Size</span>
+                                        <div className="flex-1 flex items-center gap-3">
+                                          <input
+                                            type="range"
+                                            min="0.5"
+                                            max="2.5"
+                                            step="0.1"
+                                            value={sizeVal}
+                                            onChange={(e) => setSizeVal(Number(e.target.value))}
+                                            className="flex-1 accent-[#52c595] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
+                                          />
+                                          <div className="w-12 h-7 bg-[#1a1a1c] border border-[#2a2a2d] rounded-md flex items-center justify-center text-xs text-white">
+                                            {sizeVal.toFixed(1)}
+                                          </div>
+                                          <button
+                                            onClick={() => setSizeVal(isEmp ? 1.0 : 1.3)}
+                                            className="w-8 h-7 rounded-md bg-[#1a1a1c] border border-[#2a2a2d] flex items-center justify-center text-[#8a8a8e] hover:text-white"
+                                          >
+                                            <RotateCcw className="w-3.5 h-3.5" />
+                                          </button>
+                                        </div>
+                                      </div>
+
+                                      {/* Glow Row */}
+                                      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2 relative">
+                                        <span className="text-xs text-[#8a8a8e]">Glow</span>
+                                        <div className="flex items-stretch gap-2">
+                                          <div className="relative flex-1">
+                                            <div className="bg-[#1a1a1c] border border-[#2a2a2d] rounded-md px-2 py-1.5 flex items-center gap-2 min-w-[120px]">
+                                              <button
+                                                onClick={() => setOpenStopPickerIdVal(openStopPickerIdVal === -200 ? null : -200)}
+                                                className="w-6 h-6 rounded border border-[#2a2a2d] bg-transparent overflow-hidden p-0 relative focus:outline-none shrink-0"
+                                              >
+                                                <div className="w-full h-full rounded" style={{ backgroundColor: glowVal }} />
+                                              </button>
+                                              <input
+                                                type="text"
+                                                value={glowVal}
+                                                onChange={(e) => setGlowVal(e.target.value)}
+                                                className="bg-transparent text-xs font-mono text-white uppercase outline-none w-full border-none p-0 select-text"
+                                              />
+                                            </div>
+
+                                            {openStopPickerIdVal === -200 && (
+                                              <div className="absolute right-0 bottom-full mb-2 z-50">
+                                                <CustomColorPicker color={glowVal} onChange={setGlowVal} />
+                                              </div>
+                                            )}
+                                          </div>
+                                          <button
+                                            onClick={() => setGlowVal(isEmp ? '#5E1616' : '#FFFFFF')}
+                                            className="w-8 shrink-0 rounded-md bg-[#1a1a1c] border border-[#2a2a2d] flex items-center justify-center text-[#8a8a8e] hover:text-white self-stretch"
+                                          >
+                                            <RotateCcw className="w-3.5 h-3.5" />
+                                          </button>
+                                        </div>
+                                      </div>
+
+                                      {/* Font Row */}
+                                      <div className="flex items-center gap-3">
+                                        <span className="text-xs text-[#8a8a8e] w-[70px]">Font</span>
+                                        <div className="flex-1 flex gap-2">
+                                          <CustomSelect
+                                            value={fontVal}
+                                            options={['Inter', 'Roboto', 'Montserrat', 'Poppins']}
+                                            onChange={setFontVal}
+                                            onHoverChange={setHoveredFontVal}
+                                          />
+                                          <button
+                                            onClick={() => setFontVal('Inter')}
+                                            className="w-8 h-8 shrink-0 rounded-md bg-[#1a1a1c] border border-[#2a2a2d] flex items-center justify-center text-[#8a8a8e] hover:text-white"
+                                          >
+                                            <RotateCcw className="w-3.5 h-3.5" />
+                                          </button>
+                                        </div>
+                                      </div>
+
+                                      {/* Font Face Row */}
+                                      <div className="flex items-center gap-3">
+                                        <span className="text-xs text-[#8a8a8e] w-[70px]">Font Face</span>
+                                        <div className="flex-1 flex gap-2">
+                                          <CustomSelect
+                                            value={fontFaceVal}
+                                            options={[
+                                              'Thin', 'Extra Light', 'Light', 'Regular', 'Medium', 'Semi Bold', 'Bold', 'Extra Bold', 'Black',
+                                              'Thin Italic', 'Extra Light Italic', 'Light Italic', 'Regular Italic', 'Medium Italic', 'Semi Bold Italic', 'Bold Italic', 'Extra Bold Italic', 'Black Italic'
+                                            ]}
+                                            onChange={setFontFaceVal}
+                                            onHoverChange={setHoveredFontFaceVal}
+                                          />
+                                          <button
+                                            onClick={() => setFontFaceVal('Regular Italic')}
+                                            className="w-8 h-8 shrink-0 rounded-md bg-[#1a1a1c] border border-[#2a2a2d] flex items-center justify-center text-[#8a8a8e] hover:text-white"
+                                          >
+                                            <RotateCcw className="w-3.5 h-3.5" />
+                                          </button>
+                                        </div>
+                                      </div>
+
+                                      {/* Styles Row */}
+                                      <div className="flex items-center justify-between gap-3">
+                                        <span className="text-xs text-[#8a8a8e] w-24">Styles</span>
+                                        <div className="flex bg-[#1a1a1c] rounded-md border border-[#2a2a2d] p-0.5 gap-0.5">
+                                          <button
+                                            onClick={() => setStyleFlagsVal(prev => ({ ...prev, uppercase: !prev.uppercase }))}
+                                            className={`w-8 h-7 text-xs font-semibold rounded-md transition-colors ${styleFlagsVal.uppercase ? 'bg-[#2a2a2d] text-white font-bold' : 'text-[#8a8a8e] hover:text-[#e0e0e0]'}`}
+                                          >
+                                            Tt
+                                          </button>
+                                          <button
+                                            onClick={() => setStyleFlagsVal(prev => ({ ...prev, bold: !prev.bold }))}
+                                            className={`w-8 h-7 text-xs font-semibold rounded-md transition-colors ${styleFlagsVal.bold ? 'bg-[#2a2a2d] text-white font-bold' : 'text-[#8a8a8e] hover:text-[#e0e0e0]'}`}
+                                          >
+                                            T
+                                          </button>
+                                          <button
+                                            onClick={() => setStyleFlagsVal(prev => ({ ...prev, italic: !prev.italic }))}
+                                            className={`w-8 h-7 text-xs font-semibold rounded-md transition-colors ${styleFlagsVal.italic ? 'bg-[#2a2a2d] text-white italic' : 'text-[#8a8a8e] hover:text-[#e0e0e0]'}`}
+                                          >
+                                            t
+                                          </button>
+                                          <button
+                                            onClick={() => setStyleFlagsVal(prev => ({ ...prev, underline: !prev.underline }))}
+                                            className={`w-8 h-7 text-xs font-semibold rounded-md transition-colors ${styleFlagsVal.underline ? 'bg-[#2a2a2d] text-white underline' : 'text-[#8a8a8e] hover:text-[#e0e0e0]'}`}
+                                          >
+                                            U
+                                          </button>
+                                        </div>
+                                      </div>
+
+                                    </div>
+                                  );
+                                })()}
+                              </div>
+                            ) : key === 'spacing' ? (
                               <div className="flex flex-col gap-4 mr-2">
                                 {/* Letter Spacing */}
                                 <div className="flex items-center justify-between gap-3">

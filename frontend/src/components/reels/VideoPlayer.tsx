@@ -11,6 +11,7 @@ export interface CaptionItem {
   start: number;
   end: number;
   text: string;
+  words?: any[];
 }
 
 interface CustomPlayerUIProps {
@@ -61,6 +62,33 @@ interface CustomPlayerUIProps {
   durationRef?: React.MutableRefObject<number>;
   togglePlayRef?: React.MutableRefObject<(() => void) | null>;
   aiAudioClean?: boolean;
+  
+  // Emphasis props
+  emphasisMode?: string;
+  emphasisColor?: string;
+  emphasisSize?: number;
+  emphasisGlow?: string;
+  emphasisFont?: string;
+  emphasisFontFace?: string;
+  emphasisStyles?: { uppercase: boolean; bold: boolean; italic: boolean; underline: boolean };
+  emphasisGradientStops?: any[];
+  emphasisGradientAngle?: number;
+  emphasisGradientLevel?: 'word' | 'char';
+  spotlightMode?: string;
+  spotlightColor?: string;
+  spotlightSize?: number;
+  spotlightGlow?: string;
+  spotlightFont?: string;
+  spotlightFontFace?: string;
+  spotlightStyles?: { uppercase: boolean; bold: boolean; italic: boolean; underline: boolean };
+  spotlightGradientStops?: any[];
+  spotlightGradientAngle?: number;
+  spotlightGradientLevel?: 'word' | 'char';
+  removeEmphasis?: boolean;
+  hoveredEmphasisFontFamily?: string | null;
+  hoveredEmphasisFontFace?: string | null;
+  hoveredSpotlightFontFamily?: string | null;
+  hoveredSpotlightFontFace?: string | null;
 }
 
 function CustomPlayerUI({ 
@@ -107,8 +135,69 @@ function CustomPlayerUI({
   currentTimeRef,
   durationRef,
   togglePlayRef,
-  aiAudioClean = false
+  aiAudioClean = false,
+
+  emphasisMode = 'Solid',
+  emphasisColor = '#5E1616',
+  emphasisSize = 1.0,
+  emphasisGlow = '#5E1616',
+  emphasisFont = 'Inter',
+  emphasisFontFace = 'Regular Italic',
+  emphasisStyles = { uppercase: false, bold: false, italic: true, underline: false },
+  emphasisGradientStops = [],
+  emphasisGradientAngle = 90,
+  emphasisGradientLevel = 'word',
+  spotlightMode = 'Solid',
+  spotlightColor = '#FFFFFF',
+  spotlightSize = 1.3,
+  spotlightGlow = '#FFFFFF',
+  spotlightFont = 'Inter',
+  spotlightFontFace = 'Regular Italic',
+  spotlightStyles = { uppercase: false, bold: false, italic: true, underline: false },
+  spotlightGradientStops = [],
+  spotlightGradientAngle = 90,
+  spotlightGradientLevel = 'word',
+  removeEmphasis = false,
+  hoveredEmphasisFontFamily = null,
+  hoveredEmphasisFontFace = null,
+  hoveredSpotlightFontFamily = null,
+  hoveredSpotlightFontFace = null
 }: CustomPlayerUIProps) {
+  const mapFontFaceToCss = (face: string) => {
+    const weightMap: Record<string, string> = {
+      'thin': '100',
+      'extra light': '200',
+      'light': '300',
+      'regular': '400',
+      'medium': '500',
+      'semi bold': '600',
+      'bold': '700',
+      'extra bold': '800',
+      'black': '900',
+    };
+    const lower = face.toLowerCase();
+    let weight = '400';
+    let style = 'normal';
+    
+    Object.keys(weightMap).forEach(k => {
+      if (lower.includes(k)) {
+        weight = weightMap[k];
+      }
+    });
+    if (lower.includes('italic')) {
+      style = 'italic';
+    }
+    return { fontWeight: weight, fontStyle: style };
+  };
+
+  const buildGradientStr = (angle: number, stops: any[]) => {
+    if (!stops || stops.length === 0) return 'none';
+    return `linear-gradient(${angle}deg, ${[...stops]
+      .sort((a, b) => a.position - b.position)
+      .map((s) => `${s.color} ${s.position}%`)
+      .join(', ')})`;
+  };
+
   const audioCtxRef = useRef<AudioContext | null>(null);
   const audioSourceRef = useRef<MediaElementAudioSourceNode | null>(null);
   const filtersRef = useRef<{
@@ -562,13 +651,126 @@ function CustomPlayerUI({
                 const wEnd = wStart + chunkDur;
                 isHighlight = smoothTime >= wStart && smoothTime <= wEnd;
               }
+              const isEmphasized = wordObj && wordObj.emphasis && !removeEmphasis;
+              const isSpotlighted = wordObj && wordObj.spotlight && !removeEmphasis;
+
               const numLines = linesMode ? parseInt(linesMode.split(' ')[0]) : 1;
               const wordsPerLine = numLines > 1 ? Math.ceil(wordsArr.length / numLines) : wordsArr.length + 1;
               const isNewLine = numLines > 1 && wordIndex > 0 && wordIndex % wordsPerLine === 0;
 
               let wordElement;
 
-              if (colorToggle === 'Gradient') {
+              if (isEmphasized || isSpotlighted) {
+                const styleConfig = isEmphasized ? {
+                  mode: emphasisMode,
+                  color: emphasisColor,
+                  size: emphasisSize,
+                  glow: emphasisGlow,
+                  font: emphasisFont,
+                  fontFace: emphasisFontFace,
+                  styles: emphasisStyles,
+                  stops: emphasisGradientStops,
+                  angle: emphasisGradientAngle,
+                  level: emphasisGradientLevel
+                } : {
+                  mode: spotlightMode,
+                  color: spotlightColor,
+                  size: spotlightSize,
+                  glow: spotlightGlow,
+                  font: spotlightFont,
+                  fontFace: spotlightFontFace,
+                  styles: spotlightStyles,
+                  stops: spotlightGradientStops,
+                  angle: spotlightGradientAngle,
+                  level: spotlightGradientLevel
+                };
+
+                const activeFont = isEmphasized 
+                  ? (hoveredEmphasisFontFamily || styleConfig.font) 
+                  : (hoveredSpotlightFontFamily || styleConfig.font);
+                const activeFontFace = isEmphasized 
+                  ? (hoveredEmphasisFontFace || styleConfig.fontFace) 
+                  : (hoveredSpotlightFontFace || styleConfig.fontFace);
+
+                const fontCss = mapFontFaceToCss(activeFontFace);
+                const sizePx = fontSize * styleConfig.size;
+                
+                let wordStyle = '';
+                wordStyle += `font-size: ${sizePx}px !important;`;
+                wordStyle += `font-family: ${activeFont} !important;`;
+                wordStyle += `font-weight: ${styleConfig.styles.bold ? 'bold' : fontCss.fontWeight} !important;`;
+                wordStyle += `font-style: ${styleConfig.styles.italic ? 'italic' : fontCss.fontStyle} !important;`;
+                wordStyle += `text-decoration: ${styleConfig.styles.underline ? 'underline' : 'none'} !important;`;
+                wordStyle += `text-transform: ${styleConfig.styles.uppercase ? 'uppercase' : 'none'} !important;`;
+                
+                if (styleConfig.glow) {
+                  wordStyle += `text-shadow: 0 0 6px ${styleConfig.glow}, 0 0 12px ${styleConfig.glow} !important;`;
+                } else if (shadowEnabled) {
+                  wordStyle += `text-shadow: ${shadowCSS} !important;`;
+                }
+
+                if (strokeEnabled) {
+                  wordStyle += `-webkit-text-stroke: ${strokeCSS} !important;`;
+                }
+
+                const uniqueClass = `word-emphasis-${wordIndex}`;
+
+                if (styleConfig.mode === 'Gradient') {
+                  const wordGradientStr = buildGradientStr(styleConfig.angle, styleConfig.stops);
+                  if (styleConfig.level === 'char') {
+                    wordElement = (
+                      <span key={wordIndex} className="inline-block mr-1.5 whitespace-nowrap">
+                        {word.split('').map((char, charIndex) => {
+                          const charClass = `${uniqueClass}-${charIndex}`;
+                          return (
+                            <span key={charIndex} className={`${charClass} inline-block`}>
+                              <style>{`
+                                .${charClass} {
+                                  ${wordStyle}
+                                  background: ${wordGradientStr} !important;
+                                  -webkit-background-clip: text !important;
+                                  background-clip: text !important;
+                                  -webkit-text-fill-color: transparent !important;
+                                  color: transparent !important;
+                                }
+                              `}</style>
+                              {char}
+                            </span>
+                          );
+                        })}
+                      </span>
+                    );
+                  } else {
+                    wordElement = (
+                      <span key={wordIndex} className={`${uniqueClass} inline-block mr-1.5`}>
+                        <style>{`
+                          .${uniqueClass} {
+                            ${wordStyle}
+                            background: ${wordGradientStr} !important;
+                            -webkit-background-clip: text !important;
+                            background-clip: text !important;
+                            -webkit-text-fill-color: transparent !important;
+                            color: transparent !important;
+                          }
+                        `}</style>
+                        {word}
+                      </span>
+                    );
+                  }
+                } else {
+                  wordStyle += `color: ${styleConfig.color} !important;`;
+                  wordElement = (
+                    <span key={wordIndex} className={`${uniqueClass} inline-block mr-1.5`}>
+                      <style>{`
+                        .${uniqueClass} {
+                          ${wordStyle}
+                        }
+                      `}</style>
+                      {word}
+                    </span>
+                  );
+                }
+              } else if (colorToggle === 'Gradient') {
                 if (gradientLevel === 'char') {
                   wordElement = (
                     <span key={wordIndex} className="inline-block mr-1.5 whitespace-nowrap">
@@ -730,7 +932,29 @@ export function VideoPlayer({
   linesMode,
   currentTimeRef,
   durationRef,
-  aiAudioClean
+  aiAudioClean,
+
+  emphasisMode,
+  emphasisColor,
+  emphasisSize,
+  emphasisGlow,
+  emphasisFont,
+  emphasisFontFace,
+  emphasisStyles,
+  emphasisGradientStops,
+  emphasisGradientAngle,
+  emphasisGradientLevel,
+  spotlightMode,
+  spotlightColor,
+  spotlightSize,
+  spotlightGlow,
+  spotlightFont,
+  spotlightFontFace,
+  spotlightStyles,
+  spotlightGradientStops,
+  spotlightGradientAngle,
+  spotlightGradientLevel,
+  removeEmphasis
 }: any) {
   return (
     <Panel defaultSize={40} minSize={20} className="flex flex-col bg-[#0f0f11] relative overflow-hidden rounded-xl border border-[#2a2a2d] custom-player-wrapper">
@@ -782,6 +1006,28 @@ export function VideoPlayer({
                 currentTimeRef={currentTimeRef}
                 durationRef={durationRef}
                 aiAudioClean={aiAudioClean}
+
+                emphasisMode={emphasisMode}
+                emphasisColor={emphasisColor}
+                emphasisSize={emphasisSize}
+                emphasisGlow={emphasisGlow}
+                emphasisFont={emphasisFont}
+                emphasisFontFace={emphasisFontFace}
+                emphasisStyles={emphasisStyles}
+                emphasisGradientStops={emphasisGradientStops}
+                emphasisGradientAngle={emphasisGradientAngle}
+                emphasisGradientLevel={emphasisGradientLevel}
+                spotlightMode={spotlightMode}
+                spotlightColor={spotlightColor}
+                spotlightSize={spotlightSize}
+                spotlightGlow={spotlightGlow}
+                spotlightFont={spotlightFont}
+                spotlightFontFace={spotlightFontFace}
+                spotlightStyles={spotlightStyles}
+                spotlightGradientStops={spotlightGradientStops}
+                spotlightGradientAngle={spotlightGradientAngle}
+                spotlightGradientLevel={spotlightGradientLevel}
+                removeEmphasis={removeEmphasis}
               />
             </LimeplayPlayer>
           </div>
