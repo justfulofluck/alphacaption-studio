@@ -1867,7 +1867,7 @@ export function ReelEditor() {
   };
 
   return (
-    <div className="relative flex h-full w-full bg-[#000000] text-[#e0e0e0] font-sans overflow-hidden">
+    <div className="relative flex h-screen max-h-screen w-full bg-[#000000] text-[#e0e0e0] font-sans overflow-hidden">
 
       {/* Transcription Mode Selection Modal */}
       {showModeModal && (
@@ -2026,7 +2026,7 @@ export function ReelEditor() {
       )}
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 h-full p-2">
+      <div className="flex-1 flex flex-col min-w-0 h-full max-h-full overflow-hidden p-2">
         <PanelGroup orientation="horizontal">
 
           {/* LEFT COLUMN: Captions + Timeline */}
