@@ -93,7 +93,7 @@ export function SiteHeader({ user }: { user?: { name: string; avatar?: string; e
   };
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 w-full items-center gap-4 border-b border-white/5 bg-[#050505]/80 backdrop-blur-xl px-4 md:px-6 shrink-0 shadow-xl transition-colors duration-300">
+    <header className="sticky top-0 z-40 flex h-16 w-full items-center gap-4 border-b border-[#2A2A2D] bg-[#1A1A1C]/80 backdrop-blur-xl px-4 md:px-6 shrink-0 shadow-xl transition-colors duration-300">
       <div className="flex items-center gap-4">
         <SidebarTrigger className="-ml-1" />
         <Separator orientation="vertical" className="mr-2 h-4 hidden md:block" />
@@ -110,7 +110,7 @@ export function SiteHeader({ user }: { user?: { name: string; avatar?: string; e
             <button className="relative flex h-9 w-9 items-center justify-center rounded-full text-zinc-500 hover:text-white transition-colors outline-none focus:bg-white/5">
               <BellIcon size={18} />
               {unreadCount > 0 && (
-                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-[#050505] animate-pulse" />
+                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-[#1A1A1C] animate-pulse" />
               )}
             </button>
           </DropdownMenuTrigger>

@@ -224,7 +224,7 @@ function Layout() {
           {!isFullPageLayout && <SiteHeader user={{ name: user?.name || "User", avatar: user?.avatar }} />}
           <main className={cn(
             "flex-1 transition-colors duration-500",
-            location.pathname === "/" ? "bg-[#050505]" : "bg-background",
+            location.pathname === "/" ? "bg-[#0F0F11]" : "bg-background",
             isFullPageLayout ? "h-screen overflow-hidden" : "overflow-auto"
           )}>
             <Outlet context={{ isLoggedIn, setIsLoggedIn }} />

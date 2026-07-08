@@ -87,7 +87,7 @@ export function StudioSidebar({ user, ...props }: StudioSidebarProps) {
 
 
   return (
-    <Sidebar collapsible="icon" {...props} className="border-r border-white/5 bg-[#0a0a0a]">
+    <Sidebar collapsible="icon" {...props} className="border-r border-[#2A2A2D] bg-[#161618]">
       <SidebarHeader className="pt-4 group-data-[collapsible=icon]:p-2">
         <SidebarMenu>
           <SidebarMenuItem>
