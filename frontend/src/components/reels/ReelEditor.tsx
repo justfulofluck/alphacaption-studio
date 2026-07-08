@@ -1265,22 +1265,35 @@ export function ReelEditor() {
   };
 
   const generateWordsForChunk = (c: any, cIdx?: number) => {
-    if (c.words && c.words.length > 0) return c;
-    const wordsList = (c.text || '').split(/\s+/).filter((w: string) => w.trim().length > 0);
-    const duration = c.end - c.start;
+    const chunk = { ...c };
+    if (!chunk.id) {
+      chunk.id = cIdx !== undefined ? cIdx + 1 : (Date.now() + Math.random());
+    }
+    if (chunk.words && chunk.words.length > 0) {
+      chunk.words = chunk.words.map((w: any, i: number) => {
+        const wordCopy = { ...w };
+        if (!wordCopy.id) {
+          wordCopy.id = `w-${chunk.id}-${i}`;
+        }
+        return wordCopy;
+      });
+      return chunk;
+    }
+    const wordsList = (chunk.text || '').split(/\s+/).filter((w: string) => w.trim().length > 0);
+    const duration = chunk.end - chunk.start;
     const timePerWord = duration / Math.max(1, wordsList.length);
     const words = wordsList.map((w: string, i: number) => {
       const hasPunctuation = /[.,!?]/.test(w);
       const gapRatio = hasPunctuation ? 0.4 : 0.15;
       const gapTime = timePerWord * gapRatio;
       return {
-        id: `w-${c.id ?? cIdx ?? Date.now()}-${i}`,
+        id: `w-${chunk.id}-${i}`,
         text: w,
-        start: c.start + i * timePerWord,
-        end: c.start + (i + 1) * timePerWord - gapTime
+        start: chunk.start + i * timePerWord,
+        end: chunk.start + (i + 1) * timePerWord - gapTime
       };
     });
-    return { ...c, words };
+    return { ...chunk, words };
   };
 
   const handleToggleWordEmphasis = (captionId: number, wordIndex: number) => {
