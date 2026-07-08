@@ -2525,15 +2525,7 @@ export function ReelEditor() {
                             </div>
                           )}
 
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditingCaptionId(caption.id);
-                            }}
-                            className="opacity-0 group-hover:opacity-100 p-1 text-[#8a8a8e] hover:text-white transition-opacity shrink-0"
-                          >
-                            <SplitSquareHorizontal className="w-4 h-4" />
-                          </button>
+
                         </div>
                       );
                     })}
