@@ -2034,7 +2034,7 @@ export function ReelEditor() {
             <PanelGroup orientation="vertical">
 
               {/* TOP: Captions List */}
-              <Panel defaultSize={68} minSize={30} className="flex flex-row overflow-hidden relative rounded-xl border border-[#2a2a2d] bg-[#1a1a1c]">
+              <Panel defaultSize={60} minSize={30} className="flex flex-row overflow-hidden relative rounded-xl border border-[#2a2a2d] bg-[#1a1a1c]">
 
                 {/* Vertical Menu (Moved inside) */}
                 <div className="w-[72px] flex flex-col items-center py-6 gap-8 border-r border-[#2a2a2d] bg-[#161618] h-full shrink-0 z-20">
@@ -2786,7 +2786,7 @@ export function ReelEditor() {
               <PanelResizeHandle className="h-2 bg-transparent cursor-row-resize relative z-10 hover:bg-[#2a2a2d] transition-colors rounded-full my-0.5 mx-2" />
 
               {/* BOTTOM: Timeline Area */}
-              <Panel defaultSize={32} minSize={15} className="bg-[#161618] flex flex-col relative overflow-hidden rounded-xl border border-[#2a2a2d]">
+              <Panel defaultSize={40} minSize={15} className="bg-[#161618] flex flex-col relative overflow-hidden rounded-xl border border-[#2a2a2d]">
                 {/* Timeline Toolbar */}
                 <div className="h-10 border-b border-[#2a2a2d] flex items-center px-4 justify-between bg-[#1a1a1c] shrink-0">
                   <div className="flex items-center gap-4">
