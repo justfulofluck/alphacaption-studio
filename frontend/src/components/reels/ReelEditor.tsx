@@ -340,7 +340,7 @@ const StopColorPicker: React.FC<StopColorPickerProps> = ({
           max="100"
           value={opacity}
           onChange={(e) => onOpacityChange(parseInt(e.target.value))}
-          className="w-full accent-[#52c595] cursor-pointer h-1 bg-[#2a2a2d] rounded-lg appearance-none"
+          className="w-full accent-[#ff7800] cursor-pointer h-1 bg-[#2a2a2d] rounded-lg appearance-none"
         />
       </div>
 
@@ -404,7 +404,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, options, onChange, o
     <div ref={containerRef} className="relative flex-1">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full bg-[#1a1a1c] border border-[#2a2a2d] rounded-md px-3 py-1.5 text-xs font-medium text-white flex items-center justify-between outline-none focus:border-[#52c595] text-left min-h-[32px] select-none"
+        className="w-full bg-[#1a1a1c] border border-[#2a2a2d] rounded-md px-3 py-1.5 text-xs font-medium text-white flex items-center justify-between outline-none focus:border-[#ff7800] text-left min-h-[32px] select-none"
       >
         <div className="flex items-center gap-2">
           {icon && <span className="text-[#8a8a8e]">{icon}</span>}
@@ -429,7 +429,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, options, onChange, o
               }}
               onMouseEnter={() => onHoverChange && onHoverChange(option)}
               onMouseLeave={() => onHoverChange && onHoverChange(null)}
-              className={`w-full text-left px-3 py-1.5 text-xs transition-colors hover:bg-[#2a2a2d] hover:text-white ${option === value ? 'bg-[#52c595]/20 text-[#52c595] font-semibold' : 'text-[#8a8a8e]'}`}
+              className={`w-full text-left px-3 py-1.5 text-xs transition-colors hover:bg-[#2a2a2d] hover:text-white ${option === value ? 'bg-[#ff7800]/20 text-[#ff7800] font-semibold' : 'text-[#8a8a8e]'}`}
             >
               {option}
             </button>
@@ -1883,7 +1883,7 @@ export function ReelEditor() {
               <select
                 value={transcriptionMode}
                 onChange={(e) => setTranscriptionMode(e.target.value)}
-                className="w-full bg-[#2a2a2d] border border-white/10 text-white px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest outline-none focus:ring-1 focus:ring-[#52c595] cursor-pointer"
+                className="w-full bg-[#2a2a2d] border border-white/10 text-white px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest outline-none focus:ring-1 focus:ring-[#ff7800] cursor-pointer"
               >
                 <option value="native_language" className="bg-zinc-900 text-white">Native Language</option>
                 <option value="native_english" className="bg-zinc-900 text-white">Native+English</option>
@@ -1903,7 +1903,7 @@ export function ReelEditor() {
               </button>
               <button
                 onClick={startUpload}
-                className="flex-1 py-2.5 bg-[#52c595] hover:bg-[#43b384] text-black font-semibold text-xs rounded-xl transition-colors focus:outline-none"
+                className="flex-1 py-2.5 bg-[#ff7800] hover:bg-[#ff8c24] text-black font-semibold text-xs rounded-xl transition-colors focus:outline-none"
               >
                 Start Upload
               </button>
@@ -1918,7 +1918,7 @@ export function ReelEditor() {
           <div className="w-[360px] bg-[#161618] border border-[#2a2a2d] rounded-2xl p-6 flex flex-col gap-6 shadow-2xl">
             {uploadStage === 'success' ? (
               <div className="flex flex-col items-center gap-4 py-4 text-center">
-                <div className="w-12 h-12 rounded-full bg-[#52c595]/15 flex items-center justify-center text-[#52c595] text-xl font-bold">
+                <div className="w-12 h-12 rounded-full bg-[#ff7800]/15 flex items-center justify-center text-[#ff7800] text-xl font-bold">
                   ✓
                 </div>
                 <div className="flex flex-col gap-1">
@@ -1927,7 +1927,7 @@ export function ReelEditor() {
                 </div>
                 <button
                   onClick={() => setUploadStage('idle')}
-                  className="mt-2 w-full py-2 bg-[#52c595] hover:bg-[#43b384] text-black font-semibold text-xs rounded-lg transition-colors focus:outline-none"
+                  className="mt-2 w-full py-2 bg-[#ff7800] hover:bg-[#ff8c24] text-black font-semibold text-xs rounded-lg transition-colors focus:outline-none"
                 >
                   Okay
                 </button>
@@ -1961,9 +1961,9 @@ export function ReelEditor() {
                     <div className="flex items-center gap-3">
                       <div className="w-5 h-5 flex items-center justify-center">
                         {uploadStage === 'upload' ? (
-                          <div className="w-3.5 h-3.5 border-2 border-t-transparent border-[#52c595] rounded-full animate-spin" />
+                          <div className="w-3.5 h-3.5 border-2 border-t-transparent border-[#ff7800] rounded-full animate-spin" />
                         ) : (
-                          <span className="text-[#52c595] font-bold text-sm">✓</span>
+                          <span className="text-[#ff7800] font-bold text-sm">✓</span>
                         )}
                       </div>
                       <span className={uploadStage === 'upload' ? 'text-white font-medium' : 'text-[#8a8a8e]'}>
@@ -1971,7 +1971,7 @@ export function ReelEditor() {
                       </span>
                     </div>
                     {uploadStage === 'upload' && (
-                      <span className="text-[#52c595] font-mono font-semibold">{uploadProgress}%</span>
+                      <span className="text-[#ff7800] font-mono font-semibold">{uploadProgress}%</span>
                     )}
                   </div>
 
@@ -1979,7 +1979,7 @@ export function ReelEditor() {
                   {uploadStage === 'upload' && (
                     <div className="w-full bg-[#2a2a2d] h-1.5 rounded-full overflow-hidden">
                       <div
-                        className="bg-[#52c595] h-full rounded-full transition-all duration-300"
+                        className="bg-[#ff7800] h-full rounded-full transition-all duration-300"
                         style={{ width: `${uploadProgress}%` }}
                       />
                     </div>
@@ -1992,9 +1992,9 @@ export function ReelEditor() {
                         {uploadStage === 'upload' ? (
                           <div className="w-1.5 h-1.5 rounded-full bg-[#2a2a2d]" />
                         ) : uploadStage === 'processing' ? (
-                          <div className="w-3.5 h-3.5 border-2 border-t-transparent border-[#52c595] rounded-full animate-spin" />
+                          <div className="w-3.5 h-3.5 border-2 border-t-transparent border-[#ff7800] rounded-full animate-spin" />
                         ) : (
-                          <span className="text-[#52c595] font-bold text-sm">✓</span>
+                          <span className="text-[#ff7800] font-bold text-sm">✓</span>
                         )}
                       </div>
                       <span className={uploadStage === 'processing' ? 'text-white font-medium' : 'text-[#8a8a8e]'}>
@@ -2008,7 +2008,7 @@ export function ReelEditor() {
                     <div className="flex items-center gap-3">
                       <div className="w-5 h-5 flex items-center justify-center">
                         {uploadStage === 'transcribing' ? (
-                          <div className="w-3.5 h-3.5 border-2 border-t-transparent border-[#52c595] rounded-full animate-spin" />
+                          <div className="w-3.5 h-3.5 border-2 border-t-transparent border-[#ff7800] rounded-full animate-spin" />
                         ) : (
                           <div className="w-1.5 h-1.5 rounded-full bg-[#2a2a2d]" />
                         )}
@@ -2065,28 +2065,28 @@ export function ReelEditor() {
                   </button>
                   <button
                     onClick={() => setActiveTabLeft('captions')}
-                    className={`flex flex-col items-center gap-1.5 transition-colors ${activeTabLeft === 'captions' ? 'text-[#52c595]' : 'text-[#8a8a8e] hover:text-[#e0e0e0]'}`}
+                    className={`flex flex-col items-center gap-1.5 transition-colors ${activeTabLeft === 'captions' ? 'text-[#ff7800]' : 'text-[#8a8a8e] hover:text-[#e0e0e0]'}`}
                   >
-                    <div className={`p-2 rounded-lg ${activeTabLeft === 'captions' ? 'bg-[#52c595]/10' : ''}`}>
+                    <div className={`p-2 rounded-lg ${activeTabLeft === 'captions' ? 'bg-[#ff7800]/10' : ''}`}>
                       <SplitSquareHorizontal className="w-5 h-5" />
                     </div>
                     <span className="text-[10px] font-medium text-center leading-none">Captions</span>
                   </button>
                   <button
                     onClick={() => setActiveTabLeft('fonts')}
-                    className={`flex flex-col items-center gap-1.5 transition-colors ${activeTabLeft === 'fonts' ? 'text-[#52c595]' : 'text-[#8a8a8e] hover:text-[#e0e0e0]'}`}
+                    className={`flex flex-col items-center gap-1.5 transition-colors ${activeTabLeft === 'fonts' ? 'text-[#ff7800]' : 'text-[#8a8a8e] hover:text-[#e0e0e0]'}`}
                   >
-                    <div className={`p-2 rounded-lg ${activeTabLeft === 'fonts' ? 'bg-[#52c595]/10' : ''}`}>
+                    <div className={`p-2 rounded-lg ${activeTabLeft === 'fonts' ? 'bg-[#ff7800]/10' : ''}`}>
                       <Type className="w-5 h-5" />
                     </div>
                     <span className="text-[10px] font-medium text-center leading-tight">Custom<br />Fonts</span>
                   </button>
                   <button
                     onClick={() => setActiveTabLeft('audio')}
-                    className={`flex flex-col items-center gap-1.5 transition-colors relative ${activeTabLeft === 'audio' ? 'text-[#52c595]' : 'text-[#8a8a8e] hover:text-[#e0e0e0]'}`}
+                    className={`flex flex-col items-center gap-1.5 transition-colors relative ${activeTabLeft === 'audio' ? 'text-[#ff7800]' : 'text-[#8a8a8e] hover:text-[#e0e0e0]'}`}
                   >
                     <span className="absolute -top-3 text-[8px] bg-[#2a2a2d] px-1 rounded text-[#8a8a8e]">Soon</span>
-                    <div className={`p-2 rounded-lg ${activeTabLeft === 'audio' ? 'bg-[#52c595]/10' : ''}`}>
+                    <div className={`p-2 rounded-lg ${activeTabLeft === 'audio' ? 'bg-[#ff7800]/10' : ''}`}>
                       <Music className="w-5 h-5" />
                     </div>
                     <span className="text-[10px] font-medium text-center leading-none">Audio</span>
@@ -2101,13 +2101,13 @@ export function ReelEditor() {
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => setShowSearchReplace(!showSearchReplace)}
-                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${showSearchReplace ? 'bg-[#52c595] text-[#111111]' : 'bg-[#2a2a2d] hover:bg-[#3a3a3d] text-[#8a8a8e]'}`}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${showSearchReplace ? 'bg-[#ff7800] text-[#111111]' : 'bg-[#2a2a2d] hover:bg-[#3a3a3d] text-[#8a8a8e]'}`}
                       >
                         <Search className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => setShowCaptionTools(!showCaptionTools)}
-                        className={`h-8 px-3 rounded-md flex items-center gap-2 text-xs font-semibold transition-colors border border-[#52c595]/20 ${showCaptionTools ? 'bg-[#222225] text-[#52c595]' : 'bg-[#2a2a2d] hover:bg-[#3a3a3d] text-[#52c595]'}`}
+                        className={`h-8 px-3 rounded-md flex items-center gap-2 text-xs font-semibold transition-colors border border-[#ff7800]/20 ${showCaptionTools ? 'bg-[#222225] text-[#ff7800]' : 'bg-[#2a2a2d] hover:bg-[#3a3a3d] text-[#ff7800]'}`}
                       >
                         <Settings className="w-3.5 h-3.5" /> Caption Tools {showCaptionTools && <ChevronUp className="w-3.5 h-3.5" />}
                       </button>
@@ -2137,7 +2137,7 @@ export function ReelEditor() {
 
                         <div className="flex flex-col gap-1.5 relative">
                           <label className="text-[10px] text-[#8a8a8e]">Max Chars</label>
-                          <div className="flex bg-[#1a1a1c] border border-[#2a2a2d] rounded-md overflow-hidden focus-within:border-[#52c595] min-h-[32px]">
+                          <div className="flex bg-[#1a1a1c] border border-[#2a2a2d] rounded-md overflow-hidden focus-within:border-[#ff7800] min-h-[32px]">
                             <div className="flex items-center justify-center pl-3 pr-2 text-[#8a8a8e]">
                               <Type className="w-3.5 h-3.5" />
                             </div>
@@ -2202,7 +2202,7 @@ export function ReelEditor() {
                           </div>
                           <button 
                             onClick={() => setRemovePunctuation(!removePunctuation)}
-                            className={`w-10 h-5 rounded-full relative transition-colors ${removePunctuation ? 'bg-[#52c595]' : 'bg-[#2a2a2d]'}`}
+                            className={`w-10 h-5 rounded-full relative transition-colors ${removePunctuation ? 'bg-[#ff7800]' : 'bg-[#2a2a2d]'}`}
                           >
                             <div className={`w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all`} style={{ left: removePunctuation ? '22px' : '2px' }} />
                           </button>
@@ -2221,7 +2221,7 @@ export function ReelEditor() {
                           </div>
                           <button 
                             onClick={() => setRemoveEmphasis(!removeEmphasis)}
-                            className={`w-10 h-5 rounded-full relative transition-colors ${removeEmphasis ? 'bg-[#52c595]' : 'bg-[#2a2a2d]'}`}
+                            className={`w-10 h-5 rounded-full relative transition-colors ${removeEmphasis ? 'bg-[#ff7800]' : 'bg-[#2a2a2d]'}`}
                           >
                             <div className={`w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all`} style={{ left: removeEmphasis ? '22px' : '2px' }} />
                           </button>
@@ -2240,7 +2240,7 @@ export function ReelEditor() {
                           </div>
                           <button 
                             onClick={() => setRemoveGaps(!removeGaps)}
-                            className={`w-10 h-5 rounded-full relative transition-colors ${removeGaps ? 'bg-[#52c595]' : 'bg-[#2a2a2d]'}`}
+                            className={`w-10 h-5 rounded-full relative transition-colors ${removeGaps ? 'bg-[#ff7800]' : 'bg-[#2a2a2d]'}`}
                           >
                             <div className={`w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all`} style={{ left: removeGaps ? '22px' : '2px' }} />
                           </button>
@@ -2259,7 +2259,7 @@ export function ReelEditor() {
                           </div>
                           <button 
                             onClick={() => setRemoveEmojis(!removeEmojis)}
-                            className={`w-10 h-5 rounded-full relative transition-colors ${removeEmojis ? 'bg-[#52c595]' : 'bg-[#2a2a2d]'} opacity-50`}
+                            className={`w-10 h-5 rounded-full relative transition-colors ${removeEmojis ? 'bg-[#ff7800]' : 'bg-[#2a2a2d]'} opacity-50`}
                           >
                             <div className={`w-4 h-4 rounded-full bg-[#8a8a8e] absolute top-0.5 transition-all`} style={{ left: removeEmojis ? '22px' : '2px' }} />
                           </button>
@@ -2302,7 +2302,7 @@ export function ReelEditor() {
                             onChange={(e) => setCaptionDelay(parseFloat(e.target.value))}
                             onMouseUp={applyCaptionDelay}
                             onPointerUp={applyCaptionDelay}
-                            className="flex-1 accent-[#52c595] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
+                            className="flex-1 accent-[#ff7800] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
                           />
                           <span className="text-[10px] text-[#8a8a8e] w-6">+5s</span>
                         </div>
@@ -2333,7 +2333,7 @@ export function ReelEditor() {
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Search captions..."
-                            className="w-full bg-transparent border border-[#52c595] rounded-lg pl-3 pr-24 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#52c595]"
+                            className="w-full bg-transparent border border-[#ff7800] rounded-lg pl-3 pr-24 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#ff7800]"
                           />
                           <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-3 text-xs text-[#8a8a8e]">
                             <span>Aa</span>
@@ -2353,14 +2353,14 @@ export function ReelEditor() {
                           value={replaceQuery}
                           onChange={(e) => setReplaceQuery(e.target.value)}
                           placeholder="Type replacement..."
-                          className="w-full bg-[#1a1a1c] border border-[#2a2a2d] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#52c595] transition-colors"
+                          className="w-full bg-[#1a1a1c] border border-[#2a2a2d] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#ff7800] transition-colors"
                         />
                       </div>
 
                       <div className="flex justify-between items-center mt-2">
                         {searchQuery && allMatches.length > 0 ? (
-                          <div className="flex items-center gap-1.5 text-xs text-[#52c595] font-semibold">
-                            <div className="w-1.5 h-1.5 rounded-full bg-[#52c595]" /> {allMatches.length} matches available
+                          <div className="flex items-center gap-1.5 text-xs text-[#ff7800] font-semibold">
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#ff7800]" /> {allMatches.length} matches available
                           </div>
                         ) : (
                           <span className="text-[10px] text-[#8a8a8e] italic">Enter text to search</span>
@@ -2376,7 +2376,7 @@ export function ReelEditor() {
                           <button
                             onClick={handleReplace}
                             disabled={!searchQuery || allMatches.length === 0}
-                            className="px-6 py-1.5 rounded-md bg-[#52c595] hover:bg-[#43b384] text-[#111111] text-xs font-bold transition-colors disabled:opacity-50 flex items-center gap-1"
+                            className="px-6 py-1.5 rounded-md bg-[#ff7800] hover:bg-[#ff8c24] text-[#111111] text-xs font-bold transition-colors disabled:opacity-50 flex items-center gap-1"
                           >
                             Replace <span>↵</span>
                           </button>
@@ -2398,7 +2398,7 @@ export function ReelEditor() {
                         >
                           <div className="flex items-center justify-center shrink-0 mt-1 w-6 h-6 select-none">
                             {isActive ? (
-                              <span className="text-xs font-bold w-6 h-6 rounded-full bg-[#52c595] text-[#161618] flex items-center justify-center">
+                              <span className="text-xs font-bold w-6 h-6 rounded-full bg-[#ff7800] text-[#161618] flex items-center justify-center">
                                 {i + 1}
                               </span>
                             ) : (
@@ -2433,7 +2433,7 @@ export function ReelEditor() {
                                     <div
                                       key={wordIndex}
                                       onClick={(e) => e.stopPropagation()}
-                                      className="inline-flex items-center gap-1.5 px-2 py-0.5 border border-[#52c595]/50 bg-[#161618] rounded-md"
+                                      className="inline-flex items-center gap-1.5 px-2 py-0.5 border border-[#ff7800]/50 bg-[#161618] rounded-md"
                                     >
                                       <input
                                         type="text"
@@ -2465,7 +2465,7 @@ export function ReelEditor() {
                                           }
                                           setEditingWord(null);
                                         }}
-                                        className="text-[#52c595] hover:text-white font-bold text-xs"
+                                        className="text-[#ff7800] hover:text-white font-bold text-xs"
                                       >
                                         ✓
                                       </button>
@@ -2484,16 +2484,16 @@ export function ReelEditor() {
                                   allMatches[currentMatchIndex].wordIndices.includes(wordIndex);
 
                                 const matchStyle = isPartOfActiveMatch
-                                  ? 'bg-[#52c595] text-[#111111] font-bold'
+                                  ? 'bg-[#ff7800] text-[#111111] font-bold'
                                   : isPartOfAnyMatch
-                                    ? 'bg-[#52c595]/30 text-[#52c595]'
-                                    : 'hover:bg-white/10 hover:text-[#52c595] text-[#e0e0e0]';
+                                    ? 'bg-[#ff7800]/30 text-[#ff7800]'
+                                    : 'hover:bg-white/10 hover:text-[#ff7800] text-[#e0e0e0]';
                                 const wordObj = caption.words && caption.words[wordIndex];
                                 const isWordSpecial = wordObj && (wordObj.emphasis || wordObj.spotlight);
 
                                 let finalStyle = matchStyle;
                                 if (isWordSpecial && !isPartOfActiveMatch && !isPartOfAnyMatch) {
-                                  finalStyle = 'bg-[#52c595]/10 text-[#52c595] px-2 py-0.5 rounded-md border border-[#52c595]/20 font-medium';
+                                  finalStyle = 'bg-[#ff7800]/10 text-[#ff7800] px-2 py-0.5 rounded-md border border-[#ff7800]/20 font-medium';
                                 }
 
                                 return (
@@ -2548,7 +2548,7 @@ export function ReelEditor() {
                             handleToggleWordEmphasis(wordMenu.captionId, wordMenu.wordIndex);
                             setWordMenu(null);
                           }}
-                          className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-[#222225] hover:text-[#52c595] text-left transition-all"
+                          className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-[#222225] hover:text-[#ff7800] text-left transition-all"
                         >
                           <span className="text-[#8a8a8e] font-semibold text-sm">⚡</span>
                           <div>
@@ -2562,7 +2562,7 @@ export function ReelEditor() {
                             handleToggleWordSpotlight(wordMenu.captionId, wordMenu.wordIndex);
                             setWordMenu(null);
                           }}
-                          className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-[#222225] hover:text-[#52c595] text-left transition-all"
+                          className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-[#222225] hover:text-[#ff7800] text-left transition-all"
                         >
                           <span className="text-[#8a8a8e] font-semibold text-sm">🔍</span>
                           <div>
@@ -2881,7 +2881,7 @@ export function ReelEditor() {
                     {/* Selection Marquee Box */}
                     {selectionBox && (
                       <div 
-                        className="absolute border border-dashed border-[#52c595] bg-[#52c595]/10 z-40 pointer-events-none"
+                        className="absolute border border-dashed border-[#ff7800] bg-[#ff7800]/10 z-40 pointer-events-none"
                         style={{
                           left: `${Math.min(selectionBox.startX, selectionBox.currentX)}px`,
                           width: `${Math.abs(selectionBox.currentX - selectionBox.startX)}px`,
@@ -2913,7 +2913,7 @@ export function ReelEditor() {
                             const secs = Math.floor(i % 60).toString().padStart(2, '0');
                             const ms = ((i % 1) * 1000).toString().padStart(3, '0');
                             markers.push(
-                              <div key={i} className="absolute text-[10px] text-[#52c595] font-mono tracking-tighter pointer-events-none" style={{ left: `${i * (200 * zoomLevel)}px` }}>
+                              <div key={i} className="absolute text-[10px] text-[#ff7800] font-mono tracking-tighter pointer-events-none" style={{ left: `${i * (200 * zoomLevel)}px` }}>
                                 {mins}:{secs}.{ms}
                               </div>
                             );
@@ -3056,7 +3056,7 @@ export function ReelEditor() {
                     </div>
 
                     {/* Playhead */}
-                    <div ref={playheadRef} className="absolute top-0 bottom-0 w-[1px] bg-[#52c595] z-30 shadow-[0_0_4px_rgba(82,197,149,0.5)] origin-left will-change-transform" style={{ left: 0, pointerEvents: 'none' }}>
+                    <div ref={playheadRef} className="absolute top-0 bottom-0 w-[1px] bg-[#ff7800] z-30 shadow-[0_0_4px_rgba(82,197,149,0.5)] origin-left will-change-transform" style={{ left: 0, pointerEvents: 'none' }}>
                       <div 
                         className="absolute -top-[1px] -left-[7px] cursor-ew-resize drop-shadow-md"
                         style={{ pointerEvents: 'auto' }}
@@ -3067,7 +3067,7 @@ export function ReelEditor() {
                         }}
                       >
                         <svg width="15" height="18" viewBox="0 0 15 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M0 0H15V11L7.5 18L0 11V0Z" fill="#52c595"/>
+                          <path d="M0 0H15V11L7.5 18L0 11V0Z" fill="#ff7800"/>
                         </svg>
                       </div>
                     </div>
@@ -3167,7 +3167,7 @@ export function ReelEditor() {
                   key={tab}
                   onClick={() => setActiveTabRight(tab.toLowerCase())}
                   className={`px-3 py-3 text-[11px] font-bold tracking-wide transition-colors border-b-2 relative top-[1px]
-                    ${activeTabRight === tab.toLowerCase() ? 'text-[#52c595] border-[#52c595]' : 'text-[#8a8a8e] hover:text-[#e0e0e0] border-transparent'}`}
+                    ${activeTabRight === tab.toLowerCase() ? 'text-[#ff7800] border-[#ff7800]' : 'text-[#8a8a8e] hover:text-[#e0e0e0] border-transparent'}`}
                 >
                   {tab}
                 </button>
@@ -3237,7 +3237,7 @@ export function ReelEditor() {
                               max="120"
                               value={fontSize}
                               onChange={(e) => setFontSize(parseInt(e.target.value))}
-                              className="flex-1 accent-[#52c595] h-1 bg-[#3a3a3d] rounded-full appearance-none outline-none cursor-pointer"
+                              className="flex-1 accent-[#ff7800] h-1 bg-[#3a3a3d] rounded-full appearance-none outline-none cursor-pointer"
                             />
                           </div>
                           <div className="flex gap-2 justify-end shrink-0">
@@ -3622,7 +3622,7 @@ export function ReelEditor() {
                                     max="360"
                                     value={gradientAngle}
                                     onChange={(e) => setGradientAngle(parseInt(e.target.value))}
-                                    className="w-full accent-[#52c595] cursor-pointer h-1 bg-[#2a2a2d] rounded-lg appearance-none"
+                                    className="w-full accent-[#ff7800] cursor-pointer h-1 bg-[#2a2a2d] rounded-lg appearance-none"
                                   />
                                 </div>
                                 <div className="bg-[#1a1a1c] border border-[#2a2a2d] rounded-md px-2 py-1 flex items-center justify-between font-mono w-16">
@@ -3934,7 +3934,7 @@ export function ReelEditor() {
                                                 max="360"
                                                 value={gradAngle}
                                                 onChange={(e) => setGradAngle(Number(e.target.value))}
-                                                className="flex-1 accent-[#52c595] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
+                                                className="flex-1 accent-[#ff7800] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
                                               />
                                               <div className="w-12 h-7 bg-[#1a1a1c] border border-[#2a2a2d] rounded-md flex items-center justify-center text-xs text-white">
                                                 {gradAngle}
@@ -4017,7 +4017,7 @@ export function ReelEditor() {
                                             step="0.1"
                                             value={sizeVal}
                                             onChange={(e) => setSizeVal(Number(e.target.value))}
-                                            className="flex-1 accent-[#52c595] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
+                                            className="flex-1 accent-[#ff7800] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
                                           />
                                           <div className="w-12 h-7 bg-[#1a1a1c] border border-[#2a2a2d] rounded-md flex items-center justify-center text-xs text-white">
                                             {sizeVal.toFixed(1)}
@@ -4154,7 +4154,7 @@ export function ReelEditor() {
                                       max="20"
                                       value={letterSpacing}
                                       onChange={(e) => setLetterSpacing(Number(e.target.value))}
-                                      className="flex-1 accent-[#52c595] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
+                                      className="flex-1 accent-[#ff7800] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
                                     />
                                     <div className="w-12 h-7 bg-[#1a1a1c] border border-[#2a2a2d] rounded-md flex items-center justify-center text-xs text-white">
                                       {letterSpacing}
@@ -4179,7 +4179,7 @@ export function ReelEditor() {
                                       step="0.1"
                                       value={lineSpacing}
                                       onChange={(e) => setLineSpacing(Number(e.target.value))}
-                                      className="flex-1 accent-[#52c595] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
+                                      className="flex-1 accent-[#ff7800] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
                                     />
                                     <div className="w-12 h-7 bg-[#1a1a1c] border border-[#2a2a2d] rounded-md flex items-center justify-center text-xs text-white">
                                       {lineSpacing.toFixed(1)}
@@ -4201,7 +4201,7 @@ export function ReelEditor() {
                                     <span className="text-sm font-semibold text-white">Drop Shadow</span>
                                     <button
                                       onClick={() => setShadowEnabled(!shadowEnabled)}
-                                      className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 focus:outline-none ${shadowEnabled ? 'bg-[#52c595]' : 'bg-[#2a2a2d]'}`}
+                                      className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 focus:outline-none ${shadowEnabled ? 'bg-[#ff7800]' : 'bg-[#2a2a2d]'}`}
                                     >
                                       <div className={`bg-black w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${shadowEnabled ? 'translate-x-5' : ''}`} />
                                     </button>
@@ -4243,7 +4243,7 @@ export function ReelEditor() {
                                             max="20"
                                             value={shadowX}
                                             onChange={(e) => setShadowX(Number(e.target.value))}
-                                            className="flex-1 accent-[#52c595] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
+                                            className="flex-1 accent-[#ff7800] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
                                           />
                                           <div className="w-12 h-7 bg-[#1a1a1c] border border-[#2a2a2d] rounded-md flex items-center justify-center text-xs text-white">
                                             {shadowX}
@@ -4260,7 +4260,7 @@ export function ReelEditor() {
                                             max="20"
                                             value={shadowY}
                                             onChange={(e) => setShadowY(Number(e.target.value))}
-                                            className="flex-1 accent-[#52c595] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
+                                            className="flex-1 accent-[#ff7800] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
                                           />
                                           <div className="w-12 h-7 bg-[#1a1a1c] border border-[#2a2a2d] rounded-md flex items-center justify-center text-xs text-white">
                                             {shadowY}
@@ -4277,7 +4277,7 @@ export function ReelEditor() {
                                             max="30"
                                             value={shadowBlur}
                                             onChange={(e) => setShadowBlur(Number(e.target.value))}
-                                            className="flex-1 accent-[#52c595] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
+                                            className="flex-1 accent-[#ff7800] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
                                           />
                                           <div className="w-12 h-7 bg-[#1a1a1c] border border-[#2a2a2d] rounded-md flex items-center justify-center text-xs text-white">
                                             {shadowBlur}
@@ -4294,7 +4294,7 @@ export function ReelEditor() {
                                     <span className="text-sm font-semibold text-white">Text Stroke</span>
                                     <button
                                       onClick={() => setStrokeEnabled(!strokeEnabled)}
-                                      className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 focus:outline-none ${strokeEnabled ? 'bg-[#52c595]' : 'bg-[#2a2a2d]'}`}
+                                      className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 focus:outline-none ${strokeEnabled ? 'bg-[#ff7800]' : 'bg-[#2a2a2d]'}`}
                                     >
                                       <div className={`bg-black w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${strokeEnabled ? 'translate-x-5' : ''}`} />
                                     </button>
@@ -4336,7 +4336,7 @@ export function ReelEditor() {
                                             max="10"
                                             value={strokeWidth}
                                             onChange={(e) => setStrokeWidth(Number(e.target.value))}
-                                            className="flex-1 accent-[#52c595] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
+                                            className="flex-1 accent-[#ff7800] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
                                           />
                                           <div className="w-12 h-7 bg-[#1a1a1c] border border-[#2a2a2d] rounded-md flex items-center justify-center text-xs text-white">
                                             {strokeWidth}
@@ -4353,7 +4353,7 @@ export function ReelEditor() {
                                     <span className="text-sm font-semibold text-white">Background</span>
                                     <button
                                       onClick={() => setBgEnabled(!bgEnabled)}
-                                      className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 focus:outline-none ${bgEnabled ? 'bg-[#52c595]' : 'bg-[#2a2a2d]'}`}
+                                      className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 focus:outline-none ${bgEnabled ? 'bg-[#ff7800]' : 'bg-[#2a2a2d]'}`}
                                     >
                                       <div className={`bg-black w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${bgEnabled ? 'translate-x-5' : ''}`} />
                                     </button>
@@ -4408,7 +4408,7 @@ export function ReelEditor() {
                                             max="50"
                                             value={bgRadius}
                                             onChange={(e) => setBgRadius(Number(e.target.value))}
-                                            className="flex-1 accent-[#52c595] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
+                                            className="flex-1 accent-[#ff7800] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
                                           />
                                           <div className="w-12 h-7 bg-[#1a1a1c] border border-[#2a2a2d] rounded-md flex items-center justify-center text-xs text-white">
                                             {bgRadius}
@@ -4433,7 +4433,7 @@ export function ReelEditor() {
                                             max="100"
                                             value={bgWidth}
                                             onChange={(e) => setBgWidth(Number(e.target.value))}
-                                            className="flex-1 accent-[#52c595] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
+                                            className="flex-1 accent-[#ff7800] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
                                           />
                                           <div className="w-12 h-7 bg-[#1a1a1c] border border-[#2a2a2d] rounded-md flex items-center justify-center text-xs text-white">
                                             {bgWidth}
@@ -4456,7 +4456,7 @@ export function ReelEditor() {
                                             max="100"
                                             value={bgHeight}
                                             onChange={(e) => setBgHeight(Number(e.target.value))}
-                                            className="flex-1 accent-[#52c595] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
+                                            className="flex-1 accent-[#ff7800] h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer"
                                           />
                                           <div className="w-12 h-7 bg-[#1a1a1c] border border-[#2a2a2d] rounded-md flex items-center justify-center text-xs text-white">
                                             {bgHeight}
@@ -4474,7 +4474,7 @@ export function ReelEditor() {
                                         <span className="text-xs text-[#8a8a8e]">Drop Shadow</span>
                                         <button
                                           onClick={() => setBgShadowEnabled(!bgShadowEnabled)}
-                                          className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors duration-200 focus:outline-none ${bgShadowEnabled ? 'bg-[#52c595]' : 'bg-[#2a2a2d]'}`}
+                                          className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors duration-200 focus:outline-none ${bgShadowEnabled ? 'bg-[#ff7800]' : 'bg-[#2a2a2d]'}`}
                                         >
                                           <div className={`bg-black w-3.5 h-3.5 rounded-full shadow-md transform transition-transform duration-200 ${bgShadowEnabled ? 'translate-x-4' : ''}`} />
                                         </button>
@@ -4484,7 +4484,7 @@ export function ReelEditor() {
                                         <span className="text-xs text-[#8a8a8e]">Outline</span>
                                         <button
                                           onClick={() => setBgOutlineEnabled(!bgOutlineEnabled)}
-                                          className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors duration-200 focus:outline-none ${bgOutlineEnabled ? 'bg-[#52c595]' : 'bg-[#2a2a2d]'}`}
+                                          className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors duration-200 focus:outline-none ${bgOutlineEnabled ? 'bg-[#ff7800]' : 'bg-[#2a2a2d]'}`}
                                         >
                                           <div className={`bg-black w-3.5 h-3.5 rounded-full shadow-md transform transition-transform duration-200 ${bgOutlineEnabled ? 'translate-x-4' : ''}`} />
                                         </button>
@@ -4515,7 +4515,7 @@ export function ReelEditor() {
                     <p className="text-xs text-[#8a8a8e] leading-relaxed max-w-[280px] mx-auto">
                       Clean up your audio, Remove Background Noise & Enhance Overall Audio Quality.
                     </p>
-                    <p className="text-[10px] text-[#52c595]/80 font-medium italic">
+                    <p className="text-[10px] text-[#ff7800]/80 font-medium italic">
                       Audio Enhancement Removes Background Music as well!
                     </p>
                   </div>
@@ -4523,7 +4523,7 @@ export function ReelEditor() {
                   {/* Toggle Card */}
                   <div className="bg-[#1a1a1c] border border-[#2a2a2d] rounded-xl p-4 flex items-center justify-between shadow-lg">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-[#52c595]/10 flex items-center justify-center text-[#52c595]">
+                      <div className="w-10 h-10 rounded-lg bg-[#ff7800]/10 flex items-center justify-center text-[#ff7800]">
                         <Volume2 className="w-5 h-5" />
                       </div>
                       <div className="flex flex-col gap-0.5">
@@ -4535,7 +4535,7 @@ export function ReelEditor() {
                     </div>
                     <button
                       onClick={() => setAiAudioClean(!aiAudioClean)}
-                      className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 focus:outline-none ${aiAudioClean ? 'bg-[#52c595]' : 'bg-[#2a2a2d]'}`}
+                      className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 focus:outline-none ${aiAudioClean ? 'bg-[#ff7800]' : 'bg-[#2a2a2d]'}`}
                     >
                       <div className={`bg-black w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${aiAudioClean ? 'translate-x-5' : ''}`} />
                     </button>
@@ -4545,14 +4545,14 @@ export function ReelEditor() {
                   <div className="bg-[#1a1a1c]/40 border border-[#2a2a2d] rounded-xl p-4 flex flex-col gap-4 relative overflow-hidden">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full ${(aiAudioClean && isVideoPlaying) ? 'bg-[#52c595]' : 'bg-[#8a8a8e]'} transition-colors`} />
+                        <span className={`w-2 h-2 rounded-full ${(aiAudioClean && isVideoPlaying) ? 'bg-[#ff7800]' : 'bg-[#8a8a8e]'} transition-colors`} />
                         <span className="text-xs font-bold text-white">Enhanced Audio</span>
                       </div>
                       {/* Animated Volume level lines */}
                       <div className="flex items-end gap-0.5 h-3">
-                        <div className={`w-[2px] bg-[#52c595] rounded-full transition-all duration-300 ${(aiAudioClean && isVideoPlaying) ? 'animate-[pulse_0.6s_infinite_alternate_0.1s]' : 'h-1 opacity-40'}`} style={{ height: (aiAudioClean && isVideoPlaying) ? '12px' : '4px' }} />
-                        <div className={`w-[2px] bg-[#52c595] rounded-full transition-all duration-300 ${(aiAudioClean && isVideoPlaying) ? 'animate-[pulse_0.6s_infinite_alternate_0.3s]' : 'h-1.5 opacity-40'}`} style={{ height: (aiAudioClean && isVideoPlaying) ? '8px' : '6px' }} />
-                        <div className={`w-[2px] bg-[#52c595] rounded-full transition-all duration-300 ${(aiAudioClean && isVideoPlaying) ? 'animate-[pulse_0.6s_infinite_alternate_0.5s]' : 'h-2 opacity-40'}`} style={{ height: (aiAudioClean && isVideoPlaying) ? '10px' : '8px' }} />
+                        <div className={`w-[2px] bg-[#ff7800] rounded-full transition-all duration-300 ${(aiAudioClean && isVideoPlaying) ? 'animate-[pulse_0.6s_infinite_alternate_0.1s]' : 'h-1 opacity-40'}`} style={{ height: (aiAudioClean && isVideoPlaying) ? '12px' : '4px' }} />
+                        <div className={`w-[2px] bg-[#ff7800] rounded-full transition-all duration-300 ${(aiAudioClean && isVideoPlaying) ? 'animate-[pulse_0.6s_infinite_alternate_0.3s]' : 'h-1.5 opacity-40'}`} style={{ height: (aiAudioClean && isVideoPlaying) ? '8px' : '6px' }} />
+                        <div className={`w-[2px] bg-[#ff7800] rounded-full transition-all duration-300 ${(aiAudioClean && isVideoPlaying) ? 'animate-[pulse_0.6s_infinite_alternate_0.5s]' : 'h-2 opacity-40'}`} style={{ height: (aiAudioClean && isVideoPlaying) ? '10px' : '8px' }} />
                       </div>
                     </div>
 
@@ -4564,7 +4564,7 @@ export function ReelEditor() {
                         return (
                           <div
                             key={idx}
-                            className={`w-[3px] rounded-full transition-all duration-300 ${(aiAudioClean && isVideoPlaying) ? 'bg-[#52c595]' : 'bg-[#8a8a8e]/30'}`}
+                            className={`w-[3px] rounded-full transition-all duration-300 ${(aiAudioClean && isVideoPlaying) ? 'bg-[#ff7800]' : 'bg-[#8a8a8e]/30'}`}
                             style={{ 
                               height: `${finalHeight}px`,
                               animation: (aiAudioClean && isVideoPlaying) ? `pulse ${0.4 + Math.random() * 0.4}s infinite alternate` : 'none'
@@ -4580,7 +4580,7 @@ export function ReelEditor() {
 
             {/* Footer with Export */}
             <div className="p-4 border-t border-[#2a2a2d] bg-[#1a1a1c] flex justify-end mt-auto">
-              <Button className="bg-[#52c595] hover:bg-[#43a97f] text-black font-bold px-6 py-2 h-auto rounded-md shadow-[0_0_15px_rgba(82,197,149,0.3)]">
+              <Button className="bg-[#ff7800] hover:bg-[#43a97f] text-black font-bold px-6 py-2 h-auto rounded-md shadow-[0_0_15px_rgba(82,197,149,0.3)]">
                 Export
               </Button>
             </div>

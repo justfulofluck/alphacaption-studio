@@ -525,7 +525,7 @@ function CustomPlayerUI({
       const alphaHex = Math.round(opacityVal * 2.55).toString(16).padStart(2, '0');
       return `${s.color}${alphaHex} ${s.position}%`;
     }).join(', ')})`
-    : `linear-gradient(${gradientAngle || 90}deg, ${color}, #52c595)`;
+    : `linear-gradient(${gradientAngle || 90}deg, ${color}, #ff7800)`;
 
   const getRGBA = (hexColor: string, opacityPercent: number) => {
     const cleanHex = (hexColor || '#000000').replace('#', '');
@@ -589,7 +589,7 @@ function CustomPlayerUI({
       {/* Top Bar Overlay */}
       <div className="h-14 flex items-center justify-between px-4 bg-[#161618] border-b border-[#2a2a2d] pointer-events-auto">
         <button className="flex items-center gap-2 text-xs font-semibold bg-[#2a2a2d] hover:bg-[#3a3a3d] text-white px-3 py-1.5 rounded transition-colors border border-white/5">
-          <RefreshCw className="w-3.5 h-3.5 text-[#52c595]" /> Replace
+          <RefreshCw className="w-3.5 h-3.5 text-[#ff7800]" /> Replace
         </button>
 
         {/* Middle icons */}
@@ -820,7 +820,7 @@ function CustomPlayerUI({
                   <span key={wordIndex} className={`${uniqueClass} inline-block mr-1.5`}>
                     <style>{`
                       .${uniqueClass} {
-                        color: ${isHighlight ? '#52c595' : color} !important;
+                        color: ${isHighlight ? '#ff7800' : color} !important;
                         text-shadow: ${shadowEnabled ? shadowCSS : '0px 2px 4px rgba(0,0,0,0.95), 0px 4px 10px rgba(0,0,0,0.5)'} !important;
                         -webkit-text-stroke: ${strokeEnabled ? strokeCSS : 'none'} !important;
                       }
@@ -843,7 +843,7 @@ function CustomPlayerUI({
 
       <div className="flex flex-col bg-[#161618] border-t border-[#2a2a2d] pointer-events-auto">
         <div ref={timelineRef} className="w-full h-1.5 bg-zinc-800 hover:h-2.5 transition-all cursor-pointer relative group/timeline" onMouseDown={handleTimelineMouseDown}>
-          <div className="absolute top-0 bottom-0 left-0 bg-[#52c595]" style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }} />
+          <div className="absolute top-0 bottom-0 left-0 bg-[#ff7800]" style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }} />
           <div className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full border border-zinc-950 shadow-md opacity-0 group-hover/timeline:opacity-100 transition-opacity" style={{ left: `calc(${duration > 0 ? (currentTime / duration) * 100 : 0}% - 7px)`, opacity: isSeeking ? 1 : undefined }} />
         </div>
         <div className="h-14 flex items-center justify-between px-5">
@@ -856,7 +856,7 @@ function CustomPlayerUI({
                   onClick={toggleMute}
                   className="text-[#e0e0e0] hover:text-white transition-colors p-1 shrink-0 w-6 flex items-center justify-center z-10"
                 >
-                  {muted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className={`w-4 h-4 ${!muted && volume > 0 ? 'text-[#52c595]' : ''}`} />}
+                  {muted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className={`w-4 h-4 ${!muted && volume > 0 ? 'text-[#ff7800]' : ''}`} />}
                 </button>
                 <input
                   type="range"
@@ -1035,7 +1035,7 @@ export function VideoPlayer({
           <div className="w-full h-full relative bg-[#1a1a1c] flex flex-col justify-between">
             <div className="h-14 flex items-center justify-between px-4 bg-[#161618] border-b border-[#2a2a2d]">
               <button className="flex items-center gap-2 text-xs font-semibold bg-[#2a2a2d] text-white px-3 py-1.5 rounded opacity-50 cursor-not-allowed">
-                <RefreshCw className="w-3.5 h-3.5 text-[#52c595]" /> Replace
+                <RefreshCw className="w-3.5 h-3.5 text-[#ff7800]" /> Replace
               </button>
               <div className="flex items-center gap-2 text-[10px] font-semibold bg-[#2a2a2d] text-[#8a8a8e] px-3 py-1.5 rounded">
                 <div className="w-1.5 h-1.5 rounded-full bg-[#f5a623]"></div> Low-res
