@@ -2030,7 +2030,7 @@ export function ReelEditor() {
         <PanelGroup orientation="horizontal">
 
           {/* LEFT COLUMN: Captions + Timeline */}
-          <Panel defaultSize={47} minSize={20} className="flex flex-col">
+          <Panel defaultSize={52} minSize={20} className="flex flex-col">
             <PanelGroup orientation="vertical">
 
               {/* TOP: Captions List */}
