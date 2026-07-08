@@ -499,14 +499,14 @@ const WaveformCanvas = ({ audioData, totalWidth, duration, pxPerSec }: { audioDa
     ctx.beginPath();
     ctx.moveTo(0, 28);
     ctx.lineTo(totalWidth, 28);
-    ctx.strokeStyle = 'rgba(82,197,149, 0.3)';
+    ctx.strokeStyle = 'rgba(255, 120, 0, 0.3)';
     ctx.lineWidth = 1;
     ctx.stroke();
 
     if (!audioData || audioData.length === 0 || duration <= 0) return;
 
     ctx.beginPath();
-    ctx.strokeStyle = 'rgba(82,197,149, 0.6)';
+    ctx.strokeStyle = 'rgba(255, 120, 0, 0.6)';
     ctx.lineWidth = 2.5;
     ctx.lineCap = 'round';
 
