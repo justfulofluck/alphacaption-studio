@@ -1600,7 +1600,8 @@ export function ReelEditor() {
             const spaceWidth = ctx.measureText(' ').width;
             let totalWidth = 0;
             const wordWidths = words.map((w: any) => {
-              const wWidth = ctx.measureText(w.text).width;
+              const textVal = w.text || w.word || '';
+              const wWidth = ctx.measureText(textVal).width;
               totalWidth += wWidth;
               return wWidth;
             });
@@ -1611,6 +1612,7 @@ export function ReelEditor() {
             words.forEach((w: any, idx: number) => {
               const wordWidth = wordWidths[idx];
               const isWordActive = currentTime >= w.start && currentTime <= w.end;
+              const textVal = w.text || w.word || '';
 
               if (isWordActive) {
                 ctx.fillStyle = '#ff7800'; 
@@ -1618,8 +1620,8 @@ export function ReelEditor() {
                 ctx.fillStyle = color; 
               }
 
-              ctx.strokeText(w.text, startX + wordWidth / 2, posY);
-              ctx.fillText(w.text, startX + wordWidth / 2, posY);
+              ctx.strokeText(textVal, startX + wordWidth / 2, posY);
+              ctx.fillText(textVal, startX + wordWidth / 2, posY);
 
               startX += wordWidth + spaceWidth;
             });
