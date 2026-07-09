@@ -594,6 +594,7 @@ export function ReelEditor() {
   const [textAlign, setTextAlign] = useState<'left' | 'center' | 'right'>('center');
   const [position, setPosition] = useState({ x: 50.0, y: 65.0 });
   const [color, setColor] = useState('#FFFFFF');
+  const [boxWidth, setBoxWidth] = useState(80);
 
   // Transitions States
   const [transitionTarget, setTransitionTarget] = useState<'LINE' | 'WORD'>('LINE');
@@ -1474,177 +1475,442 @@ export function ReelEditor() {
     if (!videoUrl || isExporting) return;
     setIsExporting(true);
     setExportProgress(0);
-    setExportStatusText('Initializing render engine...');
+    setExportStatusText('Downloading video source (0%)...');
 
-    const video = document.createElement('video');
-    video.src = videoUrl;
-    video.crossOrigin = 'anonymous';
-    video.muted = true;
-    video.playsInline = true;
-
-    video.onloadedmetadata = async () => {
-      try {
-        const isLandscape = video.videoWidth > video.videoHeight;
-        let width = 1080;
-        let height = 1920;
-
-        if (exportResolution === '1080') {
-          width = isLandscape ? 1920 : 1080;
-          height = isLandscape ? 1080 : 1920;
-        } else if (exportResolution === '1440') {
-          width = isLandscape ? 2560 : 1440;
-          height = isLandscape ? 1440 : 2560;
-        } else if (exportResolution === '2160') {
-          width = isLandscape ? 3840 : 2160;
-          height = isLandscape ? 2160 : 3840;
-        }
-
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) throw new Error('Failed to get 2D context');
-
-        const stream = canvas.captureStream(30);
-        
-        let audioTrack: MediaStreamTrack | null = null;
-        try {
-          const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-          const source = audioCtx.createMediaElementSource(video);
-          const dest = audioCtx.createMediaStreamDestination();
-          source.connect(dest);
-          source.connect(audioCtx.destination);
-          audioTrack = dest.stream.getAudioTracks()[0] || null;
-        } catch (audioErr) {
-          console.warn('Audio capture warning, exporting video without audio:', audioErr);
-        }
-
-        const tracks: MediaStreamTrack[] = [...stream.getVideoTracks()];
-        if (audioTrack) {
-          tracks.push(audioTrack);
-        }
-
-        const combinedStream = new MediaStream(tracks);
-        let mediaRecorder: MediaRecorder;
-        
-        try {
-          mediaRecorder = new MediaRecorder(combinedStream, { mimeType: 'video/webm;codecs=vp9' });
-        } catch (e) {
-          mediaRecorder = new MediaRecorder(combinedStream);
-        }
-
-        const chunks: Blob[] = [];
-        mediaRecorder.ondataavailable = (event) => {
-          if (event.data && event.data.size > 0) {
-            chunks.push(event.data);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await axios.get(videoUrl, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob',
+        onDownloadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percent = Math.round((progressEvent.loaded / progressEvent.total) * 100);
+            setExportStatusText(`Downloading video source (${percent}%)...`);
+            setExportProgress(Math.round(percent * 0.3)); 
           }
-        };
+        }
+      });
 
-        mediaRecorder.onstop = () => {
-          setExportStatusText('Finalizing download...');
-          const blob = new Blob(chunks, { type: 'video/webm' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `reel_export_${exportResolution}p.webm`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-          setIsExporting(false);
-          setShowExportModal(false);
-        };
+      const videoBlob = response.data;
+      const localVideoUrl = URL.createObjectURL(videoBlob);
 
-        setExportStatusText('Recording and rendering frames...');
-        mediaRecorder.start();
-        video.play();
+      const video = document.createElement('video');
+      video.src = localVideoUrl;
+      video.muted = false; 
+      video.playsInline = true;
+      video.style.position = 'fixed';
+      video.style.left = '-9999px';
+      video.style.top = '-9999px';
+      video.style.width = '1px';
+      video.style.height = '1px';
+      video.style.opacity = '0';
+      video.style.pointerEvents = 'none';
+      document.body.appendChild(video);
 
-        const duration = video.duration || 10;
-        const scale = width / 360; 
+      video.onloadedmetadata = async () => {
+        try {
+          const isLandscape = video.videoWidth > video.videoHeight;
+          let width = 1080;
+          let height = 1920;
 
-        const drawFrame = () => {
-          if (video.paused || video.ended) {
-            mediaRecorder.stop();
-            return;
+          if (exportResolution === '1080') {
+            width = isLandscape ? 1920 : 1080;
+            height = isLandscape ? 1080 : 1920;
+          } else if (exportResolution === '1440') {
+            width = isLandscape ? 2560 : 1440;
+            height = isLandscape ? 1440 : 2560;
+          } else if (exportResolution === '2160') {
+            width = isLandscape ? 3840 : 2160;
+            height = isLandscape ? 2160 : 3840;
           }
 
-          ctx.drawImage(video, 0, 0, width, height);
+          video.width = width;
+          video.height = height;
 
-          const currentTime = video.currentTime;
-          const progress = Math.min(100, Math.round((currentTime / duration) * 100));
-          setExportProgress(progress);
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) throw new Error('Failed to get 2D context');
 
-          const activeCaption = captions.find(c => currentTime >= c.start && currentTime <= c.end);
-          if (activeCaption) {
-            ctx.save();
-            
-            const fontSizePx = fontSize * scale;
-            ctx.font = `bold ${fontSizePx}px ${fontFamily}`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
 
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
-            ctx.shadowBlur = 8 * scale;
-            ctx.lineWidth = 4 * scale;
-            ctx.strokeStyle = '#000000';
+          const stream = canvas.captureStream(30);
+          
+          let audioTrack: MediaStreamTrack | null = null;
+          let audioCtx: AudioContext | null = null;
+          try {
+            audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+            await audioCtx.resume();
+            const source = audioCtx.createMediaElementSource(video);
+            const dest = audioCtx.createMediaStreamDestination();
+            source.connect(dest);
+            audioTrack = dest.stream.getAudioTracks()[0] || null;
+          } catch (audioErr) {
+            console.warn('Audio capture warning, exporting video without audio:', audioErr);
+          }
 
-            const posY = (height * 0.75); 
+          const tracks: MediaStreamTrack[] = [...stream.getVideoTracks()];
+          if (audioTrack) {
+            tracks.push(audioTrack);
+          }
 
-            const words = activeCaption.words || activeCaption.text.split(' ').map((w: string, i: number) => ({
-              id: i,
-              text: w,
-              start: activeCaption.start,
-              end: activeCaption.end
-            }));
+          const combinedStream = new MediaStream(tracks);
+          let mediaRecorder: MediaRecorder;
+          
+          let bitrate = 8000000; // 8 Mbps for 1080p
+          if (exportResolution === '1440') {
+            bitrate = 16000000; // 16 Mbps for 2K
+          } else if (exportResolution === '2160') {
+            bitrate = 30000000; // 30 Mbps for 4K
+          }
 
-            const spaceWidth = ctx.measureText(' ').width;
-            let totalWidth = 0;
-            const wordWidths = words.map((w: any) => {
-              const textVal = w.text || w.word || '';
-              const wWidth = ctx.measureText(textVal).width;
-              totalWidth += wWidth;
-              return wWidth;
+          try {
+            mediaRecorder = new MediaRecorder(combinedStream, { 
+              mimeType: 'video/webm;codecs=vp8',
+              videoBitsPerSecond: bitrate
             });
-            totalWidth += spaceWidth * (words.length - 1);
+          } catch (e) {
+            try {
+              mediaRecorder = new MediaRecorder(combinedStream, { 
+                mimeType: 'video/webm',
+                videoBitsPerSecond: bitrate
+              });
+            } catch (e2) {
+              mediaRecorder = new MediaRecorder(combinedStream, {
+                videoBitsPerSecond: bitrate
+              });
+            }
+          }
 
-            let startX = (width - totalWidth) / 2;
+          const chunks: Blob[] = [];
+          mediaRecorder.ondataavailable = (event) => {
+            if (event.data && event.data.size > 0) {
+              chunks.push(event.data);
+            }
+          };
 
-            words.forEach((w: any, idx: number) => {
-              const wordWidth = wordWidths[idx];
-              const isWordActive = currentTime >= w.start && currentTime <= w.end;
-              const textVal = w.text || w.word || '';
+          mediaRecorder.onstop = () => {
+            setExportStatusText('Finalizing download...');
+            if (video.parentNode) {
+              video.parentNode.removeChild(video);
+            }
+            const blob = new Blob(chunks, { type: 'video/webm' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `reel_export_${exportResolution}p.webm`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            URL.revokeObjectURL(localVideoUrl);
+            if (audioCtx) {
+              audioCtx.close();
+            }
+            setIsExporting(false);
+            setShowExportModal(false);
+          };
 
-              if (isWordActive) {
-                ctx.fillStyle = '#ff7800'; 
-              } else {
-                ctx.fillStyle = color; 
+          setExportStatusText('Recording and rendering frames...');
+          await document.fonts.ready;
+          mediaRecorder.start();
+          video.play();
+
+          const duration = video.duration || 10;
+          const playerContainer = document.querySelector('.player-media-container');
+          const playerWidth = playerContainer ? playerContainer.clientWidth : 360;
+          const scale = width / playerWidth; 
+
+          const drawFrame = () => {
+            if (video.ended || video.currentTime >= duration - 0.15) {
+              mediaRecorder.stop();
+              return;
+            }
+
+            ctx.drawImage(video, 0, 0, width, height);
+
+            const currentTime = video.currentTime;
+            const playPercent = currentTime / duration;
+            const progress = Math.min(100, 30 + Math.round(playPercent * 70));
+            setExportProgress(progress);
+
+            const activeCaption = captions.find(c => currentTime >= c.start && currentTime <= c.end);
+            if (activeCaption) {
+              ctx.save();
+              
+              const getFontStyles = (face: string) => {
+                const weightMap: Record<string, string> = {
+                  'thin': '100',
+                  'extra light': '200',
+                  'light': '300',
+                  'regular': '400',
+                  'medium': '500',
+                  'semi bold': '600',
+                  'bold': '700',
+                  'extra bold': '800',
+                  'black': '900',
+                };
+                const lower = face.toLowerCase();
+                let weight = '400';
+                let style = 'normal';
+
+                Object.keys(weightMap).forEach(k => {
+                  if (lower.includes(k)) {
+                    weight = weightMap[k];
+                  }
+                });
+                if (lower.includes('italic')) {
+                  style = 'italic';
+                }
+                return { fontWeight: weight, fontStyle: style };
+              };
+
+              const fontCss = getFontStyles(fontFace);
+              const fontSizePx = fontSize * scale;
+
+              const posX = width * (position.x / 100);
+              const posY = height * (position.y / 100);
+
+              const words = activeCaption.words || activeCaption.text.split(' ').map((w: string, i: number) => ({
+                id: i,
+                text: w,
+                start: activeCaption.start,
+                end: activeCaption.end
+              }));
+
+              ctx.save();
+              ctx.font = `${fontCss.fontStyle} ${fontCss.fontWeight} ${fontSizePx}px ${fontFamily}`;
+              const spaceWidth = ctx.measureText(' ').width;
+              ctx.restore();
+
+              const maxWidth = width * (boxWidth / 100) - 24 * scale;
+              const lines: any[][] = [];
+              let currentLine: any[] = [];
+              let currentLineWidth = 0;
+
+              words.forEach((w: any) => {
+                let textVal = w.text || w.word || '';
+                if (casing === 'uppercase') {
+                  textVal = textVal.toUpperCase();
+                } else if (casing === 'lowercase') {
+                  textVal = textVal.toLowerCase();
+                } else if (casing === 'capitalize') {
+                  textVal = textVal.charAt(0).toUpperCase() + textVal.slice(1).toLowerCase();
+                }
+
+                // Check if word is emphasized or spotlighted
+                const isEmphasized = w.emphasis && !removeEmphasis;
+                const isSpotlighted = w.spotlight && !removeEmphasis;
+
+                ctx.save();
+                if (isEmphasized || isSpotlighted) {
+                  const styleConfig = isEmphasized ? {
+                    font: emphasisFont,
+                    fontFace: emphasisFontFace,
+                    size: emphasisSize
+                  } : {
+                    font: spotlightFont,
+                    fontFace: spotlightFontFace,
+                    size: spotlightSize
+                  };
+
+                  const wFontCss = getFontStyles(styleConfig.fontFace);
+                  const wFontSizePx = fontSize * styleConfig.size * scale;
+                  ctx.font = `${wFontCss.fontStyle} ${wFontCss.fontWeight} ${wFontSizePx}px ${styleConfig.font}`;
+                } else {
+                  ctx.font = `${fontCss.fontStyle} ${fontCss.fontWeight} ${fontSizePx}px ${fontFamily}`;
+                }
+
+                const wordWidth = ctx.measureText(textVal).width;
+                ctx.restore();
+                
+                if (currentLine.length > 0 && currentLineWidth + spaceWidth + wordWidth > maxWidth) {
+                  lines.push(currentLine);
+                  currentLine = [];
+                  currentLineWidth = 0;
+                }
+
+                w.width = wordWidth;
+                w.isEmphasized = isEmphasized;
+                w.isSpotlighted = isSpotlighted;
+                currentLine.push(w);
+                currentLineWidth += (currentLine.length === 1 ? 0 : spaceWidth) + wordWidth;
+              });
+              if (currentLine.length > 0) {
+                lines.push(currentLine);
               }
 
-              ctx.strokeText(textVal, startX + wordWidth / 2, posY);
-              ctx.fillText(textVal, startX + wordWidth / 2, posY);
+              const lineHeight = fontSizePx * 1.2;
+              const totalLinesHeight = lineHeight * lines.length;
+              
+              let currentY = posY - (totalLinesHeight / 2) + (lineHeight / 2);
 
-              startX += wordWidth + spaceWidth;
-            });
+              lines.forEach((line: any[]) => {
+                let lineWidth = line.reduce((sum, w) => sum + w.width, 0) + spaceWidth * (line.length - 1);
+                let startX = posX - (lineWidth / 2);
 
-            ctx.restore();
+                line.forEach((w: any) => {
+                  let textVal = w.text || w.word || '';
+                  if (casing === 'uppercase') {
+                    textVal = textVal.toUpperCase();
+                  } else if (casing === 'lowercase') {
+                    textVal = textVal.toLowerCase();
+                  } else if (casing === 'capitalize') {
+                    textVal = textVal.charAt(0).toUpperCase() + textVal.slice(1).toLowerCase();
+                  }
+
+                  const isWordActive = currentTime >= w.start && currentTime <= w.end;
+                  const isEmphasized = w.isEmphasized;
+                  const isSpotlighted = w.isSpotlighted;
+
+                  ctx.save();
+
+                  let wFontFamily = fontFamily;
+                  let wFontFace = fontFace;
+                  let wFontSize = fontSize;
+                  let wColor = color;
+                  let wMode = colorToggle;
+                  let wStops = gradientStops;
+                  let wAngle = gradientAngle;
+                  let wGlow = '';
+
+                  if (isEmphasized || isSpotlighted) {
+                    const styleConfig = isEmphasized ? {
+                      mode: emphasisMode,
+                      color: emphasisColor,
+                      size: emphasisSize,
+                      glow: emphasisGlow,
+                      font: emphasisFont,
+                      fontFace: emphasisFontFace,
+                      stops: emphasisGradientStops,
+                      angle: emphasisGradientAngle
+                    } : {
+                      mode: spotlightMode,
+                      color: spotlightColor,
+                      size: spotlightSize,
+                      glow: spotlightGlow,
+                      font: spotlightFont,
+                      fontFace: spotlightFontFace,
+                      stops: spotlightGradientStops,
+                      angle: spotlightGradientAngle
+                    };
+
+                    wFontFamily = styleConfig.font;
+                    wFontFace = styleConfig.fontFace;
+                    wFontSize = fontSize * styleConfig.size;
+                    wColor = styleConfig.color;
+                    wMode = styleConfig.mode;
+                    wStops = styleConfig.stops;
+                    wAngle = styleConfig.angle;
+                    wGlow = styleConfig.glow;
+                  }
+
+                  const wFontCss = getFontStyles(wFontFace);
+                  const wFontSizePx = wFontSize * scale;
+                  ctx.font = `${wFontCss.fontStyle} ${wFontCss.fontWeight} ${wFontSizePx}px ${wFontFamily}`;
+                  ctx.textAlign = 'center';
+                  ctx.textBaseline = 'middle';
+
+                  // Apply Glow / Shadows
+                  if (wGlow) {
+                    ctx.shadowColor = wGlow;
+                    ctx.shadowBlur = 10 * scale;
+                    ctx.shadowOffsetX = 0;
+                    ctx.shadowOffsetY = 0;
+                  } else if (shadowEnabled) {
+                    ctx.shadowColor = shadowColor;
+                    ctx.shadowBlur = Math.min(12, shadowBlur) * scale;
+                    ctx.shadowOffsetX = (shadowX || 0) * scale;
+                    ctx.shadowOffsetY = (shadowY || 0) * scale;
+                  } else {
+                    ctx.shadowColor = 'rgba(0, 0, 0, 0.95)';
+                    ctx.shadowBlur = 4 * scale;
+                    ctx.shadowOffsetX = 0;
+                    ctx.shadowOffsetY = 2 * scale;
+                  }
+
+                  if (strokeEnabled) {
+                    ctx.lineWidth = strokeWidth * 2 * scale;
+                    ctx.strokeStyle = strokeColor;
+                  } else {
+                    ctx.lineWidth = 0;
+                    ctx.strokeStyle = 'transparent';
+                  }
+
+                  // Determine Fill Style (Solid, Active highlight, or Gradient)
+                  if (wMode === 'Gradient') {
+                    const angleRad = ((wAngle - 90) * Math.PI) / 180;
+                    const r = Math.max(w.width, wFontSizePx) / 2;
+                    const centerX = startX + w.width / 2;
+                    const centerY = currentY;
+                    
+                    const x0 = centerX - r * Math.cos(angleRad);
+                    const y0 = centerY - r * Math.sin(angleRad);
+                    const x1 = centerX + r * Math.cos(angleRad);
+                    const y1 = centerY + r * Math.sin(angleRad);
+
+                    const grad = ctx.createLinearGradient(x0, y0, x1, y1);
+                    if (wStops && wStops.length > 0) {
+                      wStops.forEach((s: any) => {
+                        grad.addColorStop(s.position / 100, s.color);
+                      });
+                    } else {
+                      grad.addColorStop(0, '#FFFFFF');
+                      grad.addColorStop(1, '#ff7800');
+                    }
+                    ctx.fillStyle = grad;
+                  } else if (isWordActive && !isEmphasized && !isSpotlighted) {
+                    ctx.fillStyle = '#ff7800';
+                  } else {
+                    ctx.fillStyle = wColor;
+                  }
+
+                  if (strokeEnabled) {
+                    ctx.strokeText(textVal, startX + w.width / 2, currentY);
+                  }
+                  ctx.fillText(textVal, startX + w.width / 2, currentY);
+
+                  ctx.restore();
+
+                  startX += w.width + spaceWidth;
+                });
+
+                currentY += lineHeight;
+              });
+
+              ctx.restore();
+            }
+
+            if ('requestVideoFrameCallback' in video) {
+              (video as any).requestVideoFrameCallback(drawFrame);
+            } else {
+              setTimeout(drawFrame, 1000 / 30);
+            }
+          };
+
+          if ('requestVideoFrameCallback' in video) {
+            (video as any).requestVideoFrameCallback(drawFrame);
+          } else {
+            setTimeout(drawFrame, 1000 / 30);
           }
+        } catch (err) {
+          console.error('onloadedmetadata render error:', err);
+          alert('Render error occurred.');
+          setIsExporting(false);
+        }
+      };
 
-          requestAnimationFrame(drawFrame);
-        };
-
-        requestAnimationFrame(drawFrame);
-
-      } catch (err) {
-        console.error('Export error:', err);
-        alert('An error occurred during video export.');
+      video.onerror = () => {
+        alert('Failed to load video source for rendering.');
         setIsExporting(false);
-      }
-    };
-
-    video.onerror = () => {
-      alert('Failed to load video source for rendering.');
+      };
+    } catch (fetchErr) {
+      console.error('Error pre-downloading video:', fetchErr);
+      alert('Failed to download video source from server.');
       setIsExporting(false);
-    };
+    }
   };
 
   useEffect(() => {
@@ -3382,6 +3648,8 @@ export function ReelEditor() {
             textAlign={textAlign}
             position={position}
             setPosition={setPosition}
+            boxWidth={boxWidth}
+            setBoxWidth={setBoxWidth}
             colorToggle={colorToggle}
             color={color}
             gradientStops={gradientStops}

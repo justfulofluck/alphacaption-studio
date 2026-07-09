@@ -27,6 +27,8 @@ interface CustomPlayerUIProps {
   textAlign: 'left' | 'center' | 'right';
   position: { x: number; y: number };
   setPosition: React.Dispatch<React.SetStateAction<{ x: number; y: number }>>;
+  boxWidth?: number;
+  setBoxWidth?: React.Dispatch<React.SetStateAction<number>> | ((width: number) => void);
   colorToggle: string;
   color: string;
   gradientStops?: Array<{ id: number; position: number; color: string; opacity?: number }>;
@@ -108,6 +110,8 @@ function CustomPlayerUI({
   textAlign,
   position,
   setPosition,
+  boxWidth = 80,
+  setBoxWidth = () => {},
   colorToggle,
   color,
   gradientStops,
@@ -353,7 +357,6 @@ function CustomPlayerUI({
   const [isDragging, setIsDragging] = useState(false);
   const [isSeeking, setIsSeeking] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
-  const [boxWidth, setBoxWidth] = useState(80); // percentage width of caption box
   const [snappedX, setSnappedX] = useState(false);
   const [snappedY, setSnappedY] = useState(false);
   const timelineRef = useRef<HTMLDivElement>(null);
@@ -961,6 +964,8 @@ export function VideoPlayer({
   currentTimeRef,
   durationRef,
   aiAudioClean,
+  boxWidth = 80,
+  setBoxWidth = () => {},
 
   emphasisMode,
   emphasisColor,
@@ -1035,6 +1040,8 @@ export function VideoPlayer({
                 setActiveCaptionId={setActiveCaptionId}
                 seekRef={seekRef}
                 linesMode={linesMode}
+                boxWidth={boxWidth}
+                setBoxWidth={setBoxWidth}
                 currentTimeRef={currentTimeRef}
                 durationRef={durationRef}
                 aiAudioClean={aiAudioClean}
