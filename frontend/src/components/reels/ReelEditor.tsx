@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  Type, Music, Play, Search, RotateCcw, Home, Upload,
+  Type, Music, Play, Search, RotateCcw, Home, Upload, ArrowLeft,
   Volume2, Maximize, Settings, AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Undo2, Redo2, Scissors, ChevronLeft, ChevronRight, Trash2, ZoomIn, ZoomOut, SplitSquareHorizontal, RefreshCw, TypeOutline,
   X, ChevronUp, ChevronDown, Check
@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
 import { Link } from 'react-router-dom';
+import axios from 'axios';
 import { VideoPlayer } from './VideoPlayer';
 import { API_BASE_URL } from '@/api/config';
 import { useTimelineStore } from '@/hooks/limeplay/use-timeline';
@@ -536,9 +537,40 @@ export function ReelEditor() {
   const [activeTabRight, setActiveTabRight] = useState('text');
   const [wordLineToggle, setWordLineToggle] = useState('WORD');
   const [colorToggle, setColorToggle] = useState('Solid');
-  const [videoUrl, setVideoUrl] = useState<string | null>(
-    `${API_BASE_URL}/api/projects/video/2/1781779200_20260626_125926.mp4`
-  );
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [projectId, setProjectId] = useState<string | null>(() => {
+    const queryParams = new URLSearchParams(window.location.search);
+    return queryParams.get('projectId');
+  });
+
+  useEffect(() => {
+    if (!projectId) return;
+    const loadProject = async () => {
+      const token = localStorage.getItem('auth_token');
+      try {
+        const res = await axios.get(`${API_BASE_URL}/api/projects/${projectId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const projectData = res.data;
+        if (projectData.video_url) {
+          const pathOnly = projectData.video_url.replace(/^https?:\/\/[^\/]+/, '');
+          setVideoUrl(`${API_BASE_URL}${pathOnly}`);
+        }
+        if (projectData.caption && projectData.caption.segments && projectData.caption.segments.length > 0) {
+          const loadedCaptions = projectData.caption.segments.map((c: any, i: number) => 
+            generateWordsForChunk(c, i)
+          );
+          setCaptions(loadedCaptions);
+          setHistory([loadedCaptions]);
+          setHistoryIndex(0);
+        }
+      } catch (err) {
+        console.error('Error loading project:', err);
+      }
+    };
+    loadProject();
+  }, [projectId]);
+
 
   // Style states
   const [fontFamily, setFontFamily] = useState('Inter');
@@ -555,6 +587,13 @@ export function ReelEditor() {
   const [textAlign, setTextAlign] = useState<'left' | 'center' | 'right'>('center');
   const [position, setPosition] = useState({ x: 50.0, y: 65.0 });
   const [color, setColor] = useState('#FFFFFF');
+
+  // Transitions States
+  const [transitionTarget, setTransitionTarget] = useState<'LINE' | 'WORD'>('LINE');
+  const [activeTransition, setActiveTransition] = useState<'none' | 'fade' | 'pop' | 'zoom' | 'scale' | 'slide-lr' | 'slide-ud'>('none');
+  const [transitionSpeed, setTransitionSpeed] = useState<number>(70);
+  const [speedMode, setSpeedMode] = useState<'manual' | 'auto'>('manual');
+  const [transitionPreviewKey, setTransitionPreviewKey] = useState<number>(0);
 
   const [inputX, setInputX] = useState(position.x.toFixed(1));
   const [inputY, setInputY] = useState(position.y.toFixed(1));
@@ -983,11 +1022,14 @@ export function ReelEditor() {
 
   const seekFromMouseEvent = (e: React.MouseEvent<HTMLDivElement> | MouseEvent) => {
     if (!seekRef.current) return;
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const pxPerSec = 200 * zoomLevelRef.current;
-    const time = Math.max(0, x / pxPerSec);
-    seekRef.current(time);
+    const innerDiv = document.querySelector('.timeline-scroll-content');
+    if (innerDiv) {
+      const rect = innerDiv.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const pxPerSec = 200 * zoomLevelRef.current;
+      const time = Math.max(0, x / pxPerSec);
+      seekRef.current(time);
+    }
   };
 
   const handleTimelineMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -1389,6 +1431,45 @@ export function ReelEditor() {
       return prev;
     });
   }, [history]);
+
+  const saveProject = async () => {
+    if (!projectId || !captions) return;
+    try {
+      const token = localStorage.getItem('auth_token');
+      const segmentsToSave = captions.map(c => ({
+        start: c.start,
+        end: c.end,
+        text: c.text,
+        words: c.words
+      }));
+
+      await axios.put(`${API_BASE_URL}/api/captions/${projectId}`, {
+        transcript: captions.map(c => c.text).join(' '),
+        segments: segmentsToSave,
+        style: {
+          fontFamily,
+          fontSize,
+          color,
+          activeTransition,
+          transitionSpeed,
+          transitionTarget
+        }
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      console.log('Project auto-saved successfully!');
+    } catch (err) {
+      console.error('Error saving project:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (!projectId) return;
+    const timer = setTimeout(() => {
+      saveProject();
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [captions, fontFamily, fontSize, color, activeTransition, transitionSpeed, transitionTarget, projectId]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -2036,10 +2117,10 @@ export function ReelEditor() {
               {/* TOP: Captions List */}
               <Panel defaultSize={65} minSize={30} className="flex flex-row overflow-hidden relative rounded-xl border border-[#2a2a2d] bg-[#1a1a1c]">
 
-                {/* Vertical Menu (Moved inside) */}
-                <div className="w-[72px] flex flex-col items-center py-6 gap-8 border-r border-[#2a2a2d] bg-[#161618] h-full shrink-0 z-20">
+                {/* Vertical Menu */}
+                <div className="w-[72px] flex flex-col items-center py-6 gap-4 border-r border-[#2a2a2d] bg-[#161618] h-full shrink-0 z-20">
                   <Link
-                    to="/dashboard"
+                    to="/reels"
                     className="flex flex-col items-center gap-1.5 transition-colors text-[#8a8a8e] hover:text-[#e0e0e0]"
                   >
                     <div className="p-2 rounded-lg hover:bg-[#2a2a2d]">
@@ -2047,22 +2128,6 @@ export function ReelEditor() {
                     </div>
                     <span className="text-[10px] font-medium">Home</span>
                   </Link>
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className={`flex flex-col items-center gap-1.5 transition-colors text-[#8a8a8e] hover:text-[#e0e0e0]`}
-                  >
-                    <div className="p-2 rounded-lg hover:bg-[#2a2a2d]">
-                      <Upload className="w-5 h-5" />
-                    </div>
-                    <span className="text-[10px] font-medium">Upload</span>
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      className="hidden"
-                      accept="video/mp4,video/webm"
-                      onChange={handleVideoUpload}
-                    />
-                  </button>
                   <button
                     onClick={() => setActiveTabLeft('captions')}
                     className={`flex flex-col items-center gap-1.5 transition-colors ${activeTabLeft === 'captions' ? 'text-[#ff7800]' : 'text-[#8a8a8e] hover:text-[#e0e0e0]'}`}
@@ -2072,28 +2137,9 @@ export function ReelEditor() {
                     </div>
                     <span className="text-[10px] font-medium text-center leading-none">Captions</span>
                   </button>
-                  <button
-                    onClick={() => setActiveTabLeft('fonts')}
-                    className={`flex flex-col items-center gap-1.5 transition-colors ${activeTabLeft === 'fonts' ? 'text-[#ff7800]' : 'text-[#8a8a8e] hover:text-[#e0e0e0]'}`}
-                  >
-                    <div className={`p-2 rounded-lg ${activeTabLeft === 'fonts' ? 'bg-[#ff7800]/10' : ''}`}>
-                      <Type className="w-5 h-5" />
-                    </div>
-                    <span className="text-[10px] font-medium text-center leading-tight">Custom<br />Fonts</span>
-                  </button>
-                  <button
-                    onClick={() => setActiveTabLeft('audio')}
-                    className={`flex flex-col items-center gap-1.5 transition-colors relative ${activeTabLeft === 'audio' ? 'text-[#ff7800]' : 'text-[#8a8a8e] hover:text-[#e0e0e0]'}`}
-                  >
-                    <span className="absolute -top-3 text-[8px] bg-[#2a2a2d] px-1 rounded text-[#8a8a8e]">Soon</span>
-                    <div className={`p-2 rounded-lg ${activeTabLeft === 'audio' ? 'bg-[#ff7800]/10' : ''}`}>
-                      <Music className="w-5 h-5" />
-                    </div>
-                    <span className="text-[10px] font-medium text-center leading-none">Audio</span>
-                  </button>
                 </div>
 
-                {/* Sub-container holding the actual captions content */}
+                 {/* Sub-container holding the actual captions content */}
                 <div className="flex-1 flex flex-col h-full overflow-hidden">
                   {/* Header */}
                   <div className="h-[60px] px-5 flex justify-between items-center border-b border-[#2a2a2d]">
@@ -3154,6 +3200,10 @@ export function ReelEditor() {
             linesMode={linesMode}
             currentTimeRef={currentTimeRef}
             durationRef={durationRef}
+            transitionTarget={transitionTarget}
+            activeTransition={activeTransition}
+            transitionSpeed={transitionSpeed}
+            transitionPreviewKey={transitionPreviewKey}
           />
 
           <PanelResizeHandle className="w-2 bg-transparent cursor-col-resize relative z-10 hover:bg-[#2a2a2d] transition-colors rounded-full mx-0.5 my-2" />
@@ -4503,6 +4553,121 @@ export function ReelEditor() {
                     );
                   })}
 
+                </div>
+              )}
+
+              {activeTabRight === 'templates' && (
+                <div className="p-5 text-[#8a8a8e] text-xs">
+                  Templates coming soon!
+                </div>
+              )}
+
+              {activeTabRight === 'transitions' && (
+                <div className="p-5 flex flex-col gap-6 text-[#e0e0e0] select-none h-full">
+                  {/* Target Segment Selection (Line vs Word) */}
+                  <div className="flex bg-[#161618] rounded-lg p-0.5 border border-[#2a2a2d]">
+                    <button
+                      onClick={() => setTransitionTarget('LINE')}
+                      className={`flex-1 py-2 text-xs font-bold rounded-md transition-colors ${transitionTarget === 'LINE' ? 'bg-[#ff7800] text-white' : 'text-[#8a8a8e] hover:text-[#e0e0e0]'}`}
+                    >
+                      Line
+                    </button>
+                    <button
+                      onClick={() => setTransitionTarget('WORD')}
+                      className={`flex-1 py-2 text-xs font-bold rounded-md transition-colors ${transitionTarget === 'WORD' ? 'bg-[#ff7800] text-white' : 'text-[#8a8a8e] hover:text-[#e0e0e0]'}`}
+                    >
+                      Word
+                    </button>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-bold text-white mb-1">
+                      Transitions will be <span className="text-[#52c595] font-extrabold">Applied</span> on {transitionTarget === 'LINE' ? 'Line' : 'Word'}
+                    </h3>
+                    {transitionTarget === 'WORD' && (
+                      <p className="text-[11px] text-[#ffaa00] font-semibold mb-3">
+                        Please select one or more words to apply animations
+                      </p>
+                    )}
+
+                    {/* Transitions Grid */}
+                    <div className="grid grid-cols-3 gap-2 mt-4">
+                      {[
+                        { id: 'none', label: 'None', icon: <svg className="w-6 h-6 stroke-current" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg> },
+                        { id: 'fade', label: 'Fade', icon: <div className="w-5 h-5 rounded bg-white/40 blur-[2px]" /> },
+                        { id: 'pop', label: 'Pop', icon: <svg className="w-6 h-6 stroke-current" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" strokeWidth={1.5} /><circle cx="12" cy="12" r="1.5" fill="currentColor" /></svg> },
+                        { id: 'zoom', label: 'Zoom', icon: <svg className="w-6 h-6 stroke-current" fill="none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="5" strokeWidth={1.5} /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-4.35-4.35M11 8v6M8 11h6" /></svg> },
+                        { id: 'scale', label: 'Scale', icon: <svg className="w-6 h-6 stroke-current" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 5h8v14H8z" /><circle cx="4" cy="12" r="1" fill="currentColor" /><circle cx="20" cy="12" r="1" fill="currentColor" /><path d="M4 12h2M18 12h2" strokeWidth={1.5} /></svg> },
+                        { id: 'slide-lr', label: 'Slide Left / Right', icon: <svg className="w-6 h-6 stroke-current" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 19l-7-7 7-7M20 19l-7-7 7-7" /></svg> },
+                        { id: 'slide-ud', label: 'Slide Up / Down', icon: <svg className="w-6 h-6 stroke-current" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 11l7-7 7 7M5 19l7-7 7 7" /></svg> },
+                      ].map((item) => (
+                        <button
+                          key={item.id}
+                          onClick={() => {
+                            setActiveTransition(item.id as any);
+                            setTransitionPreviewKey(prev => prev + 1);
+                          }}
+                          className={`flex flex-col items-center justify-center p-4 rounded-xl border text-center transition-all aspect-square gap-2
+                            ${activeTransition === item.id 
+                              ? 'bg-[#ff7800]/10 border-[#ff7800] text-[#ff7800]' 
+                              : 'bg-[#1a1a1c] border-[#2a2a2d] text-[#8a8a8e] hover:text-[#e0e0e0] hover:border-[#3a3a3d]'}`}
+                        >
+                          <div className={`transition-transform duration-200 ${activeTransition === item.id ? 'scale-110' : ''}`}>
+                            {item.icon}
+                          </div>
+                          <span className="text-[10px] font-bold tracking-tight">{item.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Speed Controls */}
+                  <div className="space-y-4 pt-2 border-t border-[#2a2a2d]">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-xs font-bold text-white">Speed Mode</span>
+                        <p className="text-[10px] text-[#8a8a8e]">Set your preferred speed manually</p>
+                      </div>
+                      <button
+                        onClick={() => setSpeedMode(prev => prev === 'manual' ? 'auto' : 'manual')}
+                        className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors duration-200 focus:outline-none ${speedMode === 'manual' ? 'bg-[#ff7800]' : 'bg-[#2a2a2d]'}`}
+                      >
+                        <div className={`bg-black w-3.5 h-3.5 rounded-full shadow-md transform transition-transform duration-200 ${speedMode === 'manual' ? 'translate-x-4' : ''}`} />
+                      </button>
+                    </div>
+
+                    {speedMode === 'manual' && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-xs text-[#8a8a8e]">
+                          <span>Speed</span>
+                          <div className="flex items-center gap-1.5 bg-[#1a1a1c] border border-[#2a2a2d] px-2 py-1 rounded-md">
+                            <input
+                              type="number"
+                              value={transitionSpeed}
+                              onChange={(e) => setTransitionSpeed(Math.max(10, Math.min(1000, parseInt(e.target.value) || 70)))}
+                              className="w-10 bg-transparent border-none text-white text-center text-xs font-bold focus:ring-0 p-0"
+                            />
+                            <div className="flex flex-col">
+                              <button onClick={() => setTransitionSpeed(s => Math.min(1000, s + 10))} className="text-[8px] hover:text-white">▲</button>
+                              <button onClick={() => setTransitionSpeed(s => Math.max(10, s - 10))} className="text-[8px] hover:text-white">▼</button>
+                            </div>
+                          </div>
+                        </div>
+                        <input
+                          type="range"
+                          min="10"
+                          max="500"
+                          step="10"
+                          value={transitionSpeed}
+                          onChange={(e) => setTransitionSpeed(parseInt(e.target.value))}
+                          className="w-full h-1 bg-[#2a2a2d] rounded-lg appearance-none cursor-pointer accent-[#ff7800]"
+                          style={{
+                            background: `linear-gradient(to right, #ff7800 ${((transitionSpeed - 10) / 490) * 100}%, #2a2a2d ${((transitionSpeed - 10) / 490) * 100}%)`
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 

@@ -90,6 +90,10 @@ interface CustomPlayerUIProps {
   hoveredEmphasisFontFace?: string | null;
   hoveredSpotlightFontFamily?: string | null;
   hoveredSpotlightFontFace?: string | null;
+  transitionTarget?: 'LINE' | 'WORD';
+  activeTransition?: 'none' | 'fade' | 'pop' | 'zoom' | 'scale' | 'slide-lr' | 'slide-ud';
+  transitionSpeed?: number;
+  transitionPreviewKey?: number;
 }
 
 function CustomPlayerUI({
@@ -162,7 +166,11 @@ function CustomPlayerUI({
   hoveredEmphasisFontFamily = null,
   hoveredEmphasisFontFace = null,
   hoveredSpotlightFontFamily = null,
-  hoveredSpotlightFontFace = null
+  hoveredSpotlightFontFace = null,
+  transitionTarget = 'LINE',
+  activeTransition = 'none',
+  transitionSpeed = 70,
+  transitionPreviewKey = 0
 }: CustomPlayerUIProps) {
   const mapFontFaceToCss = (face: string) => {
     const weightMap: Record<string, string> = {
@@ -604,9 +612,9 @@ function CustomPlayerUI({
         </div>
       </div>
 
-      {/* Caption Overlay */}
       {activeCaption ? (
         <div
+          key={`${activeCaption.id}-${transitionPreviewKey}`}
           className="absolute caption-drag-container pointer-events-auto cursor-move z-20 flex items-center justify-center"
           style={{
             left: `${position.x}%`,
@@ -636,7 +644,20 @@ function CustomPlayerUI({
                 textAlign === 'right' ? 'justify-end text-right' :
                   'justify-center text-center'
               }`}
-            style={{ ...captionStyle, ...bgStyle }}
+            style={{
+              ...captionStyle,
+              ...bgStyle,
+              ...(transitionTarget === 'LINE' && activeTransition !== 'none' ? {
+                animationName: `${activeTransition}-effect`,
+                animationDuration: `${transitionSpeed * 10}ms`,
+                animationFillMode: 'forwards',
+                animationTimingFunction: activeTransition === 'pop' 
+                  ? 'cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                  : activeTransition === 'zoom'
+                  ? 'cubic-bezier(0.34, 1.56, 0.64, 1)'
+                  : 'ease-out'
+              } : {})
+            } as any}
           >
             {activeCaption.text.split(' ').map((word, wordIndex, wordsArr) => {
               const wordObj = activeCaption.words && activeCaption.words[wordIndex];
@@ -653,6 +674,13 @@ function CustomPlayerUI({
               }
               const isEmphasized = wordObj && wordObj.emphasis && !removeEmphasis;
               const isSpotlighted = wordObj && wordObj.spotlight && !removeEmphasis;
+
+              // Word transition style when word is active/highlighted
+              const wordAnimStyle = (transitionTarget === 'WORD' && activeTransition !== 'none' && isHighlight) ? {
+                animationName: `${activeTransition}-effect`,
+                animationDuration: `${transitionSpeed * 10}ms`,
+                animationFillMode: 'forwards' as const
+              } : {};
 
               const numLines = linesMode ? parseInt(linesMode.split(' ')[0]) : 1;
               const wordsPerLine = numLines > 1 ? Math.ceil(wordsArr.length / numLines) : wordsArr.length + 1;
@@ -719,7 +747,7 @@ function CustomPlayerUI({
                   const wordGradientStr = buildGradientStr(styleConfig.angle, styleConfig.stops);
                   if (styleConfig.level === 'char') {
                     wordElement = (
-                      <span key={wordIndex} className="inline-block mr-1.5 whitespace-nowrap">
+                      <span key={wordIndex} className="inline-block mr-1.5 whitespace-nowrap" style={wordAnimStyle}>
                         {word.split('').map((char, charIndex) => {
                           const charClass = `${uniqueClass}-${charIndex}`;
                           return (
@@ -742,7 +770,7 @@ function CustomPlayerUI({
                     );
                   } else {
                     wordElement = (
-                      <span key={wordIndex} className={`${uniqueClass} inline-block mr-1.5`}>
+                      <span key={wordIndex} className={`${uniqueClass} inline-block mr-1.5`} style={wordAnimStyle}>
                         <style>{`
                           .${uniqueClass} {
                             ${wordStyle}
@@ -760,7 +788,7 @@ function CustomPlayerUI({
                 } else {
                   wordStyle += `color: ${styleConfig.color} !important;`;
                   wordElement = (
-                    <span key={wordIndex} className={`${uniqueClass} inline-block mr-1.5`}>
+                    <span key={wordIndex} className={`${uniqueClass} inline-block mr-1.5`} style={wordAnimStyle}>
                       <style>{`
                         .${uniqueClass} {
                           ${wordStyle}
@@ -773,7 +801,7 @@ function CustomPlayerUI({
               } else if (colorToggle === 'Gradient') {
                 if (gradientLevel === 'char') {
                   wordElement = (
-                    <span key={wordIndex} className="inline-block mr-1.5 whitespace-nowrap">
+                    <span key={wordIndex} className="inline-block mr-1.5 whitespace-nowrap" style={wordAnimStyle}>
                       {word.split('').map((char, charIndex) => {
                         const uniqueClass = `char-grad-${wordIndex}-${charIndex}`;
                         return (
@@ -798,7 +826,7 @@ function CustomPlayerUI({
                 } else {
                   const uniqueClass = `word-grad-${wordIndex}`;
                   wordElement = (
-                    <span key={wordIndex} className={`${uniqueClass} inline-block mr-1.5`}>
+                    <span key={wordIndex} className={`${uniqueClass} inline-block mr-1.5`} style={wordAnimStyle}>
                       <style>{`
                         .${uniqueClass} {
                           background: ${gradientString} !important;
@@ -817,7 +845,7 @@ function CustomPlayerUI({
               } else {
                 const uniqueClass = `word-solid-${wordIndex}`;
                 wordElement = (
-                  <span key={wordIndex} className={`${uniqueClass} inline-block mr-1.5`}>
+                  <span key={wordIndex} className={`${uniqueClass} inline-block mr-1.5`} style={wordAnimStyle}>
                     <style>{`
                       .${uniqueClass} {
                         color: ${isHighlight ? '#ff7800' : color} !important;
@@ -954,7 +982,11 @@ export function VideoPlayer({
   spotlightGradientStops,
   spotlightGradientAngle,
   spotlightGradientLevel,
-  removeEmphasis
+  removeEmphasis,
+  transitionTarget,
+  activeTransition,
+  transitionSpeed,
+  transitionPreviewKey
 }: any) {
   return (
     <Panel defaultSize={25} minSize={20} className="flex flex-col bg-[#0f0f11] relative overflow-hidden rounded-xl border border-[#2a2a2d] custom-player-wrapper">
@@ -1028,6 +1060,10 @@ export function VideoPlayer({
                 spotlightGradientAngle={spotlightGradientAngle}
                 spotlightGradientLevel={spotlightGradientLevel}
                 removeEmphasis={removeEmphasis}
+                transitionTarget={transitionTarget}
+                activeTransition={activeTransition}
+                transitionSpeed={transitionSpeed}
+                transitionPreviewKey={transitionPreviewKey}
               />
             </LimeplayPlayer>
           </div>

@@ -71,6 +71,7 @@ import ResetPasswordPage from './components/ResetPasswordPage';
 import PricingPage from './components/PricingPage';
 import { TTSDashboard } from './components/tts/TTSDashboard';
 import { ReelEditor } from './components/reels/ReelEditor';
+import { ReelsDashboard } from './components/reels/ReelsDashboard';
 import { cn } from './lib/utils';
 import { AudioProvider, useAudio } from './lib/AudioContext';
 import axios from 'axios';
@@ -130,7 +131,8 @@ export default function App() {
           <Route path="/settings" element={<ProfileSettings />} />
           <Route path="/pricing" element={<PricingPage />} />
           <Route path="/tts" element={<TTSDashboard />} />
-          <Route path="/reels" element={<ReelEditor />} />
+          <Route path="/reels" element={<ReelsDashboard />} />
+          <Route path="/reels/editor" element={<ReelEditor />} />
         </Route>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
@@ -199,7 +201,7 @@ function Layout() {
     );
   }
 
-  const isFullPageLayout = location.pathname === '/reels';
+  const isFullPageLayout = location.pathname.startsWith('/reels/editor');
 
   return (
     <SidebarProvider

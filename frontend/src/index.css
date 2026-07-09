@@ -11,13 +11,16 @@
     width: 6px;
     height: 6px;
   }
+
   .custom-scrollbar::-webkit-scrollbar-track {
     background: transparent;
   }
+
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background: #52525b;
     border-radius: 10px;
   }
+
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: #71717a;
   }
@@ -26,13 +29,16 @@
     width: 4px;
     height: 4px;
   }
+
   .custom-scrollbar-thin::-webkit-scrollbar-track {
     background: transparent;
   }
+
   .custom-scrollbar-thin::-webkit-scrollbar-thumb {
     background: #3f3f46;
     border-radius: 10px;
   }
+
   .custom-scrollbar-thin::-webkit-scrollbar-thumb:hover {
     background: #52525b;
   }
@@ -130,16 +136,20 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground transition-colors duration-500 ease-in-out;
   }
+
   html {
     @apply font-sans;
   }
 }
 
 /* Global Transition for Theme Switching */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   transition-property: background-color, border-color, color, fill, stroke, box-shadow;
   transition-duration: 400ms;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
@@ -187,6 +197,7 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
 .premium-button-orange {
   background: #ff7800;
   color: white;
@@ -243,7 +254,8 @@
 }
 
 @utility hit-area-debug {
-    position: relative;
+  position: relative;
+
   &::before {
     content: "";
     position: absolute;
@@ -254,13 +266,15 @@
     pointer-events: inherit;
     @apply border border-dashed border-blue-500 bg-blue-500/10;
   }
+
   &:hover::before {
     @apply border border-dashed border-green-500 bg-green-500/10;
   }
 }
 
 @utility hit-area {
-    position: relative;
+  position: relative;
+
   &::before {
     content: "";
     position: absolute;
@@ -273,11 +287,16 @@
 }
 
 @utility hit-area-* {
-    position: relative;
-    --hit-area-t: --spacing(--value(number) * -1); --hit-area-t: calc(--value([*]) * -1);
-    --hit-area-b: --spacing(--value(number) * -1); --hit-area-b: calc(--value([*]) * -1);
-    --hit-area-l: --spacing(--value(number) * -1); --hit-area-l: calc(--value([*]) * -1);
-    --hit-area-r: --spacing(--value(number) * -1); --hit-area-r: calc(--value([*]) * -1);
+  position: relative;
+  --hit-area-t: --spacing(--value(number) * -1);
+  --hit-area-t: calc(--value([*]) * -1);
+  --hit-area-b: --spacing(--value(number) * -1);
+  --hit-area-b: calc(--value([*]) * -1);
+  --hit-area-l: --spacing(--value(number) * -1);
+  --hit-area-l: calc(--value([*]) * -1);
+  --hit-area-r: --spacing(--value(number) * -1);
+  --hit-area-r: calc(--value([*]) * -1);
+
   &::before {
     content: "";
     position: absolute;
@@ -290,8 +309,10 @@
 }
 
 @utility hit-area-l-* {
-    position: relative;
-    --hit-area-l: --spacing(--value(number) * -1); --hit-area-l: calc(--value([*]) * -1);
+  position: relative;
+  --hit-area-l: --spacing(--value(number) * -1);
+  --hit-area-l: calc(--value([*]) * -1);
+
   &::before {
     content: "";
     position: absolute;
@@ -304,8 +325,10 @@
 }
 
 @utility hit-area-r-* {
-    position: relative;
-    --hit-area-r: --spacing(--value(number) * -1); --hit-area-r: calc(--value([*]) * -1);
+  position: relative;
+  --hit-area-r: --spacing(--value(number) * -1);
+  --hit-area-r: calc(--value([*]) * -1);
+
   &::before {
     content: "";
     position: absolute;
@@ -318,8 +341,10 @@
 }
 
 @utility hit-area-t-* {
-    position: relative;
-    --hit-area-t: --spacing(--value(number) * -1); --hit-area-t: calc(--value([*]) * -1);
+  position: relative;
+  --hit-area-t: --spacing(--value(number) * -1);
+  --hit-area-t: calc(--value([*]) * -1);
+
   &::before {
     content: "";
     position: absolute;
@@ -332,8 +357,10 @@
 }
 
 @utility hit-area-b-* {
-    position: relative;
-    --hit-area-b: --spacing(--value(number) * -1); --hit-area-b: calc(--value([*]) * -1);
+  position: relative;
+  --hit-area-b: --spacing(--value(number) * -1);
+  --hit-area-b: calc(--value([*]) * -1);
+
   &::before {
     content: "";
     position: absolute;
@@ -346,9 +373,12 @@
 }
 
 @utility hit-area-x-* {
-    position: relative;
-    --hit-area-l: --spacing(--value(number) * -1); --hit-area-l: calc(--value([*]) * -1);
-    --hit-area-r: --spacing(--value(number) * -1); --hit-area-r: calc(--value([*]) * -1);
+  position: relative;
+  --hit-area-l: --spacing(--value(number) * -1);
+  --hit-area-l: calc(--value([*]) * -1);
+  --hit-area-r: --spacing(--value(number) * -1);
+  --hit-area-r: calc(--value([*]) * -1);
+
   &::before {
     content: "";
     position: absolute;
@@ -361,16 +391,118 @@
 }
 
 @utility hit-area-y-* {
-    position: relative;
-    --hit-area-t: --spacing(--value(number) * -1); --hit-area-t: calc(--value([*]) * -1);
-    --hit-area-b: --spacing(--value(number) * -1); --hit-area-b: calc(--value([*]) * -1);
+  position: relative;
+  --hit-area-t: --spacing(--value(number) * -1);
+  --hit-area-t: calc(--value([*]) * -1);
+  --hit-area-b: --spacing(--value(number) * -1);
+  --hit-area-b: calc(--value([*]) * -1);
+
   &::before {
     content: "";
     position: absolute;
     top: var(--hit-area-t, 0px);
     right: var(--hit-area-r, 0px);
     bottom: var(--hit-area-b, 0px);
-    left: var(--hit-area-l, 0px);
     pointer-events: inherit;
   }
 }
+
+/* Transitions Keyframes & Utility Classes */
+@keyframes fade-effect {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes pop-effect {
+    0% {
+      transform: scale(0.85);
+      opacity: 0.8;
+    }
+
+    50% {
+      transform: scale(1.1);
+      opacity: 1;
+    }
+
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  @keyframes zoom-effect {
+    from {
+      transform: scale(0);
+      opacity: 0;
+    }
+
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  @keyframes scale-effect {
+    from {
+      transform: scaleX(0.7) scaleY(0.7);
+      opacity: 0.5;
+    }
+
+    to {
+      transform: scaleX(1) scaleY(1);
+      opacity: 1;
+    }
+  }
+
+  @keyframes slide-lr-effect {
+    from {
+      transform: translateX(-25px);
+      opacity: 0;
+    }
+
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes slide-ud-effect {
+    from {
+      transform: translateY(20px);
+      opacity: 0;
+    }
+
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .animate-fade {
+    animation: fade-effect var(--transition-speed, 70ms) ease-out forwards;
+  }
+
+  .animate-pop {
+    animation: pop-effect var(--transition-speed, 70ms) cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  }
+
+  .animate-zoom {
+    animation: zoom-effect var(--transition-speed, 70ms) cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  .animate-scale {
+    animation: scale-effect var(--transition-speed, 70ms) ease-out forwards;
+  }
+
+  .animate-slide-lr {
+    animation: slide-lr-effect var(--transition-speed, 70ms) cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  }
+
+  .animate-slide-ud {
+    animation: slide-ud-effect var(--transition-speed, 70ms) cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  }
