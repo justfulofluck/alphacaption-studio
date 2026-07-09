@@ -4,7 +4,7 @@ import {
   Type, Music, Play, Search, RotateCcw, Home, Upload, ArrowLeft,
   Volume2, Maximize, Settings, AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Undo2, Redo2, Scissors, ChevronLeft, ChevronRight, Trash2, ZoomIn, ZoomOut, SplitSquareHorizontal, RefreshCw, TypeOutline,
-  X, ChevronUp, ChevronDown, Check
+  X, ChevronUp, ChevronDown, Check, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
@@ -542,6 +542,13 @@ export function ReelEditor() {
     const queryParams = new URLSearchParams(window.location.search);
     return queryParams.get('projectId');
   });
+
+  // Export modal states
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportResolution, setExportResolution] = useState<'1080' | '1440' | '2160'>('1080');
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
+  const [exportStatusText, setExportStatusText] = useState('');
 
   useEffect(() => {
     if (!projectId) return;
@@ -1463,6 +1470,181 @@ export function ReelEditor() {
     }
   };
 
+  const handleStartExport = async () => {
+    if (!videoUrl || isExporting) return;
+    setIsExporting(true);
+    setExportProgress(0);
+    setExportStatusText('Initializing render engine...');
+
+    const video = document.createElement('video');
+    video.src = videoUrl;
+    video.crossOrigin = 'anonymous';
+    video.muted = true;
+    video.playsInline = true;
+
+    video.onloadedmetadata = async () => {
+      try {
+        const isLandscape = video.videoWidth > video.videoHeight;
+        let width = 1080;
+        let height = 1920;
+
+        if (exportResolution === '1080') {
+          width = isLandscape ? 1920 : 1080;
+          height = isLandscape ? 1080 : 1920;
+        } else if (exportResolution === '1440') {
+          width = isLandscape ? 2560 : 1440;
+          height = isLandscape ? 1440 : 2560;
+        } else if (exportResolution === '2160') {
+          width = isLandscape ? 3840 : 2160;
+          height = isLandscape ? 2160 : 3840;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('Failed to get 2D context');
+
+        const stream = canvas.captureStream(30);
+        
+        let audioTrack: MediaStreamTrack | null = null;
+        try {
+          const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+          const source = audioCtx.createMediaElementSource(video);
+          const dest = audioCtx.createMediaStreamDestination();
+          source.connect(dest);
+          source.connect(audioCtx.destination);
+          audioTrack = dest.stream.getAudioTracks()[0] || null;
+        } catch (audioErr) {
+          console.warn('Audio capture warning, exporting video without audio:', audioErr);
+        }
+
+        const tracks: MediaStreamTrack[] = [...stream.getVideoTracks()];
+        if (audioTrack) {
+          tracks.push(audioTrack);
+        }
+
+        const combinedStream = new MediaStream(tracks);
+        let mediaRecorder: MediaRecorder;
+        
+        try {
+          mediaRecorder = new MediaRecorder(combinedStream, { mimeType: 'video/webm;codecs=vp9' });
+        } catch (e) {
+          mediaRecorder = new MediaRecorder(combinedStream);
+        }
+
+        const chunks: Blob[] = [];
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data && event.data.size > 0) {
+            chunks.push(event.data);
+          }
+        };
+
+        mediaRecorder.onstop = () => {
+          setExportStatusText('Finalizing download...');
+          const blob = new Blob(chunks, { type: 'video/webm' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `reel_export_${exportResolution}p.webm`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          setIsExporting(false);
+          setShowExportModal(false);
+        };
+
+        setExportStatusText('Recording and rendering frames...');
+        mediaRecorder.start();
+        video.play();
+
+        const duration = video.duration || 10;
+        const scale = width / 360; 
+
+        const drawFrame = () => {
+          if (video.paused || video.ended) {
+            mediaRecorder.stop();
+            return;
+          }
+
+          ctx.drawImage(video, 0, 0, width, height);
+
+          const currentTime = video.currentTime;
+          const progress = Math.min(100, Math.round((currentTime / duration) * 100));
+          setExportProgress(progress);
+
+          const activeCaption = captions.find(c => currentTime >= c.start && currentTime <= c.end);
+          if (activeCaption) {
+            ctx.save();
+            
+            const fontSizePx = fontSize * scale;
+            ctx.font = `bold ${fontSizePx}px ${fontFamily}`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+            ctx.shadowBlur = 8 * scale;
+            ctx.lineWidth = 4 * scale;
+            ctx.strokeStyle = '#000000';
+
+            const posY = (height * 0.75); 
+
+            const words = activeCaption.words || activeCaption.text.split(' ').map((w: string, i: number) => ({
+              id: i,
+              text: w,
+              start: activeCaption.start,
+              end: activeCaption.end
+            }));
+
+            const spaceWidth = ctx.measureText(' ').width;
+            let totalWidth = 0;
+            const wordWidths = words.map((w: any) => {
+              const wWidth = ctx.measureText(w.text).width;
+              totalWidth += wWidth;
+              return wWidth;
+            });
+            totalWidth += spaceWidth * (words.length - 1);
+
+            let startX = (width - totalWidth) / 2;
+
+            words.forEach((w: any, idx: number) => {
+              const wordWidth = wordWidths[idx];
+              const isWordActive = currentTime >= w.start && currentTime <= w.end;
+
+              if (isWordActive) {
+                ctx.fillStyle = '#ff7800'; 
+              } else {
+                ctx.fillStyle = color; 
+              }
+
+              ctx.strokeText(w.text, startX + wordWidth / 2, posY);
+              ctx.fillText(w.text, startX + wordWidth / 2, posY);
+
+              startX += wordWidth + spaceWidth;
+            });
+
+            ctx.restore();
+          }
+
+          requestAnimationFrame(drawFrame);
+        };
+
+        requestAnimationFrame(drawFrame);
+
+      } catch (err) {
+        console.error('Export error:', err);
+        alert('An error occurred during video export.');
+        setIsExporting(false);
+      }
+    };
+
+    video.onerror = () => {
+      alert('Failed to load video source for rendering.');
+      setIsExporting(false);
+    };
+  };
+
   useEffect(() => {
     if (!projectId) return;
     const timer = setTimeout(() => {
@@ -1992,6 +2174,65 @@ export function ReelEditor() {
           </div>
         </div>
       )}
+
+      {/* Video Export Modal */}
+      {showExportModal && (
+        <div className="absolute inset-0 bg-[#0f0f11]/95 z-50 flex flex-col items-center justify-center backdrop-blur-sm">
+          <div className="w-[380px] bg-[#161618] border border-[#2a2a2d] rounded-2xl p-6 flex flex-col gap-6 shadow-2xl text-[#e0e0e0]">
+            <div className="flex flex-col gap-1 text-center">
+              <h3 className="font-bold text-white text-lg">Export Video</h3>
+              <p className="text-xs text-[#8a8a8e]">Choose quality preset to render with high fidelity captions</p>
+            </div>
+
+            {isExporting ? (
+              <div className="flex flex-col items-center gap-4 py-4 text-center">
+                <Loader2 className="w-10 h-10 text-[#ff7800] animate-spin mb-2" />
+                <div className="flex flex-col gap-1">
+                  <h4 className="font-bold text-white text-sm">{exportStatusText}</h4>
+                  <span className="text-xs text-[#8a8a8e] font-mono">{exportProgress}% Completed</span>
+                </div>
+                <div className="w-full bg-[#2a2a2d] h-2 rounded-full overflow-hidden border border-white/5">
+                  <div 
+                    className="bg-[#ff7800] h-full rounded-full transition-all duration-300 shadow-[0_0_10px_rgba(255,120,0,0.5)]"
+                    style={{ width: `${exportProgress}%` }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex flex-col gap-2">
+                  <label className="text-[10px] text-[#8a8a8e] font-semibold uppercase tracking-wider ml-1">Export Quality Preset</label>
+                  <select
+                    value={exportResolution}
+                    onChange={(e) => setExportResolution(e.target.value as any)}
+                    className="w-full bg-[#2a2a2d] border border-white/10 text-white px-4 py-3 rounded-xl text-xs font-bold outline-none focus:ring-1 focus:ring-[#ff7800] cursor-pointer"
+                  >
+                    <option value="1080">1080p (Full HD - Standard)</option>
+                    <option value="1440">2K (Quad HD - High Resolution)</option>
+                    <option value="2160">4K (Ultra HD - Pristine Quality)</option>
+                  </select>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowExportModal(false)}
+                    className="flex-1 py-2.5 bg-[#2a2a2d] hover:bg-[#3a3a3d] text-white font-semibold text-xs rounded-xl transition-colors focus:outline-none border border-white/5"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleStartExport}
+                    className="flex-1 py-2.5 bg-[#ff7800] hover:bg-[#ff8c24] text-black font-semibold text-xs rounded-xl transition-colors focus:outline-none shadow-[0_0_15px_rgba(255,120,0,0.25)]"
+                  >
+                    Start Render
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
 
       {/* Upload and Transcription Progress Overlay */}
       {uploadStage !== 'idle' && (
@@ -4745,7 +4986,10 @@ export function ReelEditor() {
 
             {/* Footer with Export */}
             <div className="p-4 border-t border-[#2a2a2d] bg-[#1a1a1c] flex justify-end mt-auto">
-              <Button className="bg-[#ff7800] hover:bg-[#43a97f] text-black font-bold px-6 py-2 h-auto rounded-md shadow-[0_0_15px_rgba(82,197,149,0.3)]">
+              <Button 
+                onClick={() => setShowExportModal(true)}
+                className="bg-[#ff7800] hover:bg-[#43a97f] text-black font-bold px-6 py-2 h-auto rounded-md shadow-[0_0_15px_rgba(82,197,149,0.3)]"
+              >
                 Export
               </Button>
             </div>
