@@ -73,6 +73,7 @@ def create_app():
     
     from routes.auth import auth_bp
     from routes.projects import projects_bp
+    from routes.export_render import export_render_bp
     from routes.captions import captions_bp
     from routes.payment import payment_bp
     from routes.credit import credit_bp
@@ -86,6 +87,7 @@ def create_app():
     
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(projects_bp, url_prefix='/api/projects')
+    app.register_blueprint(export_render_bp, url_prefix='/api/projects')
     app.register_blueprint(captions_bp, url_prefix='/api/captions')
     app.register_blueprint(payment_bp, url_prefix='/api/payment')
     app.register_blueprint(credit_bp, url_prefix='/api/credit')

@@ -559,6 +559,15 @@ export function ReelEditor() {
           headers: { Authorization: `Bearer ${token}` }
         });
         const projectData = res.data;
+        if (projectData.language) {
+          if (projectData.language.toLowerCase() === 'hinglish') {
+            setTranscriptionMode('native_english');
+          } else if (projectData.language.toLowerCase() === 'devanagari' || projectData.language.toLowerCase() === 'hindi') {
+            setTranscriptionMode('native_language');
+          } else {
+            setTranscriptionMode('english');
+          }
+        }
         if (projectData.video_url) {
           const pathOnly = projectData.video_url.replace(/^https?:\/\/[^\/]+/, '');
           setVideoUrl(`${API_BASE_URL}${pathOnly}`);
@@ -570,6 +579,57 @@ export function ReelEditor() {
           setCaptions(loadedCaptions);
           setHistory([loadedCaptions]);
           setHistoryIndex(0);
+        }
+        if (projectData.caption && projectData.caption.style) {
+          const s = projectData.caption.style;
+          if (s.fontFamily) setFontFamily(s.fontFamily);
+          if (s.fontFace) setFontFace(s.fontFace);
+          if (s.fontSize) setFontSize(s.fontSize);
+          if (s.styleFlags) setStyleFlags(s.styleFlags);
+          if (s.casing) setCasing(s.casing);
+          if (s.textAlign) setTextAlign(s.textAlign);
+          if (s.position) setPosition(s.position);
+          if (s.color) setColor(s.color);
+          if (s.boxWidth) setBoxWidth(s.boxWidth);
+          if (s.colorToggle) setColorToggle(s.colorToggle);
+          if (s.gradientStops) setGradientStops(s.gradientStops);
+          if (s.gradientAngle) setGradientAngle(s.gradientAngle);
+          if (s.letterSpacing !== undefined) setLetterSpacing(s.letterSpacing);
+          if (s.activeTransition) setActiveTransition(s.activeTransition);
+          if (s.transitionSpeed !== undefined) setTransitionSpeed(s.transitionSpeed);
+          if (s.transitionTarget) setTransitionTarget(s.transitionTarget);
+          if (s.bgEnabled !== undefined) setBgEnabled(s.bgEnabled);
+          if (s.bgColor) setBgColor(s.bgColor);
+          if (s.bgOpacity !== undefined) setBgOpacity(s.bgOpacity);
+          if (s.bgRadius !== undefined) setBgRadius(s.bgRadius);
+          if (s.bgShadowEnabled !== undefined) setBgShadowEnabled(s.bgShadowEnabled);
+          if (s.bgOutlineEnabled !== undefined) setBgOutlineEnabled(s.bgOutlineEnabled);
+          if (s.strokeEnabled !== undefined) setStrokeEnabled(s.strokeEnabled);
+          if (s.strokeColor) setStrokeColor(s.strokeColor);
+          if (s.strokeWidth !== undefined) setStrokeWidth(s.strokeWidth);
+          if (s.shadowEnabled !== undefined) setShadowEnabled(s.shadowEnabled);
+          if (s.shadowColor) setShadowColor(s.shadowColor);
+          if (s.shadowX !== undefined) setShadowX(s.shadowX);
+          if (s.shadowY !== undefined) setShadowY(s.shadowY);
+          if (s.shadowBlur !== undefined) setShadowBlur(s.shadowBlur);
+          if (s.emphasisMode) setEmphasisMode(s.emphasisMode);
+          if (s.emphasisColor) setEmphasisColor(s.emphasisColor);
+          if (s.emphasisSize !== undefined) setEmphasisSize(s.emphasisSize);
+          if (s.emphasisGlow !== undefined) setEmphasisGlow(s.emphasisGlow);
+          if (s.emphasisFont) setEmphasisFont(s.emphasisFont);
+          if (s.emphasisFontFace) setEmphasisFontFace(s.emphasisFontFace);
+          if (s.emphasisGradientStops) setEmphasisGradientStops(s.emphasisGradientStops);
+          if (s.emphasisGradientAngle !== undefined) setEmphasisGradientAngle(s.emphasisGradientAngle);
+          if (s.spotlightMode) setSpotlightMode(s.spotlightMode);
+          if (s.spotlightColor) setSpotlightColor(s.spotlightColor);
+          if (s.spotlightSize !== undefined) setSpotlightSize(s.spotlightSize);
+          if (s.spotlightGlow !== undefined) setSpotlightGlow(s.spotlightGlow);
+          if (s.spotlightFont) setSpotlightFont(s.spotlightFont);
+          if (s.spotlightFontFace) setSpotlightFontFace(s.spotlightFontFace);
+          if (s.spotlightGradientStops) setSpotlightGradientStops(s.spotlightGradientStops);
+          if (s.spotlightGradientAngle !== undefined) setSpotlightGradientAngle(s.spotlightGradientAngle);
+          if (s.removeEmphasis !== undefined) setRemoveEmphasis(s.removeEmphasis);
+          if (s.linesMode) setLinesMode(s.linesMode);
         }
       } catch (err) {
         console.error('Error loading project:', err);
@@ -771,6 +831,7 @@ export function ReelEditor() {
   }, []);
   const [aiAudioClean, setAiAudioClean] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [resyncing, setResyncing] = useState(false);
 
   useEffect(() => {
     const checkVideo = setInterval(() => {
@@ -1440,6 +1501,53 @@ export function ReelEditor() {
     });
   }, [history]);
 
+  const handleResyncCaptions = async () => {
+    if (!projectId || resyncing) return;
+    const confirmResync = window.confirm("Are you sure you want to resync timings? This will align your current text with the audio using Whisper alignment (does not run Gemini).");
+    if (!confirmResync) return;
+    
+    setResyncing(true);
+    const token = localStorage.getItem('auth_token');
+    
+    // Concatenate current captions text to align exact text spelling corrections
+    const fullTranscript = captions.map(c => c.text).join(' ');
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/captions/${projectId}/align`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ transcript: fullTranscript })
+      });
+
+      if (!response.ok) {
+        throw new Error('Alignment failed');
+      }
+
+      const transcribeData = await response.json();
+      if (transcribeData.segments) {
+        const newCaptions = transcribeData.segments.map((c: any, i: number) => generateWordsForChunk(c, i));
+        setCaptions(newCaptions);
+        
+        // Add to history
+        setHistory(prevHist => {
+          const nextHist = prevHist.slice(0, historyIndex + 1);
+          return [...nextHist, newCaptions];
+        });
+        setHistoryIndex(prevIdx => prevIdx + 1);
+        
+        alert("Captions realigned and synced successfully!");
+      }
+    } catch (err: any) {
+      console.error('Resync error:', err);
+      alert('Failed to realign captions: ' + err.message);
+    } finally {
+      setResyncing(false);
+    }
+  };
+
   const saveProject = async () => {
     if (!projectId || !captions) return;
     try {
@@ -1456,11 +1564,53 @@ export function ReelEditor() {
         segments: segmentsToSave,
         style: {
           fontFamily,
+          fontFace,
           fontSize,
+          styleFlags,
+          casing,
+          textAlign,
+          position,
           color,
+          boxWidth,
+          colorToggle,
+          gradientStops,
+          gradientAngle,
+          letterSpacing,
           activeTransition,
           transitionSpeed,
-          transitionTarget
+          transitionTarget,
+          bgEnabled,
+          bgColor,
+          bgOpacity,
+          bgRadius,
+          bgShadowEnabled,
+          bgOutlineEnabled,
+          strokeEnabled,
+          strokeColor,
+          strokeWidth,
+          shadowEnabled,
+          shadowColor,
+          shadowX,
+          shadowY,
+          shadowBlur,
+          emphasisMode,
+          emphasisColor,
+          emphasisSize,
+          emphasisGlow,
+          emphasisFont,
+          emphasisFontFace,
+          emphasisGradientStops,
+          emphasisGradientAngle,
+          spotlightMode,
+          spotlightColor,
+          spotlightSize,
+          spotlightGlow,
+          spotlightFont,
+          spotlightFontFace,
+          spotlightGradientStops,
+          spotlightGradientAngle,
+          removeEmphasis,
+          linesMode
         }
       }, {
         headers: { Authorization: `Bearer ${token}` }
@@ -1472,9 +1622,123 @@ export function ReelEditor() {
   };
 
   const handleStartExport = async () => {
-    if (!videoUrl || isExporting) return;
+    if (!videoUrl || isExporting || !projectId) return;
     setIsExporting(true);
     setExportProgress(0);
+
+    if (exportResolution === '1440' || exportResolution === '2160') {
+      setExportStatusText('Preparing server-side render...');
+      try {
+        const token = localStorage.getItem('auth_token');
+        const exportConfig = {
+          fontFamily,
+          fontSize,
+          color,
+          strokeEnabled,
+          strokeColor,
+          strokeWidth,
+          shadowEnabled,
+          shadowColor,
+          shadowX,
+          shadowY,
+          shadowBlur,
+          fontFace,
+          casing,
+          position,
+          boxWidth,
+          colorToggle,
+          gradientStops,
+          gradientAngle,
+          letterSpacing,
+          activeTransition,
+          textAlign,
+          bgEnabled,
+          bgColor,
+          bgOpacity,
+          bgRadius,
+          bgShadowEnabled,
+          bgOutlineEnabled,
+          emphasisMode,
+          emphasisColor,
+          emphasisSize,
+          emphasisGlow,
+          emphasisFont,
+          emphasisFontFace,
+          emphasisGradientStops,
+          emphasisGradientAngle,
+          spotlightMode,
+          spotlightColor,
+          spotlightSize,
+          spotlightGlow,
+          spotlightFont,
+          spotlightFontFace,
+          spotlightGradientStops,
+          spotlightGradientAngle,
+          removeEmphasis,
+          linesMode
+        };
+
+        const startRes = await axios.post(
+          `${API_BASE_URL}/api/projects/export-render/${projectId}`,
+          {
+            resolution: exportResolution,
+            captions: captions,
+            config: exportConfig
+          },
+          {
+            headers: { Authorization: `Bearer ${token}` }
+          }
+        );
+
+        setExportStatusText('Rendering video on server...');
+        setExportProgress(10);
+
+        const pollInterval = setInterval(async () => {
+          try {
+            const statusRes = await axios.get(
+              `${API_BASE_URL}/api/projects/export-status/${projectId}/${exportResolution}`,
+              {
+                headers: { Authorization: `Bearer ${token}` }
+              }
+            );
+
+            const statusData = statusRes.data;
+            if (statusData.status === 'processing') {
+              setExportProgress(statusData.progress || 20);
+              setExportStatusText(statusData.message || 'Rendering in progress...');
+            } else if (statusData.status === 'completed') {
+              clearInterval(pollInterval);
+              setExportProgress(100);
+              setExportStatusText('Finalizing download...');
+              
+              const downloadUrl = `${API_BASE_URL}${statusData.video_url}`;
+              const a = document.createElement('a');
+              a.href = downloadUrl;
+              a.download = `reel_export_${exportResolution}p.mp4`;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              
+              setIsExporting(false);
+              setShowExportModal(false);
+            } else if (statusData.status === 'failed') {
+              clearInterval(pollInterval);
+              setIsExporting(false);
+              alert(`Render failed: ${statusData.message || 'Unknown error'}`);
+            }
+          } catch (pollErr) {
+            console.error('Error polling render status:', pollErr);
+          }
+        }, 3000);
+
+      } catch (err: any) {
+        console.error('Failed to trigger server render:', err);
+        setIsExporting(false);
+        alert(`Failed to trigger server render: ${err.response?.data?.error || err.message}`);
+      }
+      return;
+    }
+
     setExportStatusText('Downloading video source (0%)...');
 
     try {
@@ -1560,9 +1824,9 @@ export function ReelEditor() {
           let mediaRecorder: MediaRecorder;
           
           let bitrate = 8000000; // 8 Mbps for 1080p
-          if (exportResolution === '1440') {
+          if ((exportResolution as string) === '1440') {
             bitrate = 16000000; // 16 Mbps for 2K
-          } else if (exportResolution === '2160') {
+          } else if ((exportResolution as string) === '2160') {
             bitrate = 30000000; // 30 Mbps for 4K
           }
 
@@ -1919,7 +2183,16 @@ export function ReelEditor() {
       saveProject();
     }, 3000);
     return () => clearTimeout(timer);
-  }, [captions, fontFamily, fontSize, color, activeTransition, transitionSpeed, transitionTarget, projectId]);
+  }, [
+    captions, fontFamily, fontFace, fontSize, styleFlags, casing, textAlign, position, color,
+    boxWidth, colorToggle, gradientStops, gradientAngle, letterSpacing, activeTransition,
+    transitionSpeed, transitionTarget, bgEnabled, bgColor, bgOpacity, bgRadius, bgShadowEnabled,
+    bgOutlineEnabled, strokeEnabled, strokeColor, strokeWidth, shadowEnabled, shadowColor,
+    shadowX, shadowY, shadowBlur, emphasisMode, emphasisColor, emphasisSize, emphasisGlow,
+    emphasisFont, emphasisFontFace, emphasisGradientStops, emphasisGradientAngle, spotlightMode,
+    spotlightColor, spotlightSize, spotlightGlow, spotlightFont, spotlightFontFace,
+    spotlightGradientStops, spotlightGradientAngle, removeEmphasis, linesMode, projectId
+  ]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1940,45 +2213,61 @@ export function ReelEditor() {
         handleTimelineRedo();
         return;
       }
-
-      // Space to Play/Pause
+      
+      // Space to Play/Pause directly on video element
       if (e.code === 'Space') {
         e.preventDefault();
-        if (togglePlayRef.current) togglePlayRef.current();
+        const videoEl = document.querySelector('video');
+        if (videoEl) {
+          if (videoEl.paused) {
+            videoEl.play().catch(err => console.error("Play failed:", err));
+          } else {
+            videoEl.pause();
+          }
+        }
         return;
       }
 
-      // Left/Right Arrow to Nudge Selected Block(s)
-      if (selectedBlockIds.length > 0 && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+      // Left/Right Arrow to Nudge Selected Block(s) OR Seek Timeline
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
         e.preventDefault();
-        const delta = e.key === 'ArrowLeft' ? -0.1 : 0.1;
-        setCaptions(prev => {
-          let updated = false;
-          const newCaptions = prev.map(c => {
-            let nextChunk = { ...c };
-            if (selectedBlockIds.includes(c.id)) {
-              updated = true;
-              nextChunk.start = Math.max(0, nextChunk.start + delta);
-              nextChunk.end = Math.max(0, nextChunk.end + delta);
+        if (selectedBlockIds.length > 0) {
+          const delta = e.key === 'ArrowLeft' ? -0.1 : 0.1;
+          setCaptions(prev => {
+            let updated = false;
+            const newCaptions = prev.map(c => {
+              let nextChunk = { ...c };
+              if (selectedBlockIds.includes(c.id)) {
+                updated = true;
+                nextChunk.start = Math.max(0, nextChunk.start + delta);
+                nextChunk.end = Math.max(0, nextChunk.end + delta);
+              }
+              if (nextChunk.words) {
+                nextChunk.words = nextChunk.words.map((w: any) => {
+                  if (selectedBlockIds.includes(w.id)) {
+                    updated = true;
+                    return { ...w, start: Math.max(0, w.start + delta), end: Math.max(0, w.end + delta) };
+                  }
+                  return w;
+                });
+              }
+              return nextChunk;
+            });
+            
+            if (updated) {
+              isUndoRedoRef.current = true;
+              return newCaptions;
             }
-            if (nextChunk.words) {
-              nextChunk.words = nextChunk.words.map((w: any) => {
-                if (selectedBlockIds.includes(w.id)) {
-                  updated = true;
-                  return { ...w, start: Math.max(0, w.start + delta), end: Math.max(0, w.end + delta) };
-                }
-                return w;
-              });
-            }
-            return nextChunk;
+            return prev;
           });
-          
-          if (updated) {
-            isUndoRedoRef.current = true;
-            return newCaptions;
+        } else {
+          // Seek video timeline by 2 seconds directly on HTML5 video
+          const videoEl = document.querySelector('video');
+          if (videoEl) {
+            const seekDelta = e.key === 'ArrowLeft' ? -2.0 : 2.0;
+            videoEl.currentTime = Math.max(0, Math.min(videoEl.duration || 0, videoEl.currentTime + seekDelta));
           }
-          return prev;
-        });
+        }
         return;
       }
 
@@ -2020,7 +2309,7 @@ export function ReelEditor() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleTimelineUndo, handleTimelineRedo, selectedBlockId]);
+  }, [handleTimelineUndo, handleTimelineRedo, selectedBlockIds]);
 
   const handleCaptionChange = (id: number, newText: string) => {
     setCaptions(captions.map(c => c.id === id ? { ...c, text: newText } : c));
@@ -3388,6 +3677,18 @@ export function ReelEditor() {
                         disabled={!selectedBlockId}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+
+                      <div className="h-4 w-[1px] bg-[#2a2a2d]"></div>
+
+                      <button
+                        onClick={handleResyncCaptions}
+                        disabled={resyncing}
+                        className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#2a2a2d] hover:bg-[#ff7800] text-[10px] font-bold text-white transition-all disabled:opacity-50"
+                        title="Re-run audio transcription and sync with timeline"
+                      >
+                        <RefreshCw className={`w-3 h-3 ${resyncing ? 'animate-spin' : ''}`} />
+                        {resyncing ? 'Syncing...' : 'Resync'}
                       </button>
                     </div>
                   </div>

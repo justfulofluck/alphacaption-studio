@@ -31,6 +31,8 @@ export function ReelsDashboard() {
   const navigate = useNavigate();
   const [projects, setProjects] = useState<Project[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 16;
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -70,6 +72,10 @@ export function ReelsDashboard() {
     fetchProjects();
   }, []);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, projects]);
+
   const fetchProjects = async () => {
     const token = localStorage.getItem('auth_token');
     setLoading(true);
@@ -77,8 +83,10 @@ export function ReelsDashboard() {
       const res = await axios.get(`${API_BASE_URL}/api/projects`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      // Filter only reels projects (those with video)
-      const videoProjects = res.data.filter((p: any) => p.video_filename || p.video_url || p.name.toLowerCase().endsWith('.mp4'));
+      // Filter only reels projects (those with video) and sort strictly by creation date/time descending (newest first)
+      const videoProjects = res.data
+        .filter((p: any) => p.video_filename || p.video_url)
+        .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       setProjects(videoProjects);
     } catch (err) {
       console.error('Error fetching projects:', err);
@@ -216,7 +224,14 @@ export function ReelsDashboard() {
     return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
   };
 
-  const filteredProjects = projects;
+  const filteredProjects = projects.filter(p => 
+    p.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const totalPages = Math.ceil(filteredProjects.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentProjects = filteredProjects.slice(indexOfFirstItem, indexOfLastItem);
 
   return (
     <div className="min-h-screen bg-[#0F0F11] text-white p-6 select-none font-sans">
@@ -330,44 +345,46 @@ export function ReelsDashboard() {
             <span className="text-xs">No video projects found. Upload a video above to start.</span>
           </div>
         ) : (
-          <div className="grid grid-cols-4 gap-6">
-            {filteredProjects.map((project) => (
+          <>
+            <div className="grid grid-cols-8 gap-3">
+              {currentProjects.map((project) => (
               <div 
                 key={project.id}
                 onClick={() => navigate(`/reels/editor?projectId=${project.id}`)}
-                className="group cursor-pointer bg-[#161618] border border-[#2A2A2D] rounded-2xl overflow-hidden hover:border-[#ff7800]/50 transition-all flex flex-col"
+                className="group cursor-pointer bg-[#161618] border border-[#2A2A2D] rounded-xl overflow-hidden hover:border-[#ff7800]/50 transition-all flex flex-col"
               >
                 {/* Media Thumbnail Container */}
-                <div className="relative aspect-square bg-[#0A0A0C] flex items-center justify-center overflow-hidden">
+                <div className="relative aspect-[9/16] bg-[#0A0A0C] flex items-center justify-center overflow-hidden">
                   {project.video_url ? (
                     <video 
-                      src={`${project.video_url}#t=0.1`} 
+                      src={`${API_BASE_URL}${project.video_url.replace(/^https?:\/\/[^\/]+/, '')}#t=0.1`} 
                       className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity"
-                      preload="metadata"
+                      preload="auto"
                       muted
                       playsInline
+                      crossOrigin="anonymous"
                     />
                   ) : (
                     <div className="flex flex-col items-center text-[#2A2A2D]">
-                      <Video className="w-12 h-12" />
+                      <Video className="w-8 h-8" />
                     </div>
                   )}
                   {/* Play Overlay */}
                   <div className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/30 transition-colors">
-                    <div className="w-12 h-12 rounded-full bg-[#ff7800] border border-[#ff8c24] flex items-center justify-center text-white opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 transition-all duration-300 shadow-[0_0_20px_rgba(255,120,0,0.4)]">
-                      <Play className="w-5 h-5 fill-current ml-0.5" />
+                    <div className="w-10 h-10 rounded-full bg-[#ff7800] border border-[#ff8c24] flex items-center justify-center text-white opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 transition-all duration-300 shadow-[0_0_15px_rgba(255,120,0,0.4)]">
+                      <Play className="w-4 h-4 fill-current ml-0.5" />
                     </div>
                   </div>
                   {/* Duration tag */}
-                  <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded text-[9px] font-bold text-white tracking-wider border border-white/10">
+                  <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md px-1.5 py-0.5 rounded text-[8px] font-bold text-white tracking-wider border border-white/10">
                     {formatDuration(project.duration)}
                   </div>
                 </div>
 
                 {/* Footer Info */}
-                <div className="p-4 flex flex-col gap-1 relative">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-bold text-[#e0e0e0] truncate group-hover:text-white transition-colors">{project.name}</span>
+                <div className="p-2.5 flex flex-col gap-0.5 relative">
+                  <div className="flex items-center justify-between gap-1.5">
+                    <span className="text-[10px] font-bold text-[#e0e0e0] truncate group-hover:text-white transition-colors">{project.name}</span>
                     <div className="relative">
                       <button 
                         onClick={(e) => {
@@ -400,6 +417,42 @@ export function ReelsDashboard() {
               </div>
             ))}
           </div>
+          
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-8 pt-6 border-t border-[#2A2A2D]">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 rounded-lg border border-[#2A2A2D] text-xs font-semibold text-[#8a8a8e] hover:text-white hover:border-[#ff7800] disabled:opacity-50 disabled:hover:border-[#2A2A2D] disabled:hover:text-[#8a8a8e] transition-all"
+              >
+                Previous
+              </button>
+              
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => (
+                <button
+                  key={pageNum}
+                  onClick={() => setCurrentPage(pageNum)}
+                  className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
+                    currentPage === pageNum
+                      ? 'bg-[#ff7800] text-white shadow-[0_0_15px_rgba(255,120,0,0.3)]'
+                      : 'border border-[#2A2A2D] text-[#8a8a8e] hover:text-white hover:border-[#ff7800]'
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              ))}
+              
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1.5 rounded-lg border border-[#2A2A2D] text-xs font-semibold text-[#8a8a8e] hover:text-white hover:border-[#ff7800] disabled:opacity-50 disabled:hover:border-[#2A2A2D] disabled:hover:text-[#8a8a8e] transition-all"
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </>
         )}
       </div>
     </div>

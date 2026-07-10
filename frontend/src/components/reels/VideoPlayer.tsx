@@ -603,12 +603,7 @@ function CustomPlayerUI({
           <RefreshCw className="w-3.5 h-3.5 text-[#ff7800]" /> Replace
         </button>
 
-        {/* Middle icons */}
-        <div className="flex items-center gap-3 bg-[#2a2a2d] px-3 py-1.5 rounded-lg border border-white/5">
-          <button className="text-zinc-400 hover:text-white transition-colors"><Minimize2 className="w-4 h-4" /></button>
-          <button className="text-zinc-400 hover:text-white transition-colors"><Video className="w-4 h-4" /></button>
-          <button className="text-zinc-400 hover:text-white transition-colors"><Type className="w-4 h-4" /></button>
-        </div>
+
 
         <div className="flex items-center gap-2 text-[10px] font-bold tracking-wider uppercase bg-[#2a2a2d] text-[#8a8a8e] px-3 py-1.5 rounded border border-white/5">
           <div className="w-1.5 h-1.5 rounded-full bg-[#f5a623]"></div> Low-res

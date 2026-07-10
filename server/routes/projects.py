@@ -1,9 +1,10 @@
-from flask import Blueprint, request, jsonify, current_app, send_from_directory, url_for
+from flask import Blueprint, request, jsonify, current_app, send_from_directory, url_for, Response
 from extensions import db, limiter
 from models.user import Project, Caption
 from werkzeug.utils import secure_filename
 import os
 import json
+import re
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 projects_bp = Blueprint('projects', __name__)
@@ -34,6 +35,8 @@ def list_projects():
         'name': p.name,
         'audio_filename': p.audio_filename,
         'audio_url': get_audio_url(p.audio_filename),
+        'video_filename': p.video_filename,
+        'video_url': get_video_url(user_id, p.video_filename) if p.video_filename else None,
         'duration': p.duration,
         'language': p.language,
         'status': p.status,
@@ -236,11 +239,38 @@ def get_audio(filename):
 @projects_bp.route('/video/<int:user_id>/<filename>', methods=['GET'])
 def get_video(user_id, filename):
     user_video_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], f"user_{user_id}", "videos")
+    filepath = os.path.join(user_video_dir, filename)
     
-    mimetype = None
-    if filename.lower().endswith('.mp4'):
-        mimetype = 'video/mp4'
-    elif filename.lower().endswith('.webm'):
+    if not os.path.exists(filepath):
+        return "File not found", 404
+        
+    file_size = os.path.getsize(filepath)
+    range_header = request.headers.get('Range', None)
+    
+    mimetype = 'video/mp4'
+    if filename.lower().endswith('.webm'):
         mimetype = 'video/webm'
         
-    return send_from_directory(user_video_dir, filename, mimetype=mimetype)
+    if not range_header:
+        return send_from_directory(user_video_dir, filename, mimetype=mimetype)
+        
+    match = re.match(r'bytes=(\d+)-(\d*)', range_header)
+    if not match:
+        return send_from_directory(user_video_dir, filename, mimetype=mimetype)
+        
+    start = int(match.group(1))
+    end = match.group(2)
+    end = int(end) if end else file_size - 1
+    
+    length = end - start + 1
+    
+    with open(filepath, 'rb') as f:
+        f.seek(start)
+        data = f.read(length)
+        
+    response = Response(data, 206, mimetype=mimetype, direct_passthrough=True)
+    response.headers.add('Content-Range', f'bytes {start}-{end}/{file_size}')
+    response.headers.add('Accept-Ranges', 'bytes')
+    response.headers.add('Content-Length', str(length))
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response

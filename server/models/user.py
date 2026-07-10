@@ -1,6 +1,9 @@
 from extensions import db
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import bcrypt
+
+def ist_now():
+    return datetime.now(timezone(timedelta(hours=5, minutes=30)))
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -12,7 +15,7 @@ class User(db.Model):
     phone = db.Column(db.String(20), nullable=True)
     plan = db.Column(db.String(20), default='free')
     role = db.Column(db.String(20), default='user')  # 'user', 'admin', 'super_admin'
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=ist_now)
     last_login_at = db.Column(db.DateTime, nullable=True)
     failed_login_attempts = db.Column(db.Integer, default=0)
     locked_until = db.Column(db.DateTime, nullable=True)
@@ -52,8 +55,8 @@ class Project(db.Model):
     duration = db.Column(db.Float, default=0)
     language = db.Column(db.String(50))
     status = db.Column(db.String(20), default='uploaded')
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=ist_now)
+    updated_at = db.Column(db.DateTime, default=ist_now, onupdate=ist_now)
     
     captions = db.relationship('Caption', backref='project', lazy=True, cascade='all, delete-orphan')
     
