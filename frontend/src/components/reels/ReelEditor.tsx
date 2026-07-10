@@ -1501,8 +1501,6 @@ export function ReelEditor() {
       video.style.position = 'fixed';
       video.style.left = '-9999px';
       video.style.top = '-9999px';
-      video.style.width = '1px';
-      video.style.height = '1px';
       video.style.opacity = '0';
       video.style.pointerEvents = 'none';
       document.body.appendChild(video);
@@ -1526,6 +1524,8 @@ export function ReelEditor() {
 
           video.width = width;
           video.height = height;
+          video.style.width = `${width}px`;
+          video.style.height = `${height}px`;
 
           const canvas = document.createElement('canvas');
           canvas.width = width;
