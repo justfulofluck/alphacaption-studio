@@ -600,11 +600,13 @@ class ExportRenderService:
 
     @classmethod
     def execute_ffmpeg_render(cls, input_video, ass_filepath, output_video, resolution, width, height):
-        bitrate = '8M'
+        # We use CRF (Constant Rate Factor) for encoding high-quality video.
+        # CRF 18 is visually lossless and guarantees pristine quality without pixelation.
+        crf = '18'
         if resolution == '1440':
-            bitrate = '16M'
+            crf = '16'
         elif resolution == '2160':
-            bitrate = '30M'
+            crf = '14'
             
         # Prepare local fonts directory
         fonts_dir = os.path.join(os.path.dirname(os.path.dirname(ass_filepath)), "fonts")
@@ -619,8 +621,9 @@ class ExportRenderService:
             '-i', input_video,
             '-vf', f"scale={width}:{height},subtitles='{safe_ass_path}':fontsdir='{safe_fonts_dir}'",
             '-c:v', 'libx264',
-            '-b:v', bitrate,
+            '-crf', crf,
             '-preset', 'fast',
+            '-pix_fmt', 'yuv420p',
             '-c:a', 'aac',
             '-b:a', '192k',
             output_video

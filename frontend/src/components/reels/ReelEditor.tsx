@@ -1711,7 +1711,7 @@ export function ReelEditor() {
               setExportProgress(100);
               setExportStatusText('Finalizing download...');
               
-              const downloadUrl = `${API_BASE_URL}${statusData.video_url}`;
+              const downloadUrl = `${API_BASE_URL}${statusData.video_url}?t=${Date.now()}`;
               const a = document.createElement('a');
               a.href = downloadUrl;
               a.download = `reel_export_${exportResolution}p.mp4`;
@@ -1823,28 +1823,40 @@ export function ReelEditor() {
           const combinedStream = new MediaStream(tracks);
           let mediaRecorder: MediaRecorder;
           
-          let bitrate = 8000000; // 8 Mbps for 1080p
+          let bitrate = 12000000; // 12 Mbps for 1080p (increased for higher quality/sharpness)
           if ((exportResolution as string) === '1440') {
-            bitrate = 16000000; // 16 Mbps for 2K
+            bitrate = 18000000; // 18 Mbps for 2K
           } else if ((exportResolution as string) === '2160') {
-            bitrate = 30000000; // 30 Mbps for 4K
+            bitrate = 35000000; // 35 Mbps for 4K
+          }
+
+          // Dynamically detect and use hardware accelerated H.264 or VP9 codecs for smooth encoding & crisp text
+          let selectedMimeType = 'video/webm';
+          const codecsToTry = [
+            'video/webm;codecs=h264',
+            'video/webm;codecs=vp9',
+            'video/webm;codecs=vp8',
+            'video/webm'
+          ];
+          for (const type of codecsToTry) {
+            if (MediaRecorder.isTypeSupported(type)) {
+              selectedMimeType = type;
+              break;
+            }
           }
 
           try {
             mediaRecorder = new MediaRecorder(combinedStream, { 
-              mimeType: 'video/webm;codecs=vp8',
+              mimeType: selectedMimeType,
               videoBitsPerSecond: bitrate
             });
           } catch (e) {
             try {
               mediaRecorder = new MediaRecorder(combinedStream, { 
-                mimeType: 'video/webm',
                 videoBitsPerSecond: bitrate
               });
             } catch (e2) {
-              mediaRecorder = new MediaRecorder(combinedStream, {
-                videoBitsPerSecond: bitrate
-              });
+              mediaRecorder = new MediaRecorder(combinedStream);
             }
           }
 
