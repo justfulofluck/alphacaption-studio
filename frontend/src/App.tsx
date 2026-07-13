@@ -229,7 +229,15 @@ function Layout() {
             location.pathname === "/" ? "bg-[#0F0F11]" : "bg-background",
             isFullPageLayout ? "h-screen overflow-hidden" : "overflow-auto"
           )}>
-            <Outlet context={{ isLoggedIn, setIsLoggedIn }} />
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              className="h-full"
+            >
+              <Outlet context={{ isLoggedIn, setIsLoggedIn }} />
+            </motion.div>
           </main>
         </SidebarInset>
       </AudioProvider>

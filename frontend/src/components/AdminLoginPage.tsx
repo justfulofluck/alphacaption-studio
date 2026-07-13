@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { motion } from "motion/react";
 
 import { API_BASE_URL } from "@/api/config"
 
@@ -61,7 +62,12 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans selection:bg-zinc-900 selection:text-white">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+      className="min-h-screen bg-zinc-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans selection:bg-zinc-900 selection:text-white"
+    >
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
           <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center text-zinc-950 shadow-[0_0_50px_-12px_rgba(255,255,255,0.3)]">
@@ -152,6 +158,6 @@ export default function AdminLoginPage() {
           Secure encrypted session • Access is logged • Unauthorized entry is prohibited
         </p>
       </div>
-    </div>
+    </motion.div>
   );
 }

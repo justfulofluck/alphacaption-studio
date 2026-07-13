@@ -1,39 +1,44 @@
 import { GalleryVerticalEnd } from "lucide-react"
 import { ResetPasswordForm } from "@/components/ResetPasswordForm"
-import Background from "@/assets/Background.png"
+import Beams from "@/components/Beams"
+import { motion } from "motion/react"
 
 export default function ResetPasswordPage() {
   return (
-    <div className="grid h-screen lg:grid-cols-2 bg-[#0D0D0D] font-inter overflow-hidden">
-      <div className="flex flex-col gap-4 p-8 md:p-10 lg:p-12 relative z-10 overflow-y-auto lg:overflow-hidden">
-        <div className="flex justify-center lg:justify-start mb-8">
-          <a href="https://vcaptiona.com" className="flex items-center gap-2">
-            <img src="/logo.png" alt="Vcaptiona Logo" className="h-10 w-auto object-contain" />
-          </a>
-        </div>
-        <div className="flex flex-1 items-center justify-center lg:justify-start">
-          <div className="w-full max-w-md">
-            <ResetPasswordForm />
-          </div>
-        </div>
-      </div>
-      <div className="relative hidden lg:block overflow-hidden border-l border-[#262626]">
-        <img
-          src={Background}
-          alt="Security and Privacy"
-          className="absolute inset-0 h-full w-full object-cover brightness-[0.3]"
+    <div className="relative h-screen bg-[#0D0D0D] font-inter overflow-hidden">
+      {/* Force HMR */}
+      <div className="absolute inset-0 z-0">
+        <Beams
+          beamWidth={2}
+          beamHeight={40}
+          beamNumber={25}
+          lightColor="#FF7A00"
+          speed={3}
+          noiseIntensity={1.75}
+          scale={0.5}
+          rotation={30}
+          className="w-full h-full"
         />
-        <div className="absolute inset-0 bg-gradient-to-tr from-[#0D0D0D] via-transparent to-[#FF7A00]/10"></div>
-        <div className="absolute bottom-20 left-20 right-20">
-          <blockquote className="space-y-8">
-            <p className="text-4xl font-black tracking-tightest text-white leading-[1.1] max-w-xl">
-              "Security is not a feature, it's a foundation. We protect your creativity with enterprise-grade authentication."
-            </p>
-            <footer className="text-xs font-black uppercase tracking-[0.3em] text-[#FF7A00]">
-              Security Operations @Vcaptiona
-            </footer>
-          </blockquote>
-        </div>
+      </div>
+
+      <div className="relative z-10 grid h-full lg:grid-cols-2 pointer-events-none">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="flex flex-col gap-4 p-8 md:p-10 lg:p-12 overflow-y-auto lg:overflow-hidden bg-transparent pointer-events-auto"
+        >
+          <div className="flex justify-center lg:justify-start mb-8">
+            <a href="https://vcaptiona.com" className="flex items-center gap-2">
+              <img src="/logo.png" alt="Vcaptiona Logo" className="h-10 w-auto object-contain" />
+            </a>
+          </div>
+          <div className="flex flex-1 items-center justify-center lg:justify-start">
+            <div className="w-full max-w-md">
+              <ResetPasswordForm />
+            </div>
+          </div>
+        </motion.div>
       </div>
     </div>
   )
