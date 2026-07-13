@@ -22,6 +22,16 @@ def get_video_url(user_id, filename):
         return f"{current_app.config['BASE_URL']}/api/projects/video/{user_id}/{filename}"
     return None
 
+def generate_thumbnail_on_fly(video_path, thumb_path):
+    import subprocess
+    try:
+        cmd = ['ffmpeg', '-y', '-ss', '0.1', '-i', video_path, '-vframes', '1', '-vf', 'scale=360:-1', thumb_path]
+        subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        return True
+    except Exception as e:
+        print(f"[Thumbnail] Failed to generate thumbnail: {e}")
+        return False
+
 
 @projects_bp.route('', methods=['GET'])
 @jwt_required()
@@ -123,6 +133,39 @@ def upload_video():
     filename = f"{int(time.time())}_{secure_filename(file.filename)}"
     filepath = os.path.join(user_video_dir, filename)
     file.save(filepath)
+    
+    # Detect video codec and transcode to H.264 if it is HEVC/non-standard for browser compatibility
+    try:
+        import subprocess
+        probe_cmd = ['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=codec_name', '-of', 'default=noprint_wrappers=1:nokey=1', filepath]
+        codec_result = subprocess.run(probe_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        codec_name = codec_result.stdout.decode('utf-8').strip().lower()
+        print(f"[Upload] Detected video codec: {codec_name}")
+        
+        if codec_name != 'h264':
+            print(f"[Upload] Transcoding non-H.264 video ({codec_name}) to standard H.264 MP4 for Edge/Safari compatibility...")
+            temp_transcoded = filepath + "_transcoded.mp4"
+            transcode_cmd = [
+                'ffmpeg', '-y',
+                '-i', filepath,
+                '-c:v', 'libx264',
+                '-preset', 'veryfast',
+                '-crf', '22',
+                '-c:a', 'aac',
+                '-b:a', '128k',
+                temp_transcoded
+            ]
+            subprocess.run(transcode_cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            os.remove(filepath)
+            os.rename(temp_transcoded, filepath)
+            print("[Upload] Transcoding complete.")
+    except Exception as e:
+        print(f"[Upload] Codec check/transcoding failed: {e}")
+    
+    # Pre-generate thumbnail image
+    base_name, _ = os.path.splitext(filename)
+    thumb_filepath = os.path.join(user_video_dir, f"{base_name}.jpg")
+    generate_thumbnail_on_fly(filepath, thumb_filepath)
     
     from utils.media_info import get_audio_duration
     duration = get_audio_duration(filepath)
@@ -243,6 +286,20 @@ def get_video(user_id, filename):
     
     if not os.path.exists(filepath):
         return "File not found", 404
+        
+    # Check for thumbnail request
+    is_thumb_req = request.args.get('thumbnail', 'false').lower() == 'true'
+    if is_thumb_req:
+        base_name, _ = os.path.splitext(filename)
+        thumb_filename = f"{base_name}.jpg"
+        thumb_path = os.path.join(user_video_dir, thumb_filename)
+        
+        # If it doesn't exist, try to generate it dynamically on the fly
+        if not os.path.exists(thumb_path):
+            generate_thumbnail_on_fly(filepath, thumb_path)
+            
+        if os.path.exists(thumb_path):
+            return send_from_directory(user_video_dir, thumb_filename, mimetype='image/jpeg')
         
     file_size = os.path.getsize(filepath)
     range_header = request.headers.get('Range', None)

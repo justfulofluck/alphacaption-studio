@@ -356,13 +356,11 @@ export function ReelsDashboard() {
                 {/* Media Thumbnail Container */}
                 <div className="relative aspect-[9/16] bg-[#0A0A0C] flex items-center justify-center overflow-hidden">
                   {project.video_url ? (
-                    <video 
-                      src={`${API_BASE_URL}${project.video_url.replace(/^https?:\/\/[^\/]+/, '')}#t=0.1`} 
+                    <img 
+                      src={`${API_BASE_URL}${project.video_url.replace(/^https?:\/\/[^\/]+/, '')}?thumbnail=true`} 
+                      alt={project.name}
                       className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity"
-                      preload="auto"
-                      muted
-                      playsInline
-                      crossOrigin="anonymous"
+                      loading="lazy"
                     />
                   ) : (
                     <div className="flex flex-col items-center text-[#2A2A2D]">

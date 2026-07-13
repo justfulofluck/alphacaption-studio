@@ -542,6 +542,7 @@ export function ReelEditor() {
     const queryParams = new URLSearchParams(window.location.search);
     return queryParams.get('projectId');
   });
+  const [isLoading, setIsLoading] = useState(true);
 
   // Export modal states
   const [showExportModal, setShowExportModal] = useState(false);
@@ -553,6 +554,7 @@ export function ReelEditor() {
   useEffect(() => {
     if (!projectId) return;
     const loadProject = async () => {
+      setIsLoading(true);
       const token = localStorage.getItem('auth_token');
       try {
         const res = await axios.get(`${API_BASE_URL}/api/projects/${projectId}`, {
@@ -602,7 +604,7 @@ export function ReelEditor() {
           if (s.bgColor) setBgColor(s.bgColor);
           if (s.bgOpacity !== undefined) setBgOpacity(s.bgOpacity);
           if (s.bgRadius !== undefined) setBgRadius(s.bgRadius);
-          if (s.bgShadowEnabled !== undefined) setBgShadowEnabled(s.bgShadowEnabled);
+          if (s.bgShadowEnabled !== undefined) setShadowEnabled(s.bgShadowEnabled); // Map safely
           if (s.bgOutlineEnabled !== undefined) setBgOutlineEnabled(s.bgOutlineEnabled);
           if (s.strokeEnabled !== undefined) setStrokeEnabled(s.strokeEnabled);
           if (s.strokeColor) setStrokeColor(s.strokeColor);
@@ -633,6 +635,8 @@ export function ReelEditor() {
         }
       } catch (err) {
         console.error('Error loading project:', err);
+      } finally {
+        setIsLoading(false);
       }
     };
     loadProject();
@@ -1451,18 +1455,9 @@ export function ReelEditor() {
     }));
   };
 
-  const [captions, setCaptions] = useState([
-    { id: 1, start: 0.0, end: 2.5, text: "Hello and welcome to Kalakaar. As" },
-    { id: 2, start: 2.5, end: 4.8, text: "you can see, we have captions on" },
-    { id: 3, start: 4.8, end: 7.2, text: "screen that are in English language. If" },
-    { id: 4, start: 7.2, end: 9.5, text: "you want to see how captions will" },
-    { id: 5, start: 9.5, end: 12.0, text: "look in your language, just pick your" },
-    { id: 6, start: 12.0, end: 14.5, text: "language from the left side on the" },
-    { id: 7, start: 14.5, end: 17.0, text: "screen and you'd be able to see those" },
-    { id: 8, start: 17.0, end: 20.0, text: "subtitles." }
-  ].map((c, i) => generateWordsForChunk(c, i)));
+  const [captions, setCaptions] = useState<any[]>([]);
 
-  const [history, setHistory] = useState<any[][]>([captions]);
+  const [history, setHistory] = useState<any[][]>([[]]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const isUndoRedoRef = useRef(false);
 
@@ -3243,7 +3238,20 @@ export function ReelEditor() {
 
                   {/* List */}
                   <div className="flex-1 overflow-y-auto custom-scrollbar relative">
-                    {displayCaptions.map((caption, i) => {
+                    {isLoading ? (
+                      <div className="flex flex-col gap-4 p-5 animate-pulse">
+                        {[...Array(6)].map((_, idx) => (
+                          <div key={idx} className="flex gap-4 items-start py-2 border-b border-[#2a2a2d]/50">
+                            <div className="w-6 h-6 bg-[#2a2a2d] rounded-full flex-shrink-0" />
+                            <div className="flex-1 flex flex-col gap-2">
+                              <div className="h-4 bg-[#2a2a2d] rounded w-[80%]" />
+                              <div className="h-3 bg-[#2a2a2d] rounded w-[45%]" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) :
+                      displayCaptions.map((caption, i) => {
                       const isActive = caption.id === activeCaptionId;
                       return (
                         <div
@@ -3741,11 +3749,20 @@ export function ReelEditor() {
                     }
                   }}
                 >
-                  <div 
-                    className="h-full relative select-none timeline-scroll-content" 
-                    style={{ width: `${Math.max(1200, (Math.max(audioDuration || durationRef.current || 0, displayCaptions.length > 0 ? Math.max(...displayCaptions.map(c => c.end)) : 5)) * (200 * zoomLevel) + 400)}px` }} 
-                    onMouseDown={handleTimelineMouseDown}
-                  >
+                  {isLoading ? (
+                    <div className="h-full w-full flex flex-col gap-3 p-4 justify-center animate-pulse">
+                      <div className="h-7 bg-[#2a2a2d] rounded-sm w-[90%] mx-auto" />
+                      <div className="h-7 bg-[#2a2a2d] rounded-sm w-[85%] mx-auto" />
+                      <div className="h-10 bg-[#2a2a2d]/30 rounded-sm w-[95%] mx-auto flex items-center justify-center border border-[#2a2a2d]/45">
+                        <span className="text-[10px] text-[#8a8a8e] font-medium tracking-wider uppercase">Loading Timeline Audio Tracks...</span>
+                      </div>
+                    </div>
+                  ) :
+                    <div 
+                      className="h-full relative select-none timeline-scroll-content" 
+                      style={{ width: `${Math.max(1200, (Math.max(audioDuration || durationRef.current || 0, displayCaptions.length > 0 ? Math.max(...displayCaptions.map(c => c.end)) : 5)) * (200 * zoomLevel) + 400)}px` }} 
+                      onMouseDown={handleTimelineMouseDown}
+                    >
                     {/* Selection Marquee Box */}
                     {selectionBox && (
                       <div 
@@ -3940,7 +3957,8 @@ export function ReelEditor() {
                       </div>
                     </div>
                   </div>
-                </div>
+                }
+              </div>
               </Panel>
             </PanelGroup>
           </Panel>
@@ -3950,6 +3968,7 @@ export function ReelEditor() {
           {/* MIDDLE COLUMN: Video Preview */}
           <VideoPlayer
             videoUrl={videoUrl}
+            isLoading={isLoading}
             captions={displayCaptions}
             fontFamily={fontFamily}
             fontFace={fontFace}

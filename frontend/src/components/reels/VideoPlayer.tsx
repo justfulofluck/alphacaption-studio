@@ -111,7 +111,7 @@ function CustomPlayerUI({
   position,
   setPosition,
   boxWidth = 80,
-  setBoxWidth = () => {},
+  setBoxWidth = () => { },
   colorToggle,
   color,
   gradientStops,
@@ -639,8 +639,8 @@ function CustomPlayerUI({
           {/* Transparent container background */}
           <div
             className={`p-3 flex flex-wrap gap-y-1.5 rounded-xl select-none ${textAlign === 'left' ? 'justify-start text-left' :
-                textAlign === 'right' ? 'justify-end text-right' :
-                  'justify-center text-center'
+              textAlign === 'right' ? 'justify-end text-right' :
+                'justify-center text-center'
               }`}
             style={{
               ...captionStyle,
@@ -649,11 +649,11 @@ function CustomPlayerUI({
                 animationName: `${activeTransition}-effect`,
                 animationDuration: `${transitionSpeed * 10}ms`,
                 animationFillMode: 'forwards',
-                animationTimingFunction: activeTransition === 'pop' 
+                animationTimingFunction: activeTransition === 'pop'
                   ? 'cubic-bezier(0.175, 0.885, 0.32, 1.275)'
                   : activeTransition === 'zoom'
-                  ? 'cubic-bezier(0.34, 1.56, 0.64, 1)'
-                  : 'ease-out'
+                    ? 'cubic-bezier(0.34, 1.56, 0.64, 1)'
+                    : 'ease-out'
               } : {})
             } as any}
           >
@@ -915,6 +915,7 @@ function CustomPlayerUI({
 
 export function VideoPlayer({
   videoUrl,
+  isLoading,
   captions,
   fontFamily,
   fontFace,
@@ -948,8 +949,11 @@ export function VideoPlayer({
   bgRadius,
   bgWidth,
   bgHeight,
+  bgPadding,
   bgShadowEnabled,
   bgOutlineEnabled,
+  bgOutlineColor,
+  bgOutlineWidth,
   letterSpacing,
   lineSpacing,
   activeCaptionId,
@@ -960,7 +964,7 @@ export function VideoPlayer({
   durationRef,
   aiAudioClean,
   boxWidth = 80,
-  setBoxWidth = () => {},
+  setBoxWidth = () => { },
 
   emphasisMode,
   emphasisColor,
@@ -991,7 +995,12 @@ export function VideoPlayer({
   return (
     <Panel defaultSize={25} minSize={20} className="flex flex-col bg-[#0f0f11] relative overflow-hidden rounded-xl border border-[#2a2a2d] custom-player-wrapper">
       <div className="flex-1 flex items-center justify-center min-h-0 w-full h-full relative">
-        {videoUrl ? (
+        {isLoading ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0d0d0f]">
+            <div className="w-10 h-10 rounded-full border-4 border-[#ff7800]/20 border-t-[#ff7800] animate-spin mb-3" />
+            <span className="text-xs text-[#8a8a8e] font-semibold tracking-wide animate-pulse">Loading video editor...</span>
+          </div>
+        ) : videoUrl ? (
           <div className="absolute inset-0 w-full h-full player-media-container">
             <LimeplayPlayer mediaProps={{ src: videoUrl ?? undefined, className: "relative z-10", crossOrigin: "anonymous" }} layout="fill" theme="dark" className="absolute inset-0 w-full h-full">
               <CustomPlayerUI
